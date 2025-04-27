@@ -19,4 +19,7 @@ enum AppColor {
     // 그라데이션 배경색
     static let primary = UIColor(hex: "#140C0C")
     static let secondary = UIColor(hex: "#281914")
+
+    // 아이콘 컬러
+    static let accentColor = UIColor(hex: "#F2F2F2")
 }

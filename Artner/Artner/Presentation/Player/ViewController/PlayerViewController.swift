@@ -4,32 +4,26 @@
 //
 //  Created by 신종원 on 4/5/25.
 //
-
+import UIKit
 import UIKit
 
-final class PlayerViewController: UIViewController, UIScrollViewDelegate {
+final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordinator>, UIScrollViewDelegate {
 
     private let playerView = PlayerView()
-    private let viewModel: PlayerViewModel
-
-    init(docent: Docent) {
-        self.viewModel = PlayerViewModel(docent: docent)
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
 
     override func loadView() {
         self.view = playerView
     }
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
+    override func setupUI() {
+        super.setupUI()
+        playerView.scrollView.delegate = self
+    }
+
+    override func setupBinding() {
+        super.setupBinding()
         bindData()
         bindAction()
-        playerView.scrollView.delegate = self
     }
 
     private func bindData() {
@@ -44,7 +38,7 @@ final class PlayerViewController: UIViewController, UIScrollViewDelegate {
     private func bindAction() {
         playerView.playButton.addTarget(self, action: #selector(didTapPlay), for: .touchUpInside)
         playerView.customNavigationBar.onBackButtonTapped = { [weak self] in
-            self?.navigationController?.popViewController(animated: true)
+            self?.coordinator.popViewController(animated: true)
         }
     }
 
@@ -58,22 +52,16 @@ final class PlayerViewController: UIViewController, UIScrollViewDelegate {
         navigationController?.setNavigationBarHidden(true, animated: animated)
     }
 
-    @objc private func didTapBack() {
-        navigationController?.popViewController(animated: true)
-    }
-
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         let offsetY = scrollView.contentOffset.y
 
-        let maxOffset: CGFloat = 60 // 네비게이션 바 높이
-        let offset = min(max(offsetY, 0), maxOffset) // 0 ~ 44 사이로 제한
+        let maxOffset: CGFloat = 60
+        let offset = min(max(offsetY, 0), maxOffset)
 
         playerView.customNavigationBar.transform = CGAffineTransform(translationX: 0, y: -offset)
         playerView.customNavigationBar.alpha = 1 - (offset / maxOffset * 0.8)
         playerView.artnerPrimaryBar.transform = CGAffineTransform(translationX: 0, y: -offset)
     }
-
-
 
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
         let shouldHide = scrollView.contentOffset.y > 30
@@ -83,5 +71,4 @@ final class PlayerViewController: UIViewController, UIScrollViewDelegate {
             self.playerView.customNavigationBar.alpha = shouldHide ? 0 : 1
         }, completion: nil)
     }
-
 }

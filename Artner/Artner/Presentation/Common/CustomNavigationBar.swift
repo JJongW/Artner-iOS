@@ -28,7 +28,6 @@ final class CustomNavigationBar: UIView {
         return label
     }()
 
-    // 외부에서 백 버튼 액션 연결할 수 있게
     var onBackButtonTapped: (() -> Void)?
 
     // MARK: - Init
