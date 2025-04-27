@@ -5,7 +5,6 @@
 //  Created by 신종원 on 4/5/25.
 //
 
-// AppDelegate.swift
 import UIKit
 
 @main

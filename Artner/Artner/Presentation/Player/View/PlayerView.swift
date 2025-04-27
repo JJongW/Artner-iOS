@@ -11,18 +11,36 @@ final class PlayerView: UIView {
 
     // MARK: - UI Components
 
-    let customNavigationBar = UIView()
-    let backButton = UIButton(type: .system)
-    let titleLabel = UILabel()
-    let artistLabel = UILabel()
-    let descriptionLabel = UILabel()
+    let customNavigationBar = CustomNavigationBar()
+    let artnerPrimaryBar = ArtnerPrimaryBar()
+    let scrollView = UIScrollView()
+    let contentView = UIView()
+    let artistLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 18)
+        label.textColor = AppColor.textPrimary
+        label.textAlignment = .left
+        return label
+    }()
+    let descriptionLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 16)
+        label.textColor = AppColor.textPrimary
+        label.numberOfLines = 100
+        label.textAlignment = .left
+        return label
+    }()
     let playButton = UIButton(type: .system)
+
+    private let fadeView = UIView()
+    private let fadeLayer = CAGradientLayer()
 
     // MARK: - Init
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
+        setupFadeLayer()
     }
 
     required init?(coder: NSCoder) {
@@ -32,61 +50,89 @@ final class PlayerView: UIView {
     // MARK: - Setup
 
     private func setupUI() {
-        backgroundColor = .white
+        backgroundColor = AppColor.background
 
-        // Custom Navigation Bar
-        customNavigationBar.backgroundColor = .white
+        // 커스텀 네비게이션 바
         addSubview(customNavigationBar)
 
-        customNavigationBar.snp.makeConstraints { make in
-            make.top.equalTo(self.safeAreaLayoutGuide.snp.top)
-            make.leading.trailing.equalToSuperview()
-            make.height.equalTo(44) // 일반 네비게이션바 높이
+        customNavigationBar.snp.makeConstraints {
+            $0.top.equalTo(self.safeAreaLayoutGuide.snp.top)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(44)
         }
 
-        backButton.setTitle("←", for: .normal)
-        customNavigationBar.addSubview(backButton)
-
-        backButton.snp.makeConstraints { make in
-            make.leading.equalToSuperview().offset(16)
-            make.centerY.equalToSuperview()
+        addSubview(artnerPrimaryBar)
+        artnerPrimaryBar.snp.makeConstraints {
+            $0.top.equalTo(customNavigationBar.snp.bottom)
+            $0.leading.trailing.equalToSuperview()
         }
 
-        titleLabel.font = UIFont.boldSystemFont(ofSize: 18)
-        titleLabel.text = "도슨트 플레이어"
-        titleLabel.textAlignment = .center
-
-        customNavigationBar.addSubview(titleLabel)
-
-        titleLabel.snp.makeConstraints { make in
-            make.center.equalToSuperview()
+        // 스크롤뷰
+        addSubview(scrollView)
+        scrollView.snp.makeConstraints {
+            $0.top.equalTo(artnerPrimaryBar.snp.bottom)
+            $0.leading.trailing.bottom.equalToSuperview()
         }
 
-        // Main Content Stack
+        // 스크롤뷰 안에 contentView
+        scrollView.addSubview(contentView)
+        contentView.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+            $0.width.equalToSuperview()
+        }
+
+        // ContentView에 StackView 추가
         let stackView = UIStackView(arrangedSubviews: [
-            self.artistLabel, self.descriptionLabel, self.playButton
+            artistLabel, descriptionLabel, playButton
         ])
         stackView.axis = .vertical
         stackView.spacing = 20
-        stackView.alignment = .center
+        stackView.alignment = .leading
 
-        artistLabel.font = UIFont.systemFont(ofSize: 18)
-        artistLabel.textColor = .gray
-        artistLabel.textAlignment = .center
+        contentView.addSubview(stackView)
 
-        descriptionLabel.font = UIFont.systemFont(ofSize: 16)
-        descriptionLabel.textColor = .darkGray
-        descriptionLabel.numberOfLines = 0
-        descriptionLabel.textAlignment = .center
+        stackView.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(30)
+            $0.leading.equalToSuperview().offset(20)
+            $0.trailing.equalToSuperview().inset(20)
+            $0.bottom.equalToSuperview().offset(-16)
+        }
+
+        addSubview(fadeView)
+        fadeView.isUserInteractionEnabled = false // 터치 막지 않게
+        fadeView.backgroundColor = .clear
+
+        fadeView.snp.makeConstraints {
+            $0.top.equalTo(artnerPrimaryBar.snp.bottom)
+            $0.leading.trailing.equalToSuperview()
+            $0.bottom.equalToSuperview()
+        }
 
         playButton.setTitle("▶️ 재생", for: .normal)
+    }
 
-        addSubview(stackView)
+    private func setupFadeLayer() {
+        fadeLayer.colors = [
+            AppColor.primary.withAlphaComponent(0.8).cgColor,
+            AppColor.primary.withAlphaComponent(0.0).cgColor,
+            AppColor.primary.withAlphaComponent(0.0).cgColor,
+            AppColor.primary.withAlphaComponent(0.8).cgColor
+        ]
 
-        stackView.snp.makeConstraints { make in
-            make.leading.equalToSuperview().offset(20)
-            make.trailing.equalToSuperview().offset(-20)
-            make.centerY.equalToSuperview()
-        }
+        fadeLayer.locations = [0.0, 0.25, 0.75, 1.0]
+        fadeLayer.startPoint = CGPoint(x: 0.5, y: 0.0)
+        fadeLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
+
+        fadeView.layer.addSublayer(fadeLayer)
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
+        setGradientBackground(colors: [
+            AppColor.primary, AppColor.secondary
+        ])
+
+        fadeLayer.frame = fadeView.bounds
     }
 }
