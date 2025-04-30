@@ -12,5 +12,6 @@ struct Docent {
     let title: String
     let artist: String
     let description: String
+    let imageURL: String
     let audioURL: URL?
 }

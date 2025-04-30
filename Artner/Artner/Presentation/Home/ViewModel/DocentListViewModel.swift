@@ -5,18 +5,25 @@
 //  Created by 신종원 on 4/5/25.
 //
 
+import Foundation
+
 final class DocentListViewModel {
 
     private let useCase: PlayDocentUseCase
     private var docents: [Docent] = []
 
-    init(useCase: PlayDocentUseCase = DocentRepository()) {
+    // ViewController가 bind할 수 있도록 클로저 제공
+    var onDocentsUpdated: (() -> Void)?
+
+    // MARK: - Init
+    init(useCase: PlayDocentUseCase) {
         self.useCase = useCase
-        loadDocents()
     }
 
-    private func loadDocents() {
+    // MARK: - Public Methods
+    func loadDocents() {
         docents = useCase.fetchDocents()
+        onDocentsUpdated?()
     }
 
     func numberOfItems() -> Int {
