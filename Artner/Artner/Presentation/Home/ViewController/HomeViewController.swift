@@ -33,6 +33,7 @@ final class HomeViewController: BaseViewController<DocentListViewModel, AppCoord
         bindData()
         bindAction()
     }
+
     private func bindData() {
         viewModel.onDocentsUpdated = { [weak self] in
             guard let self else { return }

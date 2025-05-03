@@ -6,8 +6,6 @@
 //
 import UIKit
 import SnapKit
-import UIKit
-import SnapKit
 
 final class PlayerView: BaseView {
 
@@ -16,15 +14,11 @@ final class PlayerView: BaseView {
     let customNavigationBar = CustomNavigationBar()
     let artnerPrimaryBar = ArtnerPrimaryBar()
     let scrollView = UIScrollView()
-    let contentView = UIView()
-    let artistLabel = UILabel()
-    let descriptionLabel = UILabel()
+    private let stackView = UIStackView()
     let playButton = UIButton(type: .system)
 
-    private let fadeView = UIView()
-    private let fadeLayer = CAGradientLayer()
-
     // MARK: - Setup
+
     override func setupUI() {
         super.setupUI()
 
@@ -33,29 +27,20 @@ final class PlayerView: BaseView {
         addSubview(customNavigationBar)
         addSubview(artnerPrimaryBar)
         addSubview(scrollView)
-        addSubview(fadeView)
+        addSubview(playButton)
 
-        scrollView.addSubview(contentView)
-        contentView.addSubview(artistLabel)
-        contentView.addSubview(descriptionLabel)
-        contentView.addSubview(playButton)
+        scrollView.addSubview(stackView)
 
         scrollView.showsVerticalScrollIndicator = false
-        fadeView.isUserInteractionEnabled = false
+        scrollView.alwaysBounceVertical = true
 
-        artistLabel.font = UIFont.systemFont(ofSize: 18)
-        artistLabel.textColor = AppColor.textPrimary
-        artistLabel.textAlignment = .left
-
-        descriptionLabel.font = UIFont.systemFont(ofSize: 16)
-        descriptionLabel.textColor = AppColor.textPrimary
-        descriptionLabel.numberOfLines = 100
-        descriptionLabel.textAlignment = .left
+        stackView.axis = .vertical
+        stackView.spacing = 16
+        stackView.alignment = .leading
+        stackView.distribution = .equalSpacing
 
         playButton.setTitle("▶️ 재생", for: .normal)
         playButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 18)
-
-        setupFadeLayer()
     }
 
     override func setupLayout() {
@@ -74,52 +59,53 @@ final class PlayerView: BaseView {
 
         scrollView.snp.makeConstraints {
             $0.top.equalTo(artnerPrimaryBar.snp.bottom)
-            $0.leading.trailing.bottom.equalToSuperview()
+            $0.leading.trailing.equalToSuperview()
+            $0.bottom.equalTo(playButton.snp.top).offset(-16)
         }
 
-        fadeView.snp.makeConstraints {
-            $0.top.equalTo(artnerPrimaryBar.snp.bottom)
-            $0.leading.trailing.bottom.equalToSuperview()
-        }
-
-        contentView.snp.makeConstraints {
-            $0.edges.equalToSuperview()
-            $0.width.equalToSuperview()
-        }
-
-        artistLabel.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(30)
-            $0.leading.trailing.equalToSuperview().inset(20)
-        }
-
-        descriptionLabel.snp.makeConstraints {
-            $0.top.equalTo(artistLabel.snp.bottom).offset(20)
-            $0.leading.trailing.equalToSuperview().inset(20)
+        stackView.snp.makeConstraints {
+            $0.top.bottom.leading.trailing.equalToSuperview().inset(20)
+            $0.width.equalTo(scrollView.snp.width).offset(-40)
         }
 
         playButton.snp.makeConstraints {
-            $0.top.equalTo(descriptionLabel.snp.bottom).offset(30)
+            $0.bottom.equalTo(safeAreaLayoutGuide.snp.bottom).offset(-20)
             $0.centerX.equalToSuperview()
-            $0.bottom.equalToSuperview().offset(-30)
         }
     }
 
-    private func setupFadeLayer() {
-        fadeLayer.colors = [
-            AppColor.primary.withAlphaComponent(0.8).cgColor,
-            AppColor.primary.withAlphaComponent(0.0).cgColor,
-            AppColor.primary.withAlphaComponent(0.0).cgColor,
-            AppColor.primary.withAlphaComponent(0.8).cgColor
-        ]
-        fadeLayer.locations = [0.0, 0.25, 0.75, 1.0]
-        fadeLayer.startPoint = CGPoint(x: 0.5, y: 0.0)
-        fadeLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
+    // MARK: - Public
 
-        fadeView.layer.addSublayer(fadeLayer)
+    private var labelList: [UILabel] = []
+
+    func setScripts(_ scripts: [DocentScript]) {
+        stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        labelList.removeAll()
+
+        for script in scripts {
+            let label = UILabel()
+            label.text = script.text
+            label.numberOfLines = 0
+            label.font = UIFont.systemFont(ofSize: 16)
+            label.textColor = AppColor.textPrimary
+            label.alpha = 0.5 // 기본은 반투명
+            stackView.addArrangedSubview(label)
+            labelList.append(label)
+        }
     }
 
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        fadeLayer.frame = fadeView.bounds
+    func highlightScript(at index: Int) {
+        for (i, label) in labelList.enumerated() {
+            label.alpha = (i == index) ? 1.0 : 0.5
+        }
+
+        guard index < labelList.count else { return }
+        let label = labelList[index]
+
+        // 중앙으로 스크롤
+        let targetOffset = label.frame.origin.y - (scrollView.frame.height / 2) + (label.frame.height / 2)
+        let clampedOffset = max(0, min(targetOffset, scrollView.contentSize.height - scrollView.frame.height))
+
+        scrollView.setContentOffset(CGPoint(x: 0, y: clampedOffset), animated: true)
     }
 }

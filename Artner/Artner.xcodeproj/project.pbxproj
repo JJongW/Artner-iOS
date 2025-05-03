@@ -30,6 +30,9 @@
 			exceptions = (
 				C3E07E5D2DA1140300BB0D0A /* Exceptions for "Artner" folder in "Artner" target */,
 			);
+			explicitFileTypes = {
+				Info.plist = text.plist.info;
+			};
 			path = Artner;
 			sourceTree = "<group>";
 		};

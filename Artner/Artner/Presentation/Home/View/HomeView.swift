@@ -29,7 +29,6 @@ final class HomeView: BaseView {
         tableView.backgroundColor = AppColor.background
         tableView.separatorStyle = .none
         tableView.showsVerticalScrollIndicator = false
-        bannerView.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 247)
         tableView.tableHeaderView = bannerView
 
         tableView.register(DocentTableViewCell.self, forCellReuseIdentifier: "DocentCell")
@@ -46,6 +45,11 @@ final class HomeView: BaseView {
             $0.height.equalTo(44)
         }
 
+        bannerView.snp.makeConstraints {
+            $0.leading.equalTo(customNavigationBar.snp.leading)
+            $0.trailing.equalTo(customNavigationBar.snp.trailing)
+        }
+
         tableView.snp.makeConstraints {
             $0.top.equalTo(customNavigationBar.snp.bottom)
             $0.leading.trailing.bottom.equalToSuperview()
@@ -56,6 +60,7 @@ final class HomeView: BaseView {
             $0.height.equalTo(135)
         }
     }
+    
 
     private func setupFadeLayer() {
         bottomFadeView.isUserInteractionEnabled = false
@@ -72,7 +77,25 @@ final class HomeView: BaseView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
+
         gradientLayer.frame = bottomFadeView.bounds
+
+        if let header = tableView.tableHeaderView {
+            let targetSize = CGSize(
+                width: bounds.width,
+                height: UIView.layoutFittingCompressedSize.height
+            )
+            let fittingSize = header.systemLayoutSizeFitting(
+                targetSize,
+                withHorizontalFittingPriority: .required,
+                verticalFittingPriority: .fittingSizeLevel
+            )
+
+            if header.frame.size.height != fittingSize.height {
+                header.frame.size.height = fittingSize.height
+                tableView.tableHeaderView = header
+            }
+        }
     }
 
     // MARK: - Public Method
