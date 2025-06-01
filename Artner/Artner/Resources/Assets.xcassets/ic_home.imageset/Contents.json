@@ -1,15 +1,12 @@
 {
   "images" : [
     {
-      "filename" : "icon-side tap.svg",
+      "filename" : "icon-home.svg",
       "idiom" : "universal"
     }
   ],
   "info" : {
     "author" : "xcode",
     "version" : 1
-  },
-  "properties" : {
-    "preserves-vector-representation" : true
   }
 }

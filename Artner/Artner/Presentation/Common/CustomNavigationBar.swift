@@ -12,10 +12,16 @@ final class CustomNavigationBar: UIView {
 
     // MARK: - UI Components
 
-    private let backButton: UIButton = {
+    let backButton: UIButton = {
         let button = UIButton()
-        button.setTitle("←", for: .normal)
-        button.layer.opacity = 0.2
+        button.layer.opacity = 0.8
+        button.setImage(UIImage(named: "ic_home"), for: .normal)
+        return button
+    }()
+
+    let rightButton: UIButton = {
+        let button = UIButton()
+        button.setImage(UIImage(named: "ic_side_tap"), for: .normal)
         return button
     }()
 
@@ -29,6 +35,7 @@ final class CustomNavigationBar: UIView {
     }()
 
     var onBackButtonTapped: (() -> Void)?
+    var didTapMenuButton: (() -> Void)?
 
     // MARK: - Init
 
@@ -48,6 +55,9 @@ final class CustomNavigationBar: UIView {
 
         addSubview(backButton)
         addSubview(titleLabel)
+        addSubview(rightButton)
+
+        rightButton.addTarget(self, action: #selector(didTapMenu), for: .touchUpInside)
 
         backButton.addTarget(self, action: #selector(didTapBack), for: .touchUpInside)
 
@@ -59,10 +69,18 @@ final class CustomNavigationBar: UIView {
         titleLabel.snp.makeConstraints {
             $0.center.equalToSuperview()
         }
+
+        rightButton.snp.makeConstraints {
+            $0.trailing.equalToSuperview().inset(20)
+            $0.centerY.equalToSuperview()
+        }
     }
 
     @objc private func didTapBack() {
         onBackButtonTapped?()
+    }
+    @objc private func didTapMenu() {
+        didTapMenuButton?()
     }
 
     // MARK: - Public Method
