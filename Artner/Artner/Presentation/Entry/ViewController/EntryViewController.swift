@@ -43,6 +43,8 @@ final class EntryViewController: BaseViewController<EntryViewModel, AppCoordinat
     @objc private func didTapSearchButton() {
         let keyword = entryView.textField.text ?? ""
         print("🔍 검색 요청: \(keyword)")
+
+        coordinator.showChat(docent: viewModel.docent, keyword: keyword)
     }
 
     private func setupKeyboardNotification() {

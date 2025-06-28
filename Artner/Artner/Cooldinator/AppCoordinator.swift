@@ -39,6 +39,12 @@ final class AppCoordinator {
         navigationController.pushViewController(vc, animated: true)
     }
 
+    func showChat(docent: Docent, keyword: String) {
+        let viewModel = ChatViewModel(keyword: keyword, docent: docent)
+        let vc = ChatViewController(viewModel: viewModel, coordinator: self)
+        navigationController.pushViewController(vc, animated: true)
+    }
+
     func showPlayer(docent: Docent) {
         let playerViewModel = PlayerViewModel(docent: docent)
         let playerVC = PlayerViewController(viewModel: playerViewModel, coordinator: self)
