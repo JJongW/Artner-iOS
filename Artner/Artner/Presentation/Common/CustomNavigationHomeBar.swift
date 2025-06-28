@@ -15,7 +15,6 @@ final class CustomNavigationHomeBar: BaseView {
     let rightButton: UIButton = {
         let button = UIButton()
         button.setImage(UIImage(named: "ic_side_tap"), for: .normal)
-        button.layer.opacity = 0.2
         return button
     }()
 

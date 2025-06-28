@@ -5,11 +5,12 @@
 //  Created by 신종원 on 4/27/25.
 //
 import UIKit
+import Combine
 
-final class HomeViewController: BaseViewController<DocentListViewModel, AppCoordinator> {
+final class HomeViewController: BaseViewController<HomeViewModel, AppCoordinator> {
 
     private let homeView = HomeView()
-
+    var onCameraTapped: (() -> Void)?
     override func loadView() {
         self.view = homeView
     }
@@ -33,12 +34,16 @@ final class HomeViewController: BaseViewController<DocentListViewModel, AppCoord
         bindData()
         bindAction()
     }
+
     private func bindData() {
-        viewModel.onDocentsUpdated = { [weak self] in
-            guard let self else { return }
-            self.homeView.tableView.reloadData()
-        }
-        viewModel.loadDocents()
+        viewModel.loadFeed()
+
+        viewModel.$feedItems
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.homeView.tableView.reloadData()
+            }
+            .store(in: &cancellables)
 
         homeView.configureBanner(
             image: UIImage(named: "titleImage1"),
@@ -51,6 +56,11 @@ final class HomeViewController: BaseViewController<DocentListViewModel, AppCoord
         homeView.customNavigationBar.didTapMenuButton = {
             print("메뉴 눌렸당!")
         }
+        homeView.cameraButton.addTarget(self, action: #selector(didTapCamera), for: .touchUpInside)
+    }
+
+    @objc private func didTapCamera() {
+        onCameraTapped?()
     }
 
     private func setupNavigationBarAppearance() {
@@ -67,33 +77,50 @@ final class HomeViewController: BaseViewController<DocentListViewModel, AppCoord
         navigationController?.navigationBar.scrollEdgeAppearance = appearance
         navigationController?.navigationBar.compactAppearance = appearance
     }
+
+    private var cancellables = Set<AnyCancellable>()
 }
 
 // MARK: - UITableViewDataSource, UITableViewDelegate
 extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return viewModel.numberOfItems()
+        return viewModel.feedItems.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let item = viewModel.feedItems[indexPath.row]
+
         guard let cell = tableView.dequeueReusableCell(withIdentifier: "DocentCell", for: indexPath) as? DocentTableViewCell else {
             return UITableViewCell()
         }
 
-        let docent = viewModel.docent(at: indexPath.row)
-
-        cell.configure(
-            thumbnail: UIImage(named: docent.imageURL),
-            title: docent.title,
-            subtitle: docent.artist
-        )
+        switch item {
+        case .exhibition(let exhibition):
+            cell.configure(
+                thumbnail: UIImage(named: "exhibitionThumbnail"),
+                title: exhibition.title,
+                subtitle: exhibition.location
+            )
+        case .artwork(let artwork):
+            cell.configure(
+                thumbnail: UIImage(named: "artworkThumbnail"),
+                title: artwork.title,
+                subtitle: artwork.artistName
+            )
+        case .artist(let artist):
+            cell.configure(
+                thumbnail: UIImage(named: "artistThumbnail"),
+                title: artist.name,
+                subtitle: artist.lifeSpan
+            )
+        }
 
         return cell
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let docent = viewModel.docent(at: indexPath.row)
-        coordinator.showPlayer(docent: docent)
+        let item = viewModel.feedItems[indexPath.row]
+        print("")
     }
 }

@@ -15,9 +15,17 @@ final class HomeView: BaseView {
     private let bannerView = HomeBannerView()
     private let bottomFadeView = UIView()
     private let gradientLayer = CAGradientLayer()
+    let cameraButton: UIButton = {
+        let button = UIButton()
+        button.setImage(UIImage(systemName: "camera.fill"), for: .normal)
+        button.tintColor = .white
+        button.backgroundColor = UIColor(hex: "#333333")
+        button.layer.cornerRadius = 28
+        button.clipsToBounds = true
+        return button
+    }()
 
     // MARK: - Setup
-
     override func setupUI() {
         super.setupUI()
 
@@ -25,14 +33,13 @@ final class HomeView: BaseView {
         addSubview(customNavigationBar)
         addSubview(tableView)
         addSubview(bottomFadeView)
+        addSubview(cameraButton)
 
         tableView.backgroundColor = AppColor.background
         tableView.separatorStyle = .none
         tableView.showsVerticalScrollIndicator = false
-        bannerView.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 247)
-        tableView.tableHeaderView = bannerView
-
         tableView.register(DocentTableViewCell.self, forCellReuseIdentifier: "DocentCell")
+        tableView.tableHeaderView = bannerView
 
         setupFadeLayer()
     }
@@ -55,6 +62,12 @@ final class HomeView: BaseView {
             $0.leading.trailing.bottom.equalToSuperview()
             $0.height.equalTo(135)
         }
+
+        cameraButton.snp.makeConstraints {
+            $0.trailing.equalToSuperview().inset(20)
+            $0.bottom.equalTo(safeAreaLayoutGuide.snp.bottom).inset(32)
+            $0.size.equalTo(56)
+        }
     }
 
     private func setupFadeLayer() {
@@ -66,13 +79,27 @@ final class HomeView: BaseView {
             UIColor(hex: "#281914").withAlphaComponent(0.0).cgColor
         ]
         gradientLayer.locations = [0.0, 1.0]
-        gradientLayer.startPoint = CGPoint(x: 0.5, y: 1.0) // 아래에서 시작
-        gradientLayer.endPoint = CGPoint(x: 0.5, y: 0.0)   // 위로 끝남
+        gradientLayer.startPoint = CGPoint(x: 0.5, y: 1.0)
+        gradientLayer.endPoint = CGPoint(x: 0.5, y: 0.0)
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
         gradientLayer.frame = bottomFadeView.bounds
+
+        if let header = tableView.tableHeaderView {
+            let width = tableView.bounds.width
+            let height = bannerView.systemLayoutSizeFitting(
+                CGSize(width: width, height: UIView.layoutFittingCompressedSize.height),
+                withHorizontalFittingPriority: .required,
+                verticalFittingPriority: .fittingSizeLevel
+            ).height
+
+            if header.frame.size.height != height {
+                header.frame = CGRect(x: 0, y: 0, width: width, height: height)
+                tableView.tableHeaderView = header
+            }
+        }
     }
 
     // MARK: - Public Method

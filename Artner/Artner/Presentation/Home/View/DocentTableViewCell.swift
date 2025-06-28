@@ -1,23 +1,12 @@
-//
-//  DocentTableViewCell.swift
-//  Artner
-//
-//  Created by 신종원 on 4/27/25.
-//
-
 import UIKit
 import SnapKit
 
 final class DocentTableViewCell: UITableViewCell {
 
     // MARK: - UI Components
-
-    private let containerView = UIView()
     private let thumbnailImageView = UIImageView()
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
-    private let listenButton = UIButton(type: .system)
-    private let likeButton = UIButton(type: .system)
 
     // MARK: - Init
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
@@ -27,79 +16,50 @@ final class DocentTableViewCell: UITableViewCell {
     }
 
     required init?(coder: NSCoder) {
-        fatalError("Storyboard를 사용하지 않습니다.")
+        fatalError("init(coder:) has not been implemented")
     }
 
     // MARK: - Setup
     private func setupUI() {
-        backgroundColor = AppColor.background
         selectionStyle = .none
-
-        contentView.addSubview(containerView)
-
-        containerView.addSubview(thumbnailImageView)
-        containerView.addSubview(titleLabel)
-        containerView.addSubview(subtitleLabel)
-        containerView.addSubview(listenButton)
-        containerView.addSubview(likeButton)
+        backgroundColor = .clear
 
         thumbnailImageView.contentMode = .scaleAspectFill
         thumbnailImageView.clipsToBounds = true
-        thumbnailImageView.layer.cornerRadius = 5
+        thumbnailImageView.layer.cornerRadius = 12
 
         titleLabel.font = UIFont.boldSystemFont(ofSize: 16)
-        titleLabel.textColor = AppColor.textPrimary
+        titleLabel.textColor = .white
 
         subtitleLabel.font = UIFont.systemFont(ofSize: 14)
-        subtitleLabel.textColor = AppColor.textSecondary
-        subtitleLabel.numberOfLines = 2
+        subtitleLabel.textColor = .white.withAlphaComponent(0.8)
 
-        listenButton.setImage(UIImage(named: "ic_headphones"), for: .normal)
-        listenButton.tintColor = AppColor.accentColor
-
-        likeButton.setImage(UIImage(named: "ic_good"), for: .normal)
-        likeButton.tintColor = AppColor.accentColor
+        contentView.addSubview(thumbnailImageView)
+        contentView.addSubview(titleLabel)
+        contentView.addSubview(subtitleLabel)
     }
 
     private func setupLayout() {
-        containerView.snp.makeConstraints {
-            $0.top.equalToSuperview()
-            $0.bottom.equalToSuperview().offset(-16)
-        }
-
         thumbnailImageView.snp.makeConstraints {
-            $0.top.equalTo(containerView.snp.top)
+            $0.top.equalToSuperview().offset(16)
             $0.leading.equalToSuperview().offset(20)
-            $0.centerY.equalToSuperview()
-            $0.width.equalTo(130)
-            $0.height.equalTo(112)
+            $0.size.equalTo(CGSize(width: 72, height: 72))
+            $0.bottom.lessThanOrEqualToSuperview().inset(16)
         }
 
         titleLabel.snp.makeConstraints {
-            $0.top.equalTo(thumbnailImageView.snp.top)
-            $0.leading.equalTo(thumbnailImageView.snp.trailing).offset(12)
-            $0.trailing.equalToSuperview().inset(16)
+            $0.top.equalTo(thumbnailImageView.snp.top).offset(2)
+            $0.leading.equalTo(thumbnailImageView.snp.trailing).offset(16)
+            $0.trailing.equalToSuperview().inset(20)
         }
 
         subtitleLabel.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(4)
-            $0.leading.equalTo(titleLabel.snp.leading)
-            $0.trailing.equalTo(titleLabel.snp.trailing)
-        }
-
-        listenButton.snp.makeConstraints {
-            $0.top.equalTo(subtitleLabel.snp.bottom).offset(10)
-            $0.leading.equalTo(titleLabel.snp.leading)
-            $0.bottom.lessThanOrEqualToSuperview().inset(12)
-        }
-
-        likeButton.snp.makeConstraints {
-            $0.leading.equalTo(listenButton.snp.trailing).offset(16)
-            $0.centerY.equalTo(listenButton)
+            $0.top.equalTo(titleLabel.snp.bottom).offset(6)
+            $0.leading.trailing.equalTo(titleLabel)
         }
     }
 
-    // MARK: - Public Method
+    // MARK: - Public Configure Method
     func configure(thumbnail: UIImage?, title: String, subtitle: String) {
         thumbnailImageView.image = thumbnail
         titleLabel.text = title

@@ -12,6 +12,7 @@ final class HomeBannerView: BaseView {
 
     // MARK: - UI Components
 
+    private let containerView = UIView()
     private let backgroundImageView = UIImageView()
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
@@ -19,11 +20,14 @@ final class HomeBannerView: BaseView {
     // MARK: - Setup
     override func setupUI() {
         super.setupUI()
+        translatesAutoresizingMaskIntoConstraints = false
         backgroundColor = AppColor.background
 
-        addSubview(backgroundImageView)
-        addSubview(titleLabel)
-        addSubview(subtitleLabel)
+        addSubview(containerView)
+
+        containerView.addSubview(backgroundImageView)
+        containerView.addSubview(titleLabel)
+        containerView.addSubview(subtitleLabel)
 
         backgroundImageView.contentMode = .scaleToFill
         backgroundImageView.clipsToBounds = true
@@ -40,9 +44,14 @@ final class HomeBannerView: BaseView {
     override func setupLayout() {
         super.setupLayout()
 
+        containerView.snp.makeConstraints {
+            $0.top.leading.trailing.equalToSuperview()
+            $0.bottom.equalToSuperview().inset(42)
+        }
+
         titleLabel.snp.makeConstraints {
             $0.leading.equalToSuperview().offset(20)
-            $0.trailing.equalToSuperview().inset(20)
+            $0.trailing.equalToSuperview().offset(-20)
             $0.top.equalToSuperview()
         }
 
@@ -57,6 +66,7 @@ final class HomeBannerView: BaseView {
             $0.leading.equalTo(titleLabel.snp.leading)
             $0.trailing.equalTo(titleLabel.snp.trailing)
             $0.height.equalTo(120)
+            $0.bottom.equalToSuperview()
         }
     }
 

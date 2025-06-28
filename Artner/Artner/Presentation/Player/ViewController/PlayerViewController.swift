@@ -18,6 +18,7 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
     override func setupUI() {
         super.setupUI()
         playerView.scrollView.delegate = self
+        playerView.playButton.addTarget(self, action: #selector(didTapPlay), for: .touchUpInside)
     }
 
     override func setupBinding() {
@@ -28,11 +29,16 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
 
     private func bindData() {
         let docent = viewModel.getDocent()
-        playerView.customNavigationBar.setTitle("artner")
-        playerView.artnerPrimaryBar.setTitle("홀로페르네스의 목을 베는 유디트", subtitle: "아르테미시아 젠틸레스키")
-        playerView.artistLabel.text = docent.artist
-        playerView.descriptionLabel.text = docent.description
-        playerView.playButton.setTitle(viewModel.currentPlayButtonTitle(), for: .normal)
+        playerView.artnerPrimaryBar.setTitle(docent.title, subtitle: docent.artist)
+
+        let scripts = viewModel.getScripts()
+        playerView.setScripts(scripts)
+
+        viewModel.onHighlightIndexChanged = { [weak self] index in
+            DispatchQueue.main.async {
+                self?.playerView.highlightScript(at: index)
+            }
+        }
     }
 
     private func bindAction() {
@@ -43,32 +49,7 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
     }
 
     @objc private func didTapPlay() {
-        viewModel.togglePlayPause()
-        playerView.playButton.setTitle(viewModel.currentPlayButtonTitle(), for: .normal)
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        navigationController?.setNavigationBarHidden(true, animated: animated)
-    }
-
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        let offsetY = scrollView.contentOffset.y
-
-        let maxOffset: CGFloat = 60
-        let offset = min(max(offsetY, 0), maxOffset)
-
-        playerView.customNavigationBar.transform = CGAffineTransform(translationX: 0, y: -offset)
-        playerView.customNavigationBar.alpha = 1 - (offset / maxOffset * 0.8)
-        playerView.artnerPrimaryBar.transform = CGAffineTransform(translationX: 0, y: -offset)
-    }
-
-    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-        let shouldHide = scrollView.contentOffset.y > 30
-
-        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5, options: [], animations: {
-            self.playerView.customNavigationBar.transform = shouldHide ? CGAffineTransform(translationX: 0, y: -60) : .identity
-            self.playerView.customNavigationBar.alpha = shouldHide ? 0 : 1
-        }, completion: nil)
-    }
+       viewModel.togglePlayPause()
+       playerView.playButton.setTitle(viewModel.currentPlayButtonTitle(), for: .normal)
+   }
 }
