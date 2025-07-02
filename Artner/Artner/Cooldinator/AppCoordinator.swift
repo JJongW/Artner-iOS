@@ -28,6 +28,10 @@ final class AppCoordinator {
         homeVC.onCameraTapped = { [weak self] in
             self?.presentCameraEntry()
         }
+        homeVC.onShowSidebar = { [weak self, weak homeVC] in
+            guard let self = self, let homeVC = homeVC else { return }
+            self.showSidebar(from: homeVC)
+        }
         navigationController.viewControllers = [homeVC]
         window.rootViewController = navigationController
         window.makeKeyAndVisible()
@@ -61,6 +65,12 @@ final class AppCoordinator {
             audioURL: nil
         )
         showEntry(docent: sample)
+    }
+
+    func showSidebar(from presentingVC: UIViewController) {
+        let sidebarVC = SidebarViewController()
+        let sideMenu = SideMenuContainerView(menuViewController: sidebarVC, parentViewController: presentingVC)
+        sideMenu.present(in: presentingVC)
     }
 
     func popViewController(animated: Bool) {
