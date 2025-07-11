@@ -11,6 +11,7 @@ final class HomeViewController: BaseViewController<HomeViewModel, AppCoordinator
 
     private let homeView = HomeView()
     var onCameraTapped: (() -> Void)?
+    var onShowSidebar: (() -> Void)?
     override func loadView() {
         self.view = homeView
     }
@@ -53,8 +54,8 @@ final class HomeViewController: BaseViewController<HomeViewModel, AppCoordinator
     }
 
     private func bindAction() {
-        homeView.customNavigationBar.didTapMenuButton = {
-            print("메뉴 눌렸당!")
+        homeView.customNavigationBar.didTapMenuButton = { [weak self] in
+            self?.onShowSidebar?()
         }
         homeView.cameraButton.addTarget(self, action: #selector(didTapCamera), for: .touchUpInside)
     }

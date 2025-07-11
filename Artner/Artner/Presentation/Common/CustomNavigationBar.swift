@@ -21,11 +21,12 @@ final class CustomNavigationBar: UIView {
 
     let rightButton: UIButton = {
         let button = UIButton()
+        button.layer.opacity = 0.8
         button.setImage(UIImage(named: "ic_side_tap"), for: .normal)
         return button
     }()
 
-    private let titleLabel: UILabel = {
+    let titleLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.boldSystemFont(ofSize: 18)
         label.textAlignment = .center
