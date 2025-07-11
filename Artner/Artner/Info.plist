@@ -19,5 +19,9 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>작품을 촬영하여 AI 도슨트 서비스를 이용하기 위해 카메라 접근 권한이 필요합니다.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>갤러리에서 작품 이미지를 선택하여 AI 도슨트 서비스를 이용하기 위해 사진 라이브러리 접근 권한이 필요합니다.</string>
 </dict>
 </plist>

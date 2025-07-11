@@ -13,7 +13,6 @@ final class RecordViewController: UIViewController {
         setupTableView()
         bindViewModel()
         setupActions()
-        // 초기 로딩 시 "전체" 카테고리 선택 상태로 설정
         updateButtonStates(selectedCategory: nil)
     }
     private func setupNavigationBar() {

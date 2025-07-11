@@ -17,10 +17,12 @@ final class HomeView: BaseView {
     private let gradientLayer = CAGradientLayer()
     let cameraButton: UIButton = {
         let button = UIButton()
-        button.setImage(UIImage(systemName: "camera.fill"), for: .normal)
-        button.tintColor = .white
-        button.backgroundColor = UIColor(hex: "#333333")
-        button.layer.cornerRadius = 28
+        button.setImage(UIImage(named: "ic_camera"), for: .normal)
+        button.tintColor = UIColor(hex: "#FFFFFF").withAlphaComponent(0.5)
+        button.backgroundColor = UIColor(hex: "#3D312C")
+        button.layer.cornerRadius = 35 
+        button.layer.borderWidth = 1
+        button.layer.borderColor = UIColor(hex: "#FDA55C").withAlphaComponent(0.2).cgColor
         button.clipsToBounds = true
         return button
     }()
@@ -64,9 +66,9 @@ final class HomeView: BaseView {
         }
 
         cameraButton.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(20)
-            $0.bottom.equalTo(safeAreaLayoutGuide.snp.bottom).inset(32)
-            $0.size.equalTo(56)
+            $0.centerX.equalToSuperview()
+            $0.bottom.equalTo(safeAreaLayoutGuide.snp.bottom).inset(42)
+            $0.size.equalTo(70)
         }
     }
 

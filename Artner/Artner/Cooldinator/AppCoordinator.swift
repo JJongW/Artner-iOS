@@ -58,15 +58,10 @@ final class AppCoordinator {
     }
 
     func presentCameraEntry() {
-        // 샘플 Docent 생성 후 EntryViewController 진입
-        let sample = Docent(
-            id: 999,
-            title: "카메라로 스캔한 작품",
-            artist: "미지의 작가",
-            description: "이 작품은 이미지 인식을 통해 탐색된 결과입니다.", imageURL: "https://www.naver.com",
-            audioURL: nil
-        )
-        showEntry(docent: sample)
+        // 카메라 촬영 화면으로 이동
+        let cameraVC = CameraViewController()
+        cameraVC.modalPresentationStyle = .fullScreen
+        navigationController.present(cameraVC, animated: true)
     }
 
     func showSidebar(from presentingVC: UIViewController) {
