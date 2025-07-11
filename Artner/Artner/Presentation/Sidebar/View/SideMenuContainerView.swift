@@ -22,10 +22,10 @@ final class SideMenuContainerView: UIView {
         self.parentVC = parentViewController
         super.init(frame: .zero)
         setupUI()
-        // SidebarViewController라면 delegate 연결
-        if let sidebarVC = menuViewController as? SidebarViewController {
-            sidebarVC.delegate = self
-        }
+        // SidebarViewController delegate 연결 코드 제거
+        // if let sidebarVC = menuViewController as? SidebarViewController {
+        //     sidebarVC.delegate = self
+        // }
     }
     required init?(coder: NSCoder) { fatalError() }
 
@@ -62,21 +62,14 @@ final class SideMenuContainerView: UIView {
         }
     }
 
-    @objc private func dismissMenu() {
+    @objc func dismissMenu(completion: (() -> Void)? = nil) {
         UIView.animate(withDuration: 0.3, animations: {
             self.overlayView.alpha = 0
             self.menuViewTrailingConstraint?.update(offset: self.menuWidth)
             self.layoutIfNeeded()
         }, completion: { _ in
             self.removeFromSuperview()
+            completion?()
         })
-    }
-}
-
-// MARK: - SidebarViewControllerDelegate 구현
-extension SideMenuContainerView: SidebarViewControllerDelegate {
-    func sidebarDidRequestClose() {
-        // 닫기 버튼에서 호출 시 애니메이션으로 사이드바 닫기
-        dismissMenu()
     }
 } 

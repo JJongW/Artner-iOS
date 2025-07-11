@@ -13,6 +13,10 @@ import SnapKit
 // 사이드바 닫기 delegate 프로토콜
 protocol SidebarViewControllerDelegate: AnyObject {
     func sidebarDidRequestClose()
+    func sidebarDidRequestShowLike() // 좋아요 이동 요청
+    func sidebarDidRequestShowSave() // 저장 이동 요청
+    func sidebarDidRequestShowUnderline() // 밑줄 이동 요청
+    func sidebarDidRequestShowRecord() // 전시기록 이동 요청
 }
 
 final class SidebarViewController: UIViewController {
@@ -153,12 +157,17 @@ final class SidebarViewController: UIViewController {
     }
 
     @objc private func didTapStatButton(_ sender: SidebarStatButton) {
-        // 예시: 통계 버튼별 화면 이동/로직 처리
+        // 통계 버튼별 화면 이동/로직 처리
         switch sender.tag {
-        case 0: print("좋아요 화면 이동")
-        case 1: print("저장 화면 이동")
-        case 2: print("밑줄 화면 이동")
-        case 3: print("전시기록 화면 이동")
+        case 0:
+            print("좋아요 이동 요청")
+            delegate?.sidebarDidRequestShowLike() // 좋아요 이동 요청
+        case 1:
+            delegate?.sidebarDidRequestShowSave() // 저장 이동 요청
+        case 2:
+            delegate?.sidebarDidRequestShowUnderline() // 밑줄 이동 요청
+        case 3:
+            delegate?.sidebarDidRequestShowRecord() // 전시기록 이동 요청
         default: break
         }
     }
