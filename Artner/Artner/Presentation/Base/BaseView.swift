@@ -22,7 +22,6 @@ class BaseView: UIView {
 
     // MARK: - Setup Methods
     private func setup() {
-        backgroundColor = .white
         setupUI()
         setupLayout()
     }
