@@ -58,10 +58,16 @@ final class AppCoordinator {
     }
 
     func presentCameraEntry() {
-        // 카메라 촬영 화면으로 이동
-        let cameraVC = CameraViewController()
-        cameraVC.modalPresentationStyle = .fullScreen
-        navigationController.present(cameraVC, animated: true)
+        // 임시로 EntryViewController로 바로 이동 (카메라 권한 테스트 완료 후 CameraViewController로 변경 예정)
+        let sample = Docent(
+            id: 999,
+            title: "카메라로 스캔한 작품",
+            artist: "미지의 작가",
+            description: "이 작품은 이미지 인식을 통해 탐색된 결과입니다.", 
+            imageURL: "https://www.naver.com",
+            audioURL: nil
+        )
+        showEntry(docent: sample)
     }
 
     func showSidebar(from presentingVC: UIViewController) {
