@@ -77,7 +77,7 @@ final class CustomNavigationBar: UIView {
         }
     }
 
-    @objc private func didTapBack() {
+    @objc func didTapBack() {
         onBackButtonTapped?()
     }
     @objc private func didTapMenu() {
