@@ -521,24 +521,25 @@ final class ParagraphTableViewCell: UITableViewCell {
         }
         
         if isHighlighted {
-            // 현재 재생 중인 문단 - 밝고 크게
+            // 현재 재생 중인 문단 - 밝고 크게 (transform 제거)
             paragraphLabel.textColor = AppColor.textPrimary
-            paragraphLabel.font = UIFont.systemFont(ofSize: 18, weight: .medium)
-            paragraphLabel.alpha = 0.9
+            paragraphLabel.font = UIFont.systemFont(ofSize: 18, weight: .semibold)
+            paragraphLabel.alpha = 1.0  // 완전 불투명
             
-            // 부드러운 확대 애니메이션
-            UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.3, options: .curveEaseOut) {
-                self.transform = CGAffineTransform(scaleX: 1.02, y: 1.02)
+            // transform 대신 부드러운 색상 변화 애니메이션
+            UIView.animate(withDuration: 0.3) {
+                // transform 없이 색상과 폰트만 변경
+                self.layoutIfNeeded()
             }
         } else {
-            // 다른 문단들 - #ffffff로 변경
+            // 다른 문단들 - 약간 작고 흐리게
             paragraphLabel.textColor = AppColor.textPrimary
             paragraphLabel.font = UIFont.systemFont(ofSize: 18, weight: .regular)
             paragraphLabel.alpha = 0.35
             
-            // 원래 크기로 복원
+            // transform 초기화 제거 (원래부터 identity 상태 유지)
             UIView.animate(withDuration: 0.3) {
-                self.transform = .identity
+                self.layoutIfNeeded()
             }
         }
         
