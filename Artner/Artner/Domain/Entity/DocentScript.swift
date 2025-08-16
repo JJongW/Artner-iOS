@@ -24,3 +24,22 @@ struct DocentParagraph {
     
     var isHighlighted: Bool = false
 }
+
+// MARK: - Highlight Model
+struct TextHighlight: Codable {
+    let id: String
+    let paragraphId: String
+    let startIndex: Int
+    let endIndex: Int
+    let highlightedText: String
+    let createdAt: Date
+    
+    init(paragraphId: String, startIndex: Int, endIndex: Int, highlightedText: String) {
+        self.id = UUID().uuidString
+        self.paragraphId = paragraphId
+        self.startIndex = startIndex
+        self.endIndex = endIndex
+        self.highlightedText = highlightedText
+        self.createdAt = Date()
+    }
+}

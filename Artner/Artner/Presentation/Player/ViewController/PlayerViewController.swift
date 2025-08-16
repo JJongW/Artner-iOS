@@ -17,6 +17,8 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
     override func setupUI() {
         super.setupUI()
         setupSwipeGesture()
+        setupViewModelBinding()
+        setupPlayerData()
     }
     
     private func setupSwipeGesture() {
@@ -85,14 +87,6 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
     private func bindData() {
         print("📊 PlayerViewController bindData 시작")
         
-        // 도슨트 정보 설정
-        let docent = viewModel.getDocent()
-        playerView.artnerPrimaryBar.setTitle(docent.title, subtitle: docent.artist)
-
-        // 문단 데이터 설정
-        let paragraphs = viewModel.getParagraphs()
-        playerView.setParagraphs(paragraphs)
-
         // 하이라이트 인덱스 변경 감지 (문단 단위)
         viewModel.onHighlightIndexChanged = { [weak self] index in
             DispatchQueue.main.async {
@@ -110,16 +104,7 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
         // 재생 상태 변경 감지
         viewModel.onPlayStateChanged = { [weak self] isPlaying in
             DispatchQueue.main.async {
-                print("🎵 재생 상태 변경: \(isPlaying)")
-                self?.playerView.updatePlayerState(isPlaying)
-            }
-        }
-        
-        // 로딩 상태 변경 감지
-        viewModel.onLoadingStateChanged = { [weak self] isLoading in
-            DispatchQueue.main.async {
-                print("🔄 로딩 상태 변경: \(isLoading ? "로딩 중" : "로딩 완료")")
-                // PlayerView 내부에서 로딩 상태를 자동 처리하므로 추가 작업 불필요
+                self?.playerView.updatePlayState(isPlaying)
             }
         }
         
@@ -131,12 +116,6 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
         
         // 플레이어 컨트롤 액션들
         setupPlayerControlActions()
-        
-        // 네비게이션 뒤로가기 버튼 액션
-        playerView.customNavigationBar.onBackButtonTapped = { [weak self] in
-            self?.coordinator.popViewController(animated: true)
-        }
-        
         print("🎯 PlayerViewController bindAction 완료")
     }
     
@@ -200,5 +179,57 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
         
         alert.addAction(UIAlertAction(title: "확인", style: .default))
         present(alert, animated: true)
+    }
+
+    private func setupViewModelBinding() {
+        // 로딩 상태 변경 감지
+        viewModel.onLoadingStateChanged = { [weak self] isLoading in
+            DispatchQueue.main.async {
+                if isLoading {
+                    return
+                }
+                let paragraphs = self?.viewModel.getParagraphs() ?? []
+                print("✅ 로딩 완료 - paragraphs: \(paragraphs.count)")
+                self?.playerView.setParagraphs(paragraphs)
+                self?.playerView.showContentState()
+            }
+        }
+
+        // 기존 하이라이트 관련 바인딩 설정
+        viewModel.onHighlightSaved = { [weak self] highlight in
+            // 저장 후 전체 하이라이트를 다시 적용
+            let all = self?.viewModel.getAllHighlights() ?? [:]
+            DispatchQueue.main.async {
+                self?.playerView.updateHighlights(all)
+            }
+        }
+        
+        viewModel.onHighlightsLoaded = { [weak self] highlights in
+            DispatchQueue.main.async {
+                self?.playerView.updateHighlights(highlights)
+            }
+        }
+        
+        playerView.onHighlightCreated = { [weak self] highlight in
+            self?.viewModel.saveHighlight(highlight)
+        }
+        
+        playerView.onHighlightDeleted = { [weak self] highlight in
+            self?.viewModel.deleteHighlight(highlight)
+        }
+        
+        // ViewModel에서 하이라이트를 가져오는 콜백 설정
+        playerView.onGetHighlightsForParagraph = { [weak self] paragraphId in
+            return self?.viewModel.getHighlights(for: paragraphId) ?? []
+        }
+        
+        print("🔗 [Controller] 하이라이트 바인딩 설정 완료")
+    }
+    
+    private func setupPlayerData() {
+        // PlayerView에 기본 데이터 설정 (문단은 로딩 완료 시 주입)
+        let docentData = viewModel.getDocent()
+        // ArtnerPrimaryBar에 타이틀/아티스트 설정
+        playerView.artnerPrimaryBar.setTitle(docentData.title, subtitle: docentData.artist)
     }
 }

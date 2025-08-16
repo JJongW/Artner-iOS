@@ -58,16 +58,32 @@ final class AppCoordinator {
     }
 
     func presentCameraEntry() {
-        // 임시로 EntryViewController로 바로 이동 (카메라 권한 테스트 완료 후 CameraViewController로 변경 예정)
-        let sample = Docent(
+        // 카메라 인식 결과로 진입 시, 기존 더미 도슨트 데이터(문단 포함)를 활용
+        let docents = playDocentUseCase.fetchDocents()
+        if let first = docents.first, !first.paragraphs.isEmpty {
+            showEntry(docent: first)
+            return
+        }
+        // 폴백: 최소 1개의 문단을 가진 샘플 생성
+        let fallback = Docent(
             id: 999,
             title: "카메라로 스캔한 작품",
             artist: "미지의 작가",
-            description: "이 작품은 이미지 인식을 통해 탐색된 결과입니다.", 
+            description: "이 작품은 이미지 인식을 통해 탐색된 결과입니다.",
             imageURL: "https://www.naver.com",
-            audioURL: nil
+            audioURL: nil,
+            paragraphs: [
+                DocentParagraph(
+                    id: "p-999-1",
+                    startTime: 0.0,
+                    endTime: 8.0,
+                    sentences: [
+                        DocentScript(startTime: 0.0, text: "카메라로 스캔한 작품에 대한 자동 생성 안내 문단입니다.")
+                    ]
+                )
+            ]
         )
-        showEntry(docent: sample)
+        showEntry(docent: fallback)
     }
 
     func showSidebar(from presentingVC: UIViewController) {

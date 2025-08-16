@@ -96,8 +96,6 @@ final class PlayerControlsView: UIView {
         // 리플레이 버튼
         setupReplayButton()
         
-        print("🎛️ PlayerControlsView 초기화 완료")
-        
         // 초기 상태 설정
         updateButtonsForState()
     }
@@ -134,8 +132,9 @@ final class PlayerControlsView: UIView {
         // 컨테이너를 가장 큰 크기로 고정 (3버튼 크기)
         containerView.snp.makeConstraints {
             $0.center.equalToSuperview()
-            $0.height.equalTo(DesignConstants.containerHeight)
+            $0.height.equalToSuperview() // Match the height of the containerView to its superview to resolve constraint conflict
             $0.width.equalTo(DesignConstants.threeButtonWidth) // 항상 3버튼 크기로 고정
+            $0.top.greaterThanOrEqualToSuperview().offset(0) // Ensure top is not negative
         }
         
         // 버튼 크기 설정 (초기에는 모두 숨김)
@@ -147,22 +146,17 @@ final class PlayerControlsView: UIView {
             button.isHidden = true
         }
         
-        print("📏 PlayerControlsView 초기 레이아웃 설정 완료")
     }
     
     // MARK: - Intrinsic Content Size
     
     override var intrinsicContentSize: CGSize {
         // 항상 고정 크기 반환 (가장 큰 크기)
-        let size = CGSize(width: DesignConstants.threeButtonWidth, height: DesignConstants.containerHeight)
-        print("📐 intrinsicContentSize: \(size)")
-        return size
+        return CGSize(width: DesignConstants.threeButtonWidth, height: DesignConstants.containerHeight)
     }
     
     override func layoutSubviews() {
         super.layoutSubviews()
-        print("📏 PlayerControlsView layoutSubviews - frame: \(frame), bounds: \(bounds)")
-        print("📦 containerView - frame: \(containerView.frame), bounds: \(containerView.bounds)")
     }
     
     private func setupActions() {
@@ -171,13 +165,11 @@ final class PlayerControlsView: UIView {
         pauseButton.addTarget(self, action: #selector(pauseButtonTapped), for: .touchUpInside)
         replayButton.addTarget(self, action: #selector(replayButtonTapped), for: .touchUpInside)
         
-        print("🎯 PlayerControlsView 액션 연결 완료")
     }
     
     // MARK: - State Management
     
     private func updateButtonsForState() {
-        print("🔄 상태 변경: \(currentState)")
         
         // 1단계: 현재 버튼들을 페이드 아웃
         UIView.animate(withDuration: 0.2, animations: {
@@ -235,8 +227,6 @@ final class PlayerControlsView: UIView {
         playButton.isHidden = false
         replayButton.isHidden = false
         
-        print("📱 idle 상태 버튼들 표시: 저장, 플레이, 리플레이")
-        
         // 컨테이너 크기 변경
         containerView.snp.updateConstraints {
             $0.width.equalTo(DesignConstants.threeButtonWidth) // 3개 버튼을 위한 너비
@@ -265,8 +255,6 @@ final class PlayerControlsView: UIView {
         pauseButton.isHidden = false
         saveButton.isHidden = false
         
-        print("📱 playing 상태 버튼들 표시: 저장, 정지")
-        
         // 컨테이너 크기 변경
         containerView.snp.updateConstraints {
             $0.width.equalTo(DesignConstants.twoButtonWidth) // 2개 버튼을 위한 너비
@@ -290,104 +278,44 @@ final class PlayerControlsView: UIView {
     // MARK: - Public Methods
     
     func setState(_ state: PlayerControlState) {
-        print("🎮 setState 호출됨: \(state)")
         currentState = state
     }
     
     func setEnabled(_ enabled: Bool) {
-        print("🔧 setEnabled 호출됨: \(enabled)")
         [saveButton, playButton, pauseButton, replayButton].forEach {
             $0.isEnabled = enabled
             $0.alpha = enabled ? 1.0 : 0.5
         }
-        
-        // 플레이 버튼 상태 로그
-        print("▶️ 플레이 버튼 상태 - isHidden: \(playButton.isHidden), isEnabled: \(playButton.isEnabled), alpha: \(playButton.alpha)")
     }
     
     // MARK: - Touch Debugging
     
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        let result = super.hitTest(point, with: event)
-        print("🖱️ PlayerControlsView hitTest - point: \(point), result: \(result?.description ?? "nil")")
-        return result
-    }
-    
-    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        let result = super.point(inside: point, with: event)
-        print("📍 PlayerControlsView point(inside:) - point: \(point), result: \(result)")
-        return result
-    }
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? { super.hitTest(point, with: event) }
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool { super.point(inside: point, with: event) }
     
     func logButtonStates() {
-        print("🔍 === PlayerControlsView 버튼 상태 전체 확인 ===")
-        print("📦 Self:")
-        print("   - frame: \(frame)")
-        print("   - bounds: \(bounds)")
-        print("   - isUserInteractionEnabled: \(isUserInteractionEnabled)")
-        print("   - alpha: \(alpha)")
-        
-        print("📦 컨테이너뷰:")
-        print("   - frame: \(containerView.frame)")
-        print("   - bounds: \(containerView.bounds)")
-        print("   - isUserInteractionEnabled: \(containerView.isUserInteractionEnabled)")
-        print("   - alpha: \(containerView.alpha)")
-        
-        print("💾 저장 버튼:")
-        print("   - frame: \(saveButton.frame)")
-        print("   - isHidden: \(saveButton.isHidden)")
-        print("   - isEnabled: \(saveButton.isEnabled)")
-        print("   - alpha: \(saveButton.alpha)")
-        print("   - hasActions: \(saveButton.allTargets.count > 0)")
-        
-        print("▶️ 플레이 버튼:")
-        print("   - frame: \(playButton.frame)")
-        print("   - isHidden: \(playButton.isHidden)")
-        print("   - isEnabled: \(playButton.isEnabled)")
-        print("   - alpha: \(playButton.alpha)")
-        print("   - hasActions: \(playButton.allTargets.count > 0)")
-        
-        print("⏸️ 정지 버튼:")
-        print("   - frame: \(pauseButton.frame)")
-        print("   - isHidden: \(pauseButton.isHidden)")
-        print("   - isEnabled: \(pauseButton.isEnabled)")
-        print("   - alpha: \(pauseButton.alpha)")
-        print("   - hasActions: \(pauseButton.allTargets.count > 0)")
-        
-        print("🔄 리플레이 버튼:")
-        print("   - frame: \(replayButton.frame)")
-        print("   - isHidden: \(replayButton.isHidden)")
-        print("   - isEnabled: \(replayButton.isEnabled)")
-        print("   - alpha: \(replayButton.alpha)")
-        print("   - hasActions: \(replayButton.allTargets.count > 0)")
-        
-        print("🎯 현재 상태: \(currentState)")
-        print("🔍 === 버튼 상태 확인 완료 ===")
+        // Intentionally left minimal for on-demand debugging if needed.
     }
     
     // MARK: - Actions
     
     @objc private func saveButtonTapped() {
-        print("🔔 saveButtonTapped 호출됨")
         // 버튼 터치 피드백
         addTouchFeedback(to: saveButton)
         onSaveButtonTapped?()
     }
     
     @objc private func playButtonTapped() {
-        print("🔔 playButtonTapped 호출됨")
         addTouchFeedback(to: playButton)
         onPlayButtonTapped?()
     }
     
     @objc private func pauseButtonTapped() {
-        print("🔔 pauseButtonTapped 호출됨")
         addTouchFeedback(to: pauseButton)
         onPauseButtonTapped?()
     }
     
     @objc private func replayButtonTapped() {
-        print("🔔 replayButtonTapped 호출됨")
         addTouchFeedback(to: replayButton)
         onReplayButtonTapped?()
     }

@@ -15,8 +15,9 @@ final class ArtnerPrimaryBar: UIView {
     private let stackView: UIStackView = {
         let stack = UIStackView()
         stack.axis = .vertical
-        stack.spacing = 2
+        stack.spacing = 4  // 2 → 4로 증가
         stack.alignment = .leading
+        stack.distribution = .fillProportionally
         return stack
     }()
 
@@ -62,11 +63,11 @@ final class ArtnerPrimaryBar: UIView {
         stackView.addArrangedSubview(titleLabel)
         stackView.addArrangedSubview(subtitlteLabel)
 
-        // StackView 제약조건 설정 - SafeArea를 고려한 상단 패딩
+        // StackView 제약조건 설정 - 이미 PlayerView에서 SafeArea 고려됨
         stackView.snp.makeConstraints {
             $0.leading.trailing.equalToSuperview().inset(20)
-            $0.top.equalTo(safeAreaLayoutGuide.snp.top).offset(12)  // SafeArea 고려
-            $0.bottom.equalToSuperview().inset(12)
+            $0.top.equalToSuperview().offset(8)   // 12 → 8로 줄임
+            $0.bottom.equalToSuperview().inset(8) // 12 → 8로 줄임
         }
     }
     
@@ -93,8 +94,10 @@ final class ArtnerPrimaryBar: UIView {
     // MARK: - Public Method
 
     func setTitle(_ title: String, subtitle: String) {
+        print("🏷️ [ArtnerPrimaryBar] setTitle 호출됨 - title: '\(title)', subtitle: '\(subtitle)'")
         titleLabel.text = title
         subtitlteLabel.text = subtitle
+        print("🏷️ [ArtnerPrimaryBar] titleLabel.text: '\(titleLabel.text ?? "nil")', subtitleLabel.text: '\(subtitlteLabel.text ?? "nil")'")
     }
     
     // MARK: - Gradient Control

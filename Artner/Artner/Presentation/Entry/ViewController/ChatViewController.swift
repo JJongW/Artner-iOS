@@ -41,6 +41,11 @@ final class ChatViewController: BaseViewController<ChatViewModel, AppCoordinator
 
     private func bindActions() {
         chatView.chatInputBar.sendButton.addTarget(self, action: #selector(didTapSend), for: .touchUpInside)
+        
+        // CustomNavigationBar 뒤로가기 버튼 액션 연결
+        chatView.onBackButtonTapped = { [weak self] in
+            self?.coordinator.popViewController(animated: true)
+        }
     }
 
     @objc private func didTapListen() {

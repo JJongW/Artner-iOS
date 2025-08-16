@@ -14,8 +14,11 @@ final class PlayerViewModel {
     private var timer: Timer?
 
     // 문단 단위 데이터로 변경
-    private let paragraphs: [DocentParagraph]
+    private var paragraphs: [DocentParagraph] = []
     private var currentHighlightedIndex: Int = -1
+    
+    // 하이라이트 관리 - ViewModel로 이동
+    private var savedHighlights: [String: [TextHighlight]] = [:]  // paragraphId: [highlights]
     
     // 시뮬레이션을 위한 시간 추적 (실제 오디오가 없을 때 사용)
     private var simulationStartTime: Date?
@@ -30,14 +33,19 @@ final class PlayerViewModel {
     var onProgressChanged: ((TimeInterval, TimeInterval) -> Void)?
     var onPlayStateChanged: ((Bool) -> Void)?
     var onLoadingStateChanged: ((Bool) -> Void)?
+    
+    // 하이라이트 관련 콜백 추가
+    var onHighlightSaved: ((TextHighlight) -> Void)?
+    var onHighlightsLoaded: (([String: [TextHighlight]]) -> Void)?
 
     init(docent: Docent) {
         self.docent = docent
-        self.paragraphs = dummyDocentParagraphs
-        
         // 데이터 로딩 시뮬레이션
         simulateDataLoading()
         prepareAudio()
+        
+        // 저장된 하이라이트 로드
+        loadSavedHighlights()
     }
 
     func getDocent() -> PlayerUIModel {
@@ -48,16 +56,142 @@ final class PlayerViewModel {
         )
     }
     
+    // MARK: - Public Interface
+    
+    func getParagraphs() -> [DocentParagraph] {
+        return paragraphs
+    }
+    
+    func getIsPlaying() -> Bool {
+        return isPlaying
+    }
+    
+    func getHighlights(for paragraphId: String) -> [TextHighlight] {
+        return savedHighlights[paragraphId] ?? []
+    }
+    
+    // MARK: - Highlight Management
+    
+    // Implement setParagraphs method
+    func setParagraphs(_ paragraphs: [DocentParagraph]) {
+        self.paragraphs = paragraphs
+        // 로딩 상태 업데이트
+        isLoading = false
+        onLoadingStateChanged?(false)
+    }
+
+    // Implement updatePlayerState method
+    func updatePlayerState(_ isPlaying: Bool) {
+        // 플레이어 상태 업데이트 로직
+        // 예시: self.isPlaying = isPlaying
+    }
+
+    // Implement saveHighlight method
+    func saveHighlight(_ highlight: TextHighlight) {
+        // 문단별 배열 초기화
+        if savedHighlights[highlight.paragraphId] == nil {
+            savedHighlights[highlight.paragraphId] = []
+        }
+        
+        // 간단한 중복 방지: 동일 범위/텍스트가 이미 있으면 무시
+        let isDuplicate = savedHighlights[highlight.paragraphId]!.contains {
+            $0.startIndex == highlight.startIndex &&
+            $0.endIndex == highlight.endIndex &&
+            $0.highlightedText == highlight.highlightedText
+        }
+        if !isDuplicate {
+            savedHighlights[highlight.paragraphId]?.append(highlight)
+            saveHighlightsToStorage()
+        }
+        
+        // UI에 알림
+        onHighlightSaved?(highlight)
+    }
+    
+    // 하이라이트 삭제
+    func deleteHighlight(_ highlight: TextHighlight) {
+        // 해당 문단의 하이라이트 목록에서 제거
+        if var paragraphHighlights = savedHighlights[highlight.paragraphId] {
+            paragraphHighlights.removeAll { $0.id == highlight.id }
+            savedHighlights[highlight.paragraphId] = paragraphHighlights
+            
+            // 스토리지에 저장
+            saveHighlightsToStorage()
+            
+            // UI에 알림
+            onHighlightSaved?(highlight) // 같은 콜백 사용 (UI 업데이트 트리거)
+            
+            print("🗑️ [ViewModel] 하이라이트 삭제: \(highlight.id)")
+        }
+    }
+    
+    // 모든 하이라이트 반환 (UI 업데이트 용)
+    func getAllHighlights() -> [String: [TextHighlight]] {
+        return savedHighlights
+    }
+    
+    /// 저장된 하이라이트 로드
+    private func loadSavedHighlights() {
+        loadHighlightsFromStorage()
+        
+        // UI에 로드된 하이라이트 전달
+        onHighlightsLoaded?(savedHighlights)
+    }
+    
+    /// 텍스트 선택 가능 여부 (재생 중이 아닐 때만 가능)
+    func isTextSelectionEnabled() -> Bool {
+        return !isPlaying
+    }
+    
+    /// 저장소에 하이라이트 저장 (UserDefaults 사용)
+    private func saveHighlightsToStorage() {
+        let encoder = JSONEncoder()
+        var allHighlights: [TextHighlight] = []
+        
+        for highlights in savedHighlights.values {
+            allHighlights.append(contentsOf: highlights)
+        }
+        
+        if let data = try? encoder.encode(allHighlights) {
+            UserDefaults.standard.set(data, forKey: "SavedTextHighlights")
+            print("💾 [Storage] 하이라이트 저장 완료: \(allHighlights.count)개")
+        }
+    }
+    
+    /// 저장소에서 하이라이트 로드
+    private func loadHighlightsFromStorage() {
+        guard let data = UserDefaults.standard.data(forKey: "SavedTextHighlights"),
+              let highlights = try? JSONDecoder().decode([TextHighlight].self, from: data) else {
+            print("📂 [Storage] 저장된 하이라이트가 없습니다")
+            return
+        }
+        
+        // paragraphId별로 그룹화
+        savedHighlights.removeAll()
+        for highlight in highlights {
+            if savedHighlights[highlight.paragraphId] == nil {
+                savedHighlights[highlight.paragraphId] = []
+            }
+            savedHighlights[highlight.paragraphId]?.append(highlight)
+        }
+        
+        print("📂 [Storage] 하이라이트 로드 완료: \(highlights.count)개")
+    }
+    
     private func simulateDataLoading() {
-        // 실제 서비스에서는 API 호출로 도슨트 데이터를 가져옴
+        // 로딩 시작 알림
         isLoading = true
         onLoadingStateChanged?(true)
-        
-        // 2초 후 로딩 완료 시뮬레이션
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+        print("⏳ 로딩 시작 - Docent ID: \(docent.id), paragraphs in source: \(docent.paragraphs.count)")
+
+        // 데이터 로딩 시뮬레이션 (가시적인 로딩 시간을 보장)
+        let sourceParagraphs = docent.paragraphs
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+            guard let self = self else { return }
+            self.paragraphs = sourceParagraphs
             self.isLoading = false
             self.onLoadingStateChanged?(false)
-            print("✅ 도슨트 데이터 로딩 완료")
+            print("✅ 도슨트 데이터 로딩 완료: \(self.paragraphs.count)개 문단")
         }
     }
 
@@ -232,18 +366,14 @@ final class PlayerViewModel {
     private func getTotalTime() -> TimeInterval {
         if isUsingSimulation {
             // 시뮬레이션 모드: 마지막 문단 끝 시간 + 2초
-            guard let lastParagraph = paragraphs.last else { return 76.0 }
+            guard let lastParagraph = paragraphs.last else { return 60.0 }
             return lastParagraph.endTime + 2.0
         } else {
             // 실제 오디오 모드
-            return audioPlayer?.duration ?? 76.0
+            return audioPlayer?.duration ?? 60.0
         }
     }
 
-    func getParagraphs() -> [DocentParagraph] {
-        return paragraphs
-    }
-    
     func getIsLoading() -> Bool {
         return isLoading
     }

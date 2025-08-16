@@ -54,8 +54,6 @@ class GradientProgressView: UIView {
         gradientLayer.mask = progressLayer
         
         layer.addSublayer(gradientLayer)
-        
-        print("🎨 GradientProgressView 초기화 완료")
     }
     
     override func layoutSubviews() {
@@ -83,8 +81,6 @@ class GradientProgressView: UIView {
             width: progressWidth,
             height: bounds.height
         )
-        
-        print("📊 Progress 업데이트: \(progress) (width: \(progressWidth))")
     }
     
     // MARK: - Animation
