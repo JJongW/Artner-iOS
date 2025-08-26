@@ -14,4 +14,5 @@ struct Docent {
     let description: String
     let imageURL: String
     let audioURL: URL?
+    let paragraphs: [DocentParagraph]
 }

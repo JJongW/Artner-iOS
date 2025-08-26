@@ -20,6 +20,7 @@ final class RecordView: BaseView {
     override func setupUI() {
         backgroundColor = .black
         addSubview(navigationBar)
+        navigationBar.backgroundColor = .black
         navigationBar.setTitle("전시기록")
         navigationBar.titleLabel.textColor = .white
         navigationBar.backButton.tintColor = .white

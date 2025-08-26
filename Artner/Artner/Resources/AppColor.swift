@@ -14,7 +14,7 @@ enum AppColor {
     // 텍스트 컬러
     static let textPrimary = UIColor(hex: "#FFFFFF")
     static let textSecondary = UIColor(hex: "#666666")
-    static let textPoint = UIColor(hex: "#D0AE86")
+    static let textPoint = UIColor(hex: "#D0AE86") 
 
     // 그라데이션 배경색
     static let primary = UIColor(hex: "#140C0C")

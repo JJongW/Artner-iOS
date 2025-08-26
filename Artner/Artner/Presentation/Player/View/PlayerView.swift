@@ -7,15 +7,65 @@
 import UIKit
 import SnapKit
 
+/// 플레이어 메인 뷰 - 전체 플레이어 UI를 관리
 final class PlayerView: BaseView {
 
     // MARK: - UI Components
 
-    let customNavigationBar = CustomNavigationBar()
+    // 제목 영역 (SafeArea 위부터 시작)
     let artnerPrimaryBar = ArtnerPrimaryBar()
-    let scrollView = UIScrollView()
-    private let stackView = UIStackView()
-    let playButton = UIButton(type: .system)
+    
+    // 상단 radial 그라데이션 (SafeArea부터 ArtnerPrimaryBar + 42px까지)
+    private let fadeoutGradientView = UIView()
+    private let fadeoutGradientLayer = CAGradientLayer()
+    
+    // 컨텐츠 영역
+    private let lyricsContainerView = UIView()
+    private let lyricsTableView = UITableView()
+    
+    // 스켈레톤 로딩 뷰
+    private let skeletonView = SkeletonView()
+    
+    // 그라데이션 마스크를 위한 뷰들 (위아래 흐림 처리)
+    private let topGradientView = UIView()
+    private let bottomGradientView = UIView()
+    
+
+    
+    // 컨트롤 영역
+    private let controlsContainerView = UIView()
+    
+    // 시간 표시
+    private let timeStackView = UIStackView()
+    private let currentTimeLabel = UILabel()
+    private let totalTimeLabel = UILabel()
+    private let progressView = GradientProgressView() // UIProgressView 대신 커스텀 뷰 사용
+    private let playerControls = PlayerControlsView()
+    
+    // 데이터 - 문단 단위로 변경
+    private var paragraphs: [DocentParagraph] = []
+    private var currentHighlightIndex: Int = 0
+    
+    // 하이라이트 저장 콜백 (ViewModel로 전달용)
+    var onHighlightCreated: ((TextHighlight) -> Void)?
+    var onHighlightDeleted: ((TextHighlight) -> Void)?
+    
+    // ViewModel에서 하이라이트를 가져오기 위한 콜백
+    var onGetHighlightsForParagraph: ((String) -> [TextHighlight])?
+    
+    // 로딩 상태
+    private var isLoading = true {
+        didSet {
+            updateLoadingState()
+        }
+    }
+    
+    // 플레이어 상태
+    private var isPlaying = false {
+        didSet {
+            updateTextSelectionEnabled(!isPlaying)
+        }
+    }
 
     // MARK: - Setup
 
@@ -24,88 +74,477 @@ final class PlayerView: BaseView {
 
         backgroundColor = AppColor.background
 
-        addSubview(customNavigationBar)
+        setupHierarchy()
+        setupTableView()
+        setupControlsArea()
+        setupGradientViews()
+        
+        // 초기 로딩 상태 설정
+        showLoadingState()
+    }
+    
+    private func setupHierarchy() {
+        // 기본 컨텐츠들을 추가
         addSubview(artnerPrimaryBar)
-        addSubview(scrollView)
-        addSubview(playButton)
-
-        scrollView.addSubview(stackView)
-
-        scrollView.showsVerticalScrollIndicator = false
-        scrollView.alwaysBounceVertical = true
-
-        stackView.axis = .vertical
-        stackView.spacing = 16
-        stackView.alignment = .leading
-        stackView.distribution = .equalSpacing
-
-        playButton.setTitle("▶️ 재생", for: .normal)
-        playButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 18)
+        addSubview(fadeoutGradientView)
+        addSubview(lyricsContainerView)
+        addSubview(controlsContainerView)
+        
+        lyricsContainerView.addSubview(skeletonView)
+        lyricsContainerView.addSubview(lyricsTableView)
+        lyricsContainerView.addSubview(topGradientView)
+        lyricsContainerView.addSubview(bottomGradientView)
+        
+        // 컨트롤 영역 구성
+        controlsContainerView.addSubview(timeStackView)
+        controlsContainerView.addSubview(progressView)
+        controlsContainerView.addSubview(playerControls)
+        
+        timeStackView.addArrangedSubview(currentTimeLabel)
+        timeStackView.addArrangedSubview(totalTimeLabel)
+    }
+    
+    private func setupTableView() {
+        lyricsTableView.backgroundColor = .clear
+        lyricsTableView.separatorStyle = .none
+        lyricsTableView.showsVerticalScrollIndicator = false
+        lyricsTableView.showsHorizontalScrollIndicator = false
+        
+        // 셀 등록
+        lyricsTableView.register(ParagraphTableViewCell.self, forCellReuseIdentifier: "ParagraphCell")
+        
+        // 델리게이트 설정
+        lyricsTableView.dataSource = self
+        lyricsTableView.delegate = self
+        
+        // 스크롤 동작 설정
+        lyricsTableView.contentInsetAdjustmentBehavior = .never
+    }
+    
+    private func setupControlsArea() {
+        // 시간 표시 스택뷰 설정
+        timeStackView.axis = .horizontal
+        timeStackView.distribution = .equalSpacing
+        timeStackView.alignment = .center
+        timeStackView.spacing = 0
+        
+        // 시간 라벨 설정
+        currentTimeLabel.textColor = AppColor.textSecondary
+        currentTimeLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        currentTimeLabel.text = "0:00"
+        
+        totalTimeLabel.textColor = AppColor.textSecondary
+        totalTimeLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        totalTimeLabel.text = "0:00"
+        
+        // 플레이어 컨트롤 초기 비활성화
+        playerControls.setEnabled(false)
+    }
+    
+    private func setupGradientViews() {
+        // 상단 텍스트 페이드 그라디언트 (항상 표시 - 텍스트 서서히 안보이게)
+        topGradientView.backgroundColor = .clear
+        let topGradientLayer = CAGradientLayer()
+        topGradientLayer.colors = [
+            AppColor.background.cgColor,                      // 완전한 배경색
+            AppColor.background.withAlphaComponent(0.0).cgColor  // 투명
+        ]
+        topGradientLayer.locations = [0.0, 1.0]
+        topGradientLayer.startPoint = CGPoint(x: 0.5, y: 0.0)
+        topGradientLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
+        topGradientView.layer.addSublayer(topGradientLayer)
+        
+        // 하단 텍스트 페이드 그라디언트 (항상 표시 - 텍스트 서서히 안보이게)
+        bottomGradientView.backgroundColor = .clear
+        let bottomGradientLayer = CAGradientLayer()
+        bottomGradientLayer.colors = [
+            AppColor.background.withAlphaComponent(0.0).cgColor,  // 투명
+            AppColor.background.cgColor                           // 완전한 배경색
+        ]
+        bottomGradientLayer.locations = [0.0, 1.0]
+        bottomGradientLayer.startPoint = CGPoint(x: 0.5, y: 0.0)
+        bottomGradientLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
+        bottomGradientView.layer.addSublayer(bottomGradientLayer)
+        
+        // 상단 골든 그라디언트 설정 (radial 느낌, SafeArea보다 위에서부터)
+        fadeoutGradientView.backgroundColor = .clear
+        fadeoutGradientLayer.colors = [
+            UIColor(hex: "#FFE489", alpha: 0.4).cgColor,  // 밝은 골든 (상단)
+            UIColor(hex: "#CD9567", alpha: 0.3).cgColor,  // 미디엄 골든 (중간)
+            UIColor(hex: "#9A5648", alpha: 0.2).cgColor,  // 다크 브라운 (하단)
+            UIColor(hex: "#9A5648", alpha: 0.0).cgColor   // 투명 (페이드아웃)
+        ]
+        fadeoutGradientLayer.locations = [0.0, 0.4, 0.7, 1.0]
+        fadeoutGradientLayer.startPoint = CGPoint(x: 0.5, y: 0.0)  // 위에서부터
+        fadeoutGradientLayer.endPoint = CGPoint(x: 0.5, y: 1.0)    // 아래로
+        fadeoutGradientView.layer.addSublayer(fadeoutGradientLayer)
+        fadeoutGradientView.alpha = 0.0 // 초기에는 숨김
     }
 
     override func setupLayout() {
         super.setupLayout()
-
-        customNavigationBar.snp.makeConstraints {
-            $0.top.equalTo(safeAreaLayoutGuide.snp.top)
-            $0.leading.trailing.equalToSuperview()
-            $0.height.equalTo(44)
-        }
-
+        
+        // 제목 바 (SafeArea 내에서 시작, 여백 추가)
         artnerPrimaryBar.snp.makeConstraints {
-            $0.top.equalTo(customNavigationBar.snp.bottom)
+            $0.top.equalTo(safeAreaLayoutGuide.snp.top).offset(10)
             $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(60)  // 42 → 60으로 증가
         }
-
-        scrollView.snp.makeConstraints {
-            $0.top.equalTo(artnerPrimaryBar.snp.bottom)
+        
+        // 페이드아웃 그라데이션 (상태바 포함 화면 맨 위부터 제목바까지)
+        fadeoutGradientView.snp.makeConstraints {
+            $0.top.equalToSuperview()
             $0.leading.trailing.equalToSuperview()
-            $0.bottom.equalTo(playButton.snp.top).offset(-16)
+            $0.bottom.equalTo(artnerPrimaryBar.snp.bottom)
         }
-
-        stackView.snp.makeConstraints {
-            $0.top.bottom.leading.trailing.equalToSuperview().inset(20)
-            $0.width.equalTo(scrollView.snp.width).offset(-40)
+        
+        // 컨트롤 영역 (SafeArea 내에서 끝, 높이 170px)
+        controlsContainerView.snp.makeConstraints {
+            $0.leading.trailing.equalToSuperview()
+            $0.bottom.equalTo(safeAreaLayoutGuide.snp.bottom)
+            $0.height.equalTo(170)
         }
-
-        playButton.snp.makeConstraints {
-            $0.bottom.equalTo(safeAreaLayoutGuide.snp.bottom).offset(-20)
+        
+        // 컨텐츠 영역 (제목 바 아래부터 컨트롤 영역 위까지)
+        lyricsContainerView.snp.makeConstraints {
+            $0.top.equalTo(fadeoutGradientView.snp.bottom)
+            $0.leading.trailing.equalToSuperview()
+            $0.bottom.equalTo(controlsContainerView.snp.top)
+        }
+        
+        // 스켈레톤 뷰
+        skeletonView.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+        }
+        
+        // 테이블뷰
+        lyricsTableView.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+        }
+        
+        // 상단 그라데이션
+        topGradientView.snp.makeConstraints {
+            $0.top.leading.trailing.equalToSuperview()
+            $0.height.equalTo(40)
+        }
+        
+        // 하단 그라데이션
+        bottomGradientView.snp.makeConstraints {
+            $0.bottom.leading.trailing.equalToSuperview()
+            $0.height.equalTo(40)
+        }
+        
+        // 플레이어 컨트롤 (위쪽에 배치, 56px 높이)
+        playerControls.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(12)
             $0.centerX.equalToSuperview()
+            $0.width.equalTo(120)
+            $0.height.equalTo(56)
+        }
+        
+        // 진행 바 (컨트롤 아래에 배치)
+        progressView.snp.makeConstraints {
+            $0.top.equalTo(playerControls.snp.bottom).offset(34)
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.height.equalTo(4)
+        }
+        
+        // 시간 표시 (진행 바 아래에 배치)
+        timeStackView.snp.makeConstraints {
+            $0.top.equalTo(progressView.snp.bottom).offset(8)
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.height.equalTo(20)
         }
     }
-
-    // MARK: - Public
-
-    private var labelList: [UILabel] = []
-
-    func setScripts(_ scripts: [DocentScript]) {
-        stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        labelList.removeAll()
-
-        for script in scripts {
-            let label = UILabel()
-            label.text = script.text
-            label.numberOfLines = 0
-            label.font = UIFont.systemFont(ofSize: 16)
-            label.textColor = AppColor.textPrimary
-            label.alpha = 0.5 // 기본은 반투명
-            stackView.addArrangedSubview(label)
-            labelList.append(label)
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        // 모든 그라디언트 레이어 크기 업데이트
+        if let topGradientLayer = topGradientView.layer.sublayers?.first as? CAGradientLayer {
+            topGradientLayer.frame = topGradientView.bounds
         }
+        
+        if let bottomGradientLayer = bottomGradientView.layer.sublayers?.first as? CAGradientLayer {
+            bottomGradientLayer.frame = bottomGradientView.bounds
+        }
+        
+        fadeoutGradientLayer.frame = fadeoutGradientView.bounds
     }
 
-    func highlightScript(at index: Int) {
-        for (i, label) in labelList.enumerated() {
-            label.alpha = (i == index) ? 1.0 : 0.5
+    // MARK: - Public Interface
+
+    /// 문단 데이터 설정
+    func setParagraphs(_ paragraphs: [DocentParagraph]) {
+        self.paragraphs = paragraphs
+        lyricsTableView.reloadData() // 테이블 뷰를 새로고침하여 문단 데이터를 반영
+    }
+    
+    /// 로딩 상태 표시
+    func showLoadingState() {
+        isLoading = true
+        skeletonView.startLoading()
+        skeletonView.isHidden = false
+        lyricsTableView.isHidden = true
+    }
+    
+    /// 컨텐츠 상태 표시
+    func showContentState() {
+        isLoading = false
+        skeletonView.stopLoading()
+        skeletonView.isHidden = true
+        lyricsTableView.isHidden = false
+        
+        // 레이아웃 강제 갱신으로 셀 높이 올바르게 계산
+        lyricsTableView.layoutIfNeeded()
+        
+        // TableView 높이 재계산 강제 실행
+        DispatchQueue.main.async {
+            self.lyricsTableView.beginUpdates()
+            self.lyricsTableView.endUpdates()
         }
+        
+        // 플레이어 컨트롤 활성화
+        UIView.animate(withDuration: 0.3) {
+            self.playerControls.setEnabled(true)
+        }
+    }
+    
+    /// 문단 하이라이트
+    func highlightParagraph(at index: Int) {
+        guard index >= 0 && index < paragraphs.count && !isLoading else { return }
+        
+        currentHighlightIndex = index
+        
+        // 테이블뷰 새로고침 (하이라이트 변경을 위해)
+        lyricsTableView.reloadData()
+        
+        // 중앙으로 스크롤 (애니메이션과 함께)
+        let indexPath = IndexPath(row: index, section: 0)
+        lyricsTableView.scrollToRow(at: indexPath, at: .middle, animated: true)
+    }
+    
+    /// 진행률 업데이트
+    func updateProgress(_ currentTime: TimeInterval, totalTime: TimeInterval) {
+        guard !isLoading else { return }
+        
+        // 현재 시간 표시 업데이트
+        let currentMinutes = Int(currentTime) / 60
+        let currentSeconds = Int(currentTime) % 60
+        currentTimeLabel.text = String(format: "%d:%02d", currentMinutes, currentSeconds)
+        
+        // 총 시간 표시 업데이트
+        let totalMinutes = Int(totalTime) / 60
+        let totalSeconds = Int(totalTime) % 60
+        totalTimeLabel.text = String(format: "%d:%02d", totalMinutes, totalSeconds)
+        
+        // 진행 바 업데이트
+        if totalTime > 0 {
+            progressView.setProgress(Float(currentTime / totalTime), animated: true)
+        }
+    }
+    
+    /// 플레이 상태 업데이트
+    func updatePlayState(_ isPlaying: Bool) {
+        self.isPlaying = isPlaying
+        
+        // PlayerControlsView의 상태 업데이트
+        let state: PlayerControlState = isPlaying ? .playing : .idle
+        playerControls.setState(state)
+        
+        // 플레이 상태에 따른 그라데이션 표시/숨김 (fadeoutGradientView만 사용)
+        showFadeoutGradient(isPlaying)
+        
+        // ArtnerPrimaryBar 그라디언트는 비활성화 (중복 방지)
+        // artnerPrimaryBar.setGradientVisible(isPlaying, animated: true)
+    }
+    
+    /// 하이라이트 UI 업데이트 (외부에서 호출)
+    func updateHighlights(_ highlightsByParagraph: [String: [TextHighlight]]) {
+        print("🎨 [PlayerView] 하이라이트 업데이트 시작: \(highlightsByParagraph.count)개 문단")
+        
+        // 모든 보이는 셀에 하이라이트 적용
+        for cell in lyricsTableView.visibleCells {
+            guard let paragraphCell = cell as? ParagraphTableViewCell,
+                  let indexPath = lyricsTableView.indexPath(for: cell),
+                  indexPath.row < paragraphs.count else { continue }
+            
+            let paragraph = paragraphs[indexPath.row]
+            let highlights = highlightsByParagraph[paragraph.id] ?? []
+            
+            print("🎨 [PlayerView] 문단 '\(paragraph.id)'에 \(highlights.count)개 하이라이트 적용")
+            paragraphCell.setHighlights(highlights)
+        }
+        
+        // 테이블뷰 새로고침으로 하이라이트 시각적 업데이트 강제
+        DispatchQueue.main.async {
+            self.lyricsTableView.reloadData()
+        }
+    }
+    
+    /// 텍스트 선택 상태 업데이트 (외부에서 호출)
+    func updateTextSelectionEnabled(_ enabled: Bool) {
+        // 모든 보이는 셀의 텍스트 선택 상태 업데이트
+        for cell in lyricsTableView.visibleCells {
+            if let paragraphCell = cell as? ParagraphTableViewCell {
+                paragraphCell.setTextSelectionEnabled(enabled)
+            }
+        }
+    }
+    
+    /// 플레이어 컨트롤 액션 설정
+    func setupPlayerControlsActions(
+        onSave: @escaping () -> Void,
+        onPlay: @escaping () -> Void,
+        onPause: @escaping () -> Void,
+        onReplay: @escaping () -> Void
+    ) {
+        playerControls.onSaveButtonTapped = onSave
+        playerControls.onPlayButtonTapped = onPlay
+        playerControls.onPauseButtonTapped = onPause
+        playerControls.onReplayButtonTapped = onReplay
+    }
 
-        guard index < labelList.count else { return }
-        let label = labelList[index]
+    // MARK: - Private Methods
+    
+    private func updateLoadingState() {
+        // 로딩 상태 변경에 따른 추가 UI 업데이트가 필요하면 여기에
+    }
+    
+    /// 저장 성공 토스트 메시지 표시
+    private func showSaveSuccessMessage() {
+        let messageLabel = UILabel()
+        messageLabel.text = "🖍️ 하이라이트가 저장되었습니다"
+        messageLabel.backgroundColor = UIColor.black.withAlphaComponent(0.8)
+        messageLabel.textColor = .white
+        messageLabel.textAlignment = .center
+        messageLabel.layer.cornerRadius = 20
+        messageLabel.clipsToBounds = true
+        messageLabel.alpha = 0
+        
+        addSubview(messageLabel)
+        messageLabel.snp.makeConstraints {
+            $0.centerX.equalToSuperview()
+            $0.bottom.equalTo(controlsContainerView.snp.top).offset(-20)
+            $0.height.equalTo(40)
+            $0.width.equalTo(250)
+        }
+        
+        // 페이드 인/아웃 애니메이션
+        UIView.animate(withDuration: 0.3, animations: {
+            messageLabel.alpha = 1.0
+        }) { _ in
+            UIView.animate(withDuration: 0.3, delay: 1.5, animations: {
+                messageLabel.alpha = 0
+            }) { _ in
+                messageLabel.removeFromSuperview()
+            }
+        }
+    }
+    
+    /// 삭제 성공 토스트 메시지 표시
+    private func showDeleteSuccessMessage() {
+        let messageLabel = UILabel()
+        messageLabel.text = "🗑️ 하이라이트가 삭제되었습니다"
+        messageLabel.backgroundColor = UIColor.black.withAlphaComponent(0.8)
+        messageLabel.textColor = .white
+        messageLabel.textAlignment = .center
+        messageLabel.layer.cornerRadius = 20
+        messageLabel.clipsToBounds = true
+        messageLabel.alpha = 0
+        
+        addSubview(messageLabel)
+        messageLabel.snp.makeConstraints {
+            $0.centerX.equalToSuperview()
+            $0.bottom.equalTo(controlsContainerView.snp.top).offset(-20)
+            $0.height.equalTo(40)
+            $0.width.equalTo(250)
+        }
+        
+        // 페이드 인/아웃 애니메이션
+        UIView.animate(withDuration: 0.3, animations: {
+            messageLabel.alpha = 1.0
+        }) { _ in
+            UIView.animate(withDuration: 0.3, delay: 1.5, animations: {
+                messageLabel.alpha = 0
+            }) { _ in
+                messageLabel.removeFromSuperview()
+            }
+        }
+    }
+    
+    /// 플레이 상태에 따른 하단 페이드아웃 그라데이션 표시/숨김
+    private func showFadeoutGradient(_ isPlaying: Bool) {
+        let targetAlpha: CGFloat = isPlaying ? 1.0 : 0.0
+        
+        UIView.animate(withDuration: 0.5, animations: {
+            self.fadeoutGradientView.alpha = targetAlpha
+        })
+    }
+}
 
-        // 중앙으로 스크롤
-        let targetOffset = label.frame.origin.y - (scrollView.frame.height / 2) + (label.frame.height / 2)
-        let clampedOffset = max(0, min(targetOffset, scrollView.contentSize.height - scrollView.frame.height))
+// MARK: - UITableViewDataSource
 
-        scrollView.setContentOffset(CGPoint(x: 0, y: clampedOffset), animated: true)
+extension PlayerView: UITableViewDataSource {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return paragraphs.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "ParagraphCell", for: indexPath) as? ParagraphTableViewCell else {
+            return UITableViewCell()
+        }
+        
+        let paragraph = paragraphs[indexPath.row]
+        let isHighlighted = indexPath.row == currentHighlightIndex
+        
+        // 하이라이트 가능 조건: 현재 재생 중인 문단 + 재생 중인 상태
+        let canHighlight = isHighlighted && isPlaying
+        
+        // 하이라이트 저장 콜백 설정 (ViewModel로 전달)
+        cell.onHighlightSaved = { [weak self] highlight in
+            self?.onHighlightCreated?(highlight)
+            self?.showSaveSuccessMessage()
+        }
+        
+        // 하이라이트 삭제 콜백 설정 (ViewModel로 전달)
+        cell.onHighlightDeleted = { [weak self] highlight in
+            self?.onHighlightDeleted?(highlight)
+            self?.showDeleteSuccessMessage()
+        }
+        
+        // 텍스트 선택 상태 설정 
+        cell.setTextSelectionEnabled(!isPlaying)
+        
+        // configure에서 하이라이트 활성화 조건을 전달
+        cell.configure(with: paragraph, isHighlighted: isHighlighted, canHighlight: canHighlight)
+        
+        // 저장된 하이라이트 로드 (ViewModel에서 가져와서 적용)
+        let savedHighlights = onGetHighlightsForParagraph?(paragraph.id) ?? []
+        cell.setHighlights(savedHighlights)
+        
+        return cell
+    }
+}
+
+// MARK: - UITableViewDelegate
+
+extension PlayerView: UITableViewDelegate {
+    
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return UITableView.automaticDimension
+    }
+    
+    func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
+        guard indexPath.row < paragraphs.count else { return 120 }
+        
+        let paragraph = paragraphs[indexPath.row]
+        let textLength = paragraph.fullText.count
+        
+        // 텍스트 길이에 따른 추정 높이 계산
+        let estimatedLineCount = max(1, textLength / 30)  // 대략 30자당 1줄
+        let estimatedHeight = CGFloat(estimatedLineCount) * 25 + 40  // 줄 높이 25px + 여백 40px
+        
+        return max(80, estimatedHeight)
     }
 }

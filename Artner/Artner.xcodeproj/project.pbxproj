@@ -160,9 +160,10 @@
 				DEVELOPMENT_TEAM = 396HBTZTGH;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Artner/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "작품을 촬영하여 AI 도슨트 서비스를 이용하기 위해 카메라 접근 권한이 필요합니다.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "갤러리에서 작품 이미지를 선택하여 AI 도슨트 서비스를 이용하기 위해 사진 라이브러리 접근 권한이 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
-				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -188,9 +189,10 @@
 				DEVELOPMENT_TEAM = 396HBTZTGH;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Artner/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "작품을 촬영하여 AI 도슨트 서비스를 이용하기 위해 카메라 접근 권한이 필요합니다.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "갤러리에서 작품 이미지를 선택하여 AI 도슨트 서비스를 이용하기 위해 사진 라이브러리 접근 권한이 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
-				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (

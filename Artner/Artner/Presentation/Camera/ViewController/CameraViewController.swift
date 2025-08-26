@@ -1,0 +1,230 @@
+import UIKit
+import AVFoundation
+import Combine
+
+final class CameraViewController: UIViewController {
+    private let cameraView = CameraView()
+    private var captureSession: AVCaptureSession?
+    private var previewLayer: AVCaptureVideoPreviewLayer?
+    private var photoOutput: AVCapturePhotoOutput?
+    private var cancellables = Set<AnyCancellable>()
+    
+    // 카메라 관련 프로퍼티
+    private var currentCameraPosition: AVCaptureDevice.Position = .back
+    
+    override func loadView() {
+        self.view = cameraView
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        setupActions()
+        checkCameraPermission()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
+        startCamera()
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        stopCamera()
+    }
+    
+    private func setupActions() {
+        // 뒤로가기 버튼
+        cameraView.closeButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
+        
+        // 카메라 촬영 버튼
+        cameraView.captureButton.addTarget(self, action: #selector(didTapCapture), for: .touchUpInside)
+        
+        // 카메라 전환 버튼 (전면/후면)
+        cameraView.flipCameraButton.addTarget(self, action: #selector(didTapFlipCamera), for: .touchUpInside)
+        
+        // 갤러리 버튼
+        cameraView.galleryButton.addTarget(self, action: #selector(didTapGallery), for: .touchUpInside)
+    }
+    
+    // MARK: - Camera Permission & Setup
+    private func checkCameraPermission() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            setupCamera()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        self?.setupCamera()
+                    } else {
+                        self?.showPermissionDeniedAlert()
+                    }
+                }
+            }
+        case .denied, .restricted:
+            showPermissionDeniedAlert()
+        @unknown default:
+            showPermissionDeniedAlert()
+        }
+    }
+    
+    private func showPermissionDeniedAlert() {
+        let alert = UIAlertController(
+            title: "카메라 접근 권한 필요",
+            message: "작품을 촬영하기 위해 카메라 접근 권한이 필요합니다. 설정에서 권한을 허용해주세요.",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "설정으로 이동", style: .default) { _ in
+            if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(settingsURL)
+            }
+        })
+        
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel) { [weak self] _ in
+            self?.dismiss(animated: true)
+        })
+        
+        present(alert, animated: true)
+    }
+    
+    private func setupCamera() {
+        guard let captureDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: currentCameraPosition) else {
+            print("카메라를 찾을 수 없습니다.")
+            return
+        }
+        
+        do {
+            captureSession = AVCaptureSession()
+            captureSession?.sessionPreset = .photo
+            
+            let input = try AVCaptureDeviceInput(device: captureDevice)
+            
+            if captureSession?.canAddInput(input) == true {
+                captureSession?.addInput(input)
+            }
+            
+            photoOutput = AVCapturePhotoOutput()
+            if captureSession?.canAddOutput(photoOutput!) == true {
+                captureSession?.addOutput(photoOutput!)
+            }
+            
+            setupPreviewLayer()
+            
+        } catch {
+            print("카메라 설정 중 오류 발생: \(error)")
+        }
+    }
+    
+    private func setupPreviewLayer() {
+        guard let captureSession = captureSession else { return }
+        
+        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+        previewLayer?.videoGravity = .resizeAspectFill
+        
+        // 카메라 프리뷰를 cameraView의 previewContainer에 추가
+        if let previewLayer = previewLayer {
+            cameraView.previewContainer.layer.addSublayer(previewLayer)
+        }
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        // 프리뷰 레이어 크기를 previewContainer에 맞춤
+        previewLayer?.frame = cameraView.previewContainer.bounds
+    }
+    
+    private func startCamera() {
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            self?.captureSession?.startRunning()
+        }
+    }
+    
+    private func stopCamera() {
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            self?.captureSession?.stopRunning()
+        }
+    }
+    
+    // MARK: - Actions
+    @objc private func didTapClose() {
+        dismiss(animated: true)
+    }
+    
+    @objc private func didTapCapture() {
+        guard let photoOutput = photoOutput else { return }
+        
+        let photoSettings = AVCapturePhotoSettings()
+        photoOutput.capturePhoto(with: photoSettings, delegate: self)
+    }
+    
+    @objc private func didTapFlipCamera() {
+        // 전면/후면 카메라 전환
+        currentCameraPosition = (currentCameraPosition == .back) ? .front : .back
+        
+        // 기존 입력 제거
+        captureSession?.inputs.forEach { input in
+            captureSession?.removeInput(input)
+        }
+        
+        // 새로운 카메라로 설정
+        guard let newCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: currentCameraPosition) else { return }
+        
+        do {
+            let newInput = try AVCaptureDeviceInput(device: newCamera)
+            if captureSession?.canAddInput(newInput) == true {
+                captureSession?.addInput(newInput)
+            }
+        } catch {
+            print("카메라 전환 중 오류 발생: \(error)")
+        }
+    }
+    
+    @objc private func didTapGallery() {
+        // 갤러리 열기
+        let imagePickerController = UIImagePickerController()
+        imagePickerController.sourceType = .photoLibrary
+        imagePickerController.delegate = self
+        present(imagePickerController, animated: true)
+    }
+}
+
+// MARK: - AVCapturePhotoCaptureDelegate
+extension CameraViewController: AVCapturePhotoCaptureDelegate {
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        if let error = error {
+            print("사진 촬영 중 오류 발생: \(error)")
+            return
+        }
+        
+        guard let imageData = photo.fileDataRepresentation(),
+              let image = UIImage(data: imageData) else {
+            print("이미지 데이터를 변환할 수 없습니다.")
+            return
+        }
+        
+        // 촬영된 이미지 처리 (예: 저장, 편집 화면으로 이동 등)
+        print("사진이 촬영되었습니다.")
+        
+        // TODO: 촬영된 이미지를 처리하는 로직 추가
+        // 예: 이미지 편집 화면으로 이동하거나 바로 분석 요청
+    }
+}
+
+// MARK: - UIImagePickerControllerDelegate, UINavigationControllerDelegate
+extension CameraViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        picker.dismiss(animated: true)
+        
+        if let selectedImage = info[.originalImage] as? UIImage {
+            // 선택된 이미지 처리
+            print("갤러리에서 이미지를 선택했습니다.")
+            // TODO: 선택된 이미지를 처리하는 로직 추가
+        }
+    }
+    
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true)
+    }
+} 
