@@ -29,9 +29,7 @@ final class ChatViewModel: ObservableObject {
         self.keyword = keyword
         self.docent = docent
         self.botMessages = [
-            "\(keyword)에 대해 설명할게요.",
-            "\(docent.title)은 \(docent.artist)의 작품이에요.",
-            "이제 도슨트를 들어보시겠어요?"
+            "\(keyword)에 대해 설명할까요?"
         ]
     }
 
@@ -52,13 +50,19 @@ final class ChatViewModel: ObservableObject {
     private func addBotMessages(_ messages: [String], current: Int = 0) {
         guard current < messages.count else {
             // 모든 메시지 추가 후 버튼만 마지막에 추가
-            chatItems.append(.docentButton)
-            onAllMessagesDisplayed?()
+            DispatchQueue.main.async { [weak self] in
+                self?.chatItems.append(.docentButton)
+                self?.onAllMessagesDisplayed?()
+            }
             return
         }
+        
+        // 현재 메시지 추가
         chatItems.append(.bot(messages[current], showProfile: current == 0))
-        // 1초 후 다음 메시지 추가
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        
+        // 1초 후 다음 메시지 추가 (weak self로 메모리 안전성 확보)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self = self else { return }
             self.addBotMessages(messages, current: current + 1)
         }
     }

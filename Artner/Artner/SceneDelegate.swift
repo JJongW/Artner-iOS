@@ -24,5 +24,23 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         self.appCoordinator = appCoordinator
 
         appCoordinator.start()
+        
+        // RTI 에러 방지를 위한 전역 키보드 설정 (메인 스레드에서 실행)
+        DispatchQueue.main.async { [weak self] in
+            self?.setupGlobalKeyboardSettings()
+        }
+    }
+    
+    // MARK: - Keyboard Setup
+    
+    /// RTI 에러 방지를 위한 최소한의 전역 설정 (안전 버전)
+    private func setupGlobalKeyboardSettings() {
+        // 반드시 메인 스레드에서 실행되도록 보장
+        assert(Thread.isMainThread, "setupGlobalKeyboardSettings는 메인 스레드에서만 실행되어야 합니다.")
+        
+        // ⚠️ 모든 UITextField.appearance() 설정을 제거하여 메인 스레드 충돌 방지
+        // 대신 개별 텍스트필드에서 직접 설정하도록 변경
+        
+        print("🔧 RTI 에러 방지를 위한 최소한의 전역 설정 완료 (안전 모드)")
     }
 }

@@ -1,5 +1,5 @@
 //
-//  ChatMessageCell.swift
+//  UserMessageCell.swift
 //  Artner
 //
 //  Created by 신종원 on 6/1/25.
