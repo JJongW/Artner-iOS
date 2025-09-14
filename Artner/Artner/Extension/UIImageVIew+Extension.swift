@@ -30,7 +30,6 @@ extension UIImageView {
             return
         }
         
-        // 로딩 인디케이터 시작 (선택사항)
         setLoadingState()
         
         // 비동기 이미지 다운로드
@@ -67,12 +66,9 @@ extension UIImageView {
     /// 플레이스홀더 이미지 설정
     private func setPlaceholderImage() {
         self.image = nil
-        // 기존 배경색 유지 (DocentTableViewCell에서 설정된 배경색)
     }
     
-    /// 로딩 상태 설정 (선택사항)
     private func setLoadingState() {
-        // 간단한 로딩 상태 - 기존 배경색 유지
         self.image = nil
     }
 }

@@ -84,9 +84,9 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
 
         switch item {
         case .exhibition(let exhibition):
-            let thumbnailURL = exhibition.items.first?.image.isEmpty == false ? URL(string: exhibition.items[0].image) : nil
+            let thumbnailURL = exhibition.items.first?.image.isEmpty == false ? URL(string: "https://artner.shop/"+"\(exhibition.items[0].image)") : nil
             let title = exhibition.items.first?.title ?? exhibition.title
-            let subtitle = exhibition.items.first?.description ?? ""
+            let subtitle = exhibition.items.first?.venue ?? ""
             let period = exhibition.items.first?.startDate ?? ""
 
             cell.configure(

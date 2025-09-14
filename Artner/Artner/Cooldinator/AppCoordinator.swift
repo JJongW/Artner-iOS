@@ -11,11 +11,8 @@ final class AppCoordinator {
     private let window: UIWindow
     private let navigationController: UINavigationController
 
-    private let docentRepository = DocentRepositoryImpl()
-    private lazy var playDocentUseCase: PlayDocentUseCase = PlayDocentUseCaseImpl(repository: docentRepository)
-
-    private let feedRepository = FeedRepositoryImpl()
-    private lazy var fetchFeedUseCase: FetchFeedUseCase = FetchFeedUseCaseImpl(repository: feedRepository)
+    // DI Container 사용
+    private let container = DIContainer.shared
 
     private var sideMenu: SideMenuContainerView?
 
@@ -25,7 +22,11 @@ final class AppCoordinator {
     }
 
     func start() {
-        let homeViewModel = HomeViewModel(fetchFeedUseCase: fetchFeedUseCase)
+        // DI Container 설정
+        container.configureForDevelopment()
+        
+        // DI Container를 통해 ViewModel 생성
+        let homeViewModel = container.makeHomeViewModel()
         let homeVC = HomeViewController(viewModel: homeViewModel, coordinator: self)
         homeVC.onCameraTapped = { [weak self] in
             self?.showCamera()
@@ -52,7 +53,7 @@ final class AppCoordinator {
     }
 
     func showPlayer(docent: Docent) {
-        let playerViewModel = PlayerViewModel(docent: docent)
+        let playerViewModel = container.makePlayerViewModel(docent: docent)
         let playerVC = PlayerViewController(viewModel: playerViewModel, coordinator: self)
         navigationController.pushViewController(playerVC, animated: true)
     }
@@ -67,8 +68,8 @@ final class AppCoordinator {
         // 카메라에서 촬영한 이미지를 기반으로 Entry로 진입
         // 실제로는 이미지 인식 API를 호출해서 작품 정보를 가져와야 함
         
-        // 현재는 더미 도슨트 데이터 활용
-        let docents = playDocentUseCase.fetchDocents()
+        // 현재는 더미 도슨트 데이터 활용 (Clean Architecture: UseCase를 통해 접근)
+        let docents = container.playDocentUseCase.fetchDocents()
         if let first = docents.first, !first.paragraphs.isEmpty {
             showEntry(docent: first)
             return
