@@ -28,7 +28,7 @@ final class AppCoordinator {
         let homeViewModel = HomeViewModel(fetchFeedUseCase: fetchFeedUseCase)
         let homeVC = HomeViewController(viewModel: homeViewModel, coordinator: self)
         homeVC.onCameraTapped = { [weak self] in
-            self?.presentCameraEntry()
+            self?.showCamera()
         }
         homeVC.onShowSidebar = { [weak self, weak homeVC] in
             guard let self = self, let homeVC = homeVC else { return }
@@ -57,18 +57,28 @@ final class AppCoordinator {
         navigationController.pushViewController(playerVC, animated: true)
     }
 
-    func presentCameraEntry() {
-        // 카메라 인식 결과로 진입 시, 기존 더미 도슨트 데이터(문단 포함)를 활용
+    func showCamera() {
+        let cameraVC = CameraViewController(coordinator: self)
+        cameraVC.modalPresentationStyle = .fullScreen
+        navigationController.present(cameraVC, animated: true)
+    }
+
+    func navigateToEntryFromCamera(with capturedImage: UIImage? = nil) {
+        // 카메라에서 촬영한 이미지를 기반으로 Entry로 진입
+        // 실제로는 이미지 인식 API를 호출해서 작품 정보를 가져와야 함
+        
+        // 현재는 더미 도슨트 데이터 활용
         let docents = playDocentUseCase.fetchDocents()
         if let first = docents.first, !first.paragraphs.isEmpty {
             showEntry(docent: first)
             return
         }
-        // 폴백: 최소 1개의 문단을 가진 샘플 생성
+        
+        // 폴백: 촬영된 이미지를 기반으로 한 샘플 생성
         let fallback = Docent(
             id: 999,
             title: "카메라로 스캔한 작품",
-            artist: "미지의 작가",
+            artist: "미지의 작가", 
             description: "이 작품은 이미지 인식을 통해 탐색된 결과입니다.",
             imageURL: "https://www.naver.com",
             audioURL: nil,

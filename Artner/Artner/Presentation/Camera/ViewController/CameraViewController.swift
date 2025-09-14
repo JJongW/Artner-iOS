@@ -12,6 +12,18 @@ final class CameraViewController: UIViewController {
     // 카메라 관련 프로퍼티
     private var currentCameraPosition: AVCaptureDevice.Position = .back
     
+    // Coordinator 주입
+    private let coordinator: AppCoordinator
+    
+    init(coordinator: AppCoordinator) {
+        self.coordinator = coordinator
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     override func loadView() {
         self.view = cameraView
     }
@@ -34,8 +46,10 @@ final class CameraViewController: UIViewController {
     }
     
     private func setupActions() {
-        // 뒤로가기 버튼
-        cameraView.closeButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
+        // 뒤로가기 버튼 콜백 연결 (CustomNavigationBar 스타일 참고)
+        cameraView.onBackButtonTapped = { [weak self] in
+            self?.didTapClose()
+        }
         
         // 카메라 촬영 버튼
         cameraView.captureButton.addTarget(self, action: #selector(didTapCapture), for: .touchUpInside)
@@ -149,7 +163,9 @@ final class CameraViewController: UIViewController {
     
     // MARK: - Actions
     @objc private func didTapClose() {
-        dismiss(animated: true)
+        dismiss(animated: true) {
+            // 카메라를 닫을 때는 Home으로 돌아가기 (아무것도 하지 않음)
+        }
     }
     
     @objc private func didTapCapture() {
@@ -204,11 +220,13 @@ extension CameraViewController: AVCapturePhotoCaptureDelegate {
             return
         }
         
-        // 촬영된 이미지 처리 (예: 저장, 편집 화면으로 이동 등)
+        // 촬영된 이미지 처리 - Entry로 이동
         print("사진이 촬영되었습니다.")
         
-        // TODO: 촬영된 이미지를 처리하는 로직 추가
-        // 예: 이미지 편집 화면으로 이동하거나 바로 분석 요청
+        // 카메라를 닫고 Entry로 이동
+        dismiss(animated: true) { [weak self] in
+            self?.coordinator.navigateToEntryFromCamera(with: image)
+        }
     }
 }
 
@@ -218,9 +236,13 @@ extension CameraViewController: UIImagePickerControllerDelegate, UINavigationCon
         picker.dismiss(animated: true)
         
         if let selectedImage = info[.originalImage] as? UIImage {
-            // 선택된 이미지 처리
+            // 선택된 이미지 처리 - Entry로 이동
             print("갤러리에서 이미지를 선택했습니다.")
-            // TODO: 선택된 이미지를 처리하는 로직 추가
+            
+            // 카메라를 닫고 Entry로 이동
+            dismiss(animated: true) { [weak self] in
+                self?.coordinator.navigateToEntryFromCamera(with: selectedImage)
+            }
         }
     }
     
