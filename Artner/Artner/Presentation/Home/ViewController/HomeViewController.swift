@@ -10,6 +10,8 @@ import Combine
 final class HomeViewController: BaseViewController<HomeViewModel, AppCoordinator> {
 
     private let homeView = HomeView()
+    private var cancellables = Set<AnyCancellable>()  // ← 프로퍼티 위치 이동
+    
     var onCameraTapped: (() -> Void)?
     var onShowSidebar: (() -> Void)?
     override func loadView() {
@@ -64,22 +66,6 @@ final class HomeViewController: BaseViewController<HomeViewModel, AppCoordinator
         onCameraTapped?()
     }
 
-    private func setupNavigationBarAppearance() {
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithTransparentBackground()
-
-        appearance.backgroundColor = .clear
-        appearance.shadowColor = .clear
-        appearance.titleTextAttributes = [
-            .foregroundColor: UIColor.clear
-        ]
-
-        navigationController?.navigationBar.standardAppearance = appearance
-        navigationController?.navigationBar.scrollEdgeAppearance = appearance
-        navigationController?.navigationBar.compactAppearance = appearance
-    }
-
-    private var cancellables = Set<AnyCancellable>()
 }
 
 // MARK: - UITableViewDataSource, UITableViewDelegate
@@ -98,22 +84,38 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
 
         switch item {
         case .exhibition(let exhibition):
+            let thumbnailURL = exhibition.items.first?.image.isEmpty == false ? URL(string: exhibition.items[0].image) : nil
+            let title = exhibition.items.first?.title ?? exhibition.title
+            let subtitle = exhibition.items.first?.description ?? ""
+            let period = exhibition.items.first?.startDate ?? ""
+
             cell.configure(
-                thumbnail: UIImage(named: "exhibitionThumbnail"),
-                title: exhibition.title,
-                subtitle: exhibition.location
+                thumbnail: thumbnailURL,
+                title: title,
+                subtitle: subtitle,
+                period: period
             )
         case .artwork(let artwork):
+            let title = artwork.title
+            let subtitle = artwork.items.first?.name ?? "작가 정보 없음"
+            let period = artwork.items.first?.lifePeriod ?? ""
+            
             cell.configure(
-                thumbnail: UIImage(named: "artworkThumbnail"),
-                title: artwork.title,
-                subtitle: artwork.artistName
+                thumbnail: nil,
+                title: title,
+                subtitle: subtitle,
+                period: period
             )
         case .artist(let artist):
+            let title = artist.items.first?.title ?? artist.title
+            let subtitle = artist.items.first?.artistName ?? "작가명 없음"
+            let period = artist.items.first?.createdYear ?? ""
+            
             cell.configure(
-                thumbnail: UIImage(named: "artistThumbnail"),
-                title: artist.name,
-                subtitle: artist.lifeSpan
+                thumbnail: nil,
+                title: title,
+                subtitle: subtitle,
+                period: period
             )
         }
 
@@ -121,7 +123,18 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        
         let item = viewModel.feedItems[indexPath.row]
-        print("")
+        
+        // TODO: 선택된 아이템에 따른 네비게이션 로직 추가 필요
+        switch item {
+        case .exhibition(let exhibition):
+            print("📍 전시 선택됨: \(exhibition.title)")
+        case .artwork(let artwork):
+            print("🎨 작품 선택됨: \(artwork.title)")
+        case .artist(let artist):
+            print("👨 작가 선택됨: \(artist.title)")
+        }
     }
 }

@@ -65,6 +65,7 @@ final class CustomNavigationBar: UIView {
         backButton.snp.makeConstraints {
             $0.leading.equalToSuperview().offset(20)
             $0.centerY.equalToSuperview()
+            $0.size.equalTo(24) // 일관성을 위해 24x24 설정
         }
 
         titleLabel.snp.makeConstraints {
@@ -74,6 +75,7 @@ final class CustomNavigationBar: UIView {
         rightButton.snp.makeConstraints {
             $0.trailing.equalToSuperview().inset(20)
             $0.centerY.equalToSuperview()
+            $0.size.equalTo(24) // 일관성을 위해 24x24 설정
         }
     }
 

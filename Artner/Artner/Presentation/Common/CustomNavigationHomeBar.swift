@@ -37,6 +37,7 @@ final class CustomNavigationHomeBar: BaseView {
         rightButton.snp.makeConstraints {
             $0.trailing.equalToSuperview().inset(20)
             $0.centerY.equalToSuperview()
+            $0.size.equalTo(24) // 다른 네비게이션 바와 일관성을 위해 24x24 설정
         }
     }
 

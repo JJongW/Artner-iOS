@@ -14,30 +14,37 @@ final class FeedRepositoryImpl: FeedRepository {
         let exhibitions: [FeedItemType] = [
             .exhibition(Exhibition(
                 id: 1,
-                title: "알폰스 무하 원화전 전시",
-                location: "서울 종로구 | 마이아트 뮤지엄",
-                period: "2025.04.15(화) ~ 05.26(수)",
-                isOngoing: true,
-                museumURL: URL(string: "https://map.naver.com")!,
-                isLiked: false
+                type: "exhibitions",
+                title: "전시회",
+                items: [ExhibitionItems(
+                    id: 9,
+                    title: "우리는 우리의 밤을 떠나지 않는다",
+                    description: "",
+                    image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSyPkxMuo6NOHcNx-aO-wOo3eyVnB2oTq-ZwA&s",
+                    type: "exhibition",
+                    likesCount: 0,
+                    venue: "서울 용산구 원효로 13/지하2층",
+                    startDate: "2025-08-29",
+                    endDate: "2025-09-07",
+                    status: "")]
             ))
         ]
 
         let artworks: [FeedItemType] = [
             .artwork(Artwork(
                 id: 2,
-                title: "The Marina at Argenteuil",
-                artistName: "클로드 모네 Claude Monet",
-                year: "1874"
+                type: "artwork",
+                title: "별이 빛나는 밤",
+                items: [ArtworkItems(type: "", id: 18, title: "", name: "", lifePeriod: "")]
             ))
         ]
 
         let artists: [FeedItemType] = [
             .artist(Artist(
                 id: 3,
-                name: "빈센트 반 고흐",
-                lifeSpan: "1853–1890",
-                representativeWorks: ["별이 빛나는 밤", "아를의 붉은 포도밭"]
+                type: "artists",
+                title: "작가",
+                items: [ArtistItems(id: 20, type: "", title: "", artistName: "", createdYear: "")]
             ))
         ]
 
