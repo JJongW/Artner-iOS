@@ -102,10 +102,28 @@ final class PlayerViewModel {
         if !isDuplicate {
             savedHighlights[highlight.paragraphId]?.append(highlight)
             saveHighlightsToStorage()
+            
+            // Toast 표시 - 하이라이트 저장 완료 알림
+            showHighlightSavedToast(highlight: highlight)
         }
         
         // UI에 알림
         onHighlightSaved?(highlight)
+    }
+    
+    /// 하이라이트 저장 완료 Toast 표시
+    private func showHighlightSavedToast(highlight: TextHighlight) {
+        let message = "하이라이트가 저장되었습니다"
+        
+        // 저장된 하이라이트 목록으로 이동하는 액션
+        let viewAction = { [weak self] in
+            // 실제 프로젝트에서는 저장된 하이라이트 화면으로 이동하는 로직 구현
+            print("💡 [Toast] 저장된 하이라이트 보기 버튼 클릭됨")
+            // 예: Coordinator를 통해 Save 화면으로 이동
+            // self?.coordinator?.showSavedHighlights()
+        }
+        
+        ToastManager.shared.showSaved(message, viewAction: viewAction)
     }
     
     // 하이라이트 삭제

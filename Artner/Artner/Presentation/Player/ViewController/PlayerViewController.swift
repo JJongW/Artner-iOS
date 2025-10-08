@@ -171,14 +171,13 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
     // MARK: - Helper Methods
     
     private func showSaveConfirmation() {
-        let alert = UIAlertController(
-            title: "저장 완료",
-            message: "도슨트가 저장되었습니다.",
-            preferredStyle: .alert
-        )
-        
-        alert.addAction(UIAlertAction(title: "확인", style: .default))
-        present(alert, animated: true)
+        // 기존 UIAlertController 대신 새로운 Toast 사용
+        ToastManager.shared.showSaved("도슨트가 저장되었습니다") { [weak self] in
+            // "보기" 버튼 클릭 시 저장 목록으로 이동
+            print("💾 [Toast] 저장된 도슨트 보기 버튼 클릭됨")
+            // TODO: Coordinator를 통해 Save 화면으로 이동
+            // self?.coordinator.showSave()
+        }
     }
 
     private func setupViewModelBinding() {

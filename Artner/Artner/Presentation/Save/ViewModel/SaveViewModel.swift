@@ -66,4 +66,76 @@ final class SaveViewModel {
     func toggleSort() {
         sortDescending.toggle()
     }
+    
+    /// 새로운 아이템을 저장 목록에 추가
+    /// - Parameter item: 저장할 아이템
+    /// - Note: 저장 완료 후 Toast 표시 및 목록 업데이트
+    func saveItem(_ item: SaveItem) {
+        // 중복 저장 방지
+        guard !allItems.contains(where: { $0.id == item.id }) else {
+            // 이미 저장된 아이템인 경우 에러 Toast 표시
+            ToastManager.shared.showError("이미 저장된 항목입니다")
+            return
+        }
+        
+        // 아이템을 목록에 추가 (최신 항목이 맨 위로)
+        allItems.insert(item, at: 0)
+        
+        // UI 업데이트
+        filterAndSort()
+        
+        // 저장 완료 Toast 표시
+        showSaveCompletedToast(for: item)
+        
+        print("💾 [SaveViewModel] 아이템 저장 완료: \(item.title)")
+    }
+    
+    /// 도슨트 관련 아이템을 저장하는 편의 메서드
+    /// - Parameters:
+    ///   - docentTitle: 도슨트 제목
+    ///   - subtitle: 부제목 (작가명, 전시관 등)
+    ///   - type: 저장 타입 (작품, 작가, 전시 등)
+    func saveDocentItem(title: String, subtitle: String?, type: SaveItemType) {
+        let newItem = SaveItem(
+            id: UUID().uuidString,
+            type: type,
+            title: title,
+            subtitle: subtitle,
+            imageUrl: nil,
+            isDocentAvailable: true,
+            createdAt: Date()
+        )
+        
+        saveItem(newItem)
+    }
+    
+    /// 저장 완료 Toast 표시
+    /// - Parameter item: 저장된 아이템
+    private func showSaveCompletedToast(for item: SaveItem) {
+        let typeText = getTypeDisplayName(for: item.type)
+        let message = "\(typeText)이(가) 저장되었습니다"
+        
+        // 저장된 목록 보기 액션
+        let viewAction = { [weak self] in
+            // 해당 카테고리로 필터링하여 표시
+            self?.selectCategory(item.type)
+            print("💡 [Toast] 저장된 \(typeText) 보기 버튼 클릭됨")
+        }
+        
+        ToastManager.shared.showSaved(message, viewAction: viewAction)
+    }
+    
+    /// 저장 타입의 한국어 표시명 반환
+    /// - Parameter type: 저장 타입
+    /// - Returns: 한국어 표시명
+    private func getTypeDisplayName(for type: SaveItemType) -> String {
+        switch type {
+        case .exhibition:
+            return "전시"
+        case .artist:
+            return "작가"
+        case .artwork:
+            return "작품"
+        }
+    }
 } 

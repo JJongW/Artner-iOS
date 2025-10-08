@@ -411,67 +411,6 @@ final class PlayerView: BaseView {
         // 로딩 상태 변경에 따른 추가 UI 업데이트가 필요하면 여기에
     }
     
-    /// 저장 성공 토스트 메시지 표시
-    private func showSaveSuccessMessage() {
-        let messageLabel = UILabel()
-        messageLabel.text = "🖍️ 하이라이트가 저장되었습니다"
-        messageLabel.backgroundColor = UIColor.black.withAlphaComponent(0.8)
-        messageLabel.textColor = .white
-        messageLabel.textAlignment = .center
-        messageLabel.layer.cornerRadius = 20
-        messageLabel.clipsToBounds = true
-        messageLabel.alpha = 0
-        
-        addSubview(messageLabel)
-        messageLabel.snp.makeConstraints {
-            $0.centerX.equalToSuperview()
-            $0.bottom.equalTo(controlsContainerView.snp.top).offset(-20)
-            $0.height.equalTo(40)
-            $0.width.equalTo(250)
-        }
-        
-        // 페이드 인/아웃 애니메이션
-        UIView.animate(withDuration: 0.3, animations: {
-            messageLabel.alpha = 1.0
-        }) { _ in
-            UIView.animate(withDuration: 0.3, delay: 1.5, animations: {
-                messageLabel.alpha = 0
-            }) { _ in
-                messageLabel.removeFromSuperview()
-            }
-        }
-    }
-    
-    /// 삭제 성공 토스트 메시지 표시
-    private func showDeleteSuccessMessage() {
-        let messageLabel = UILabel()
-        messageLabel.text = "🗑️ 하이라이트가 삭제되었습니다"
-        messageLabel.backgroundColor = UIColor.black.withAlphaComponent(0.8)
-        messageLabel.textColor = .white
-        messageLabel.textAlignment = .center
-        messageLabel.layer.cornerRadius = 20
-        messageLabel.clipsToBounds = true
-        messageLabel.alpha = 0
-        
-        addSubview(messageLabel)
-        messageLabel.snp.makeConstraints {
-            $0.centerX.equalToSuperview()
-            $0.bottom.equalTo(controlsContainerView.snp.top).offset(-20)
-            $0.height.equalTo(40)
-            $0.width.equalTo(250)
-        }
-        
-        // 페이드 인/아웃 애니메이션
-        UIView.animate(withDuration: 0.3, animations: {
-            messageLabel.alpha = 1.0
-        }) { _ in
-            UIView.animate(withDuration: 0.3, delay: 1.5, animations: {
-                messageLabel.alpha = 0
-            }) { _ in
-                messageLabel.removeFromSuperview()
-            }
-        }
-    }
     
     /// 플레이 상태에 따른 하단 페이드아웃 그라데이션 표시/숨김
     private func showFadeoutGradient(_ isPlaying: Bool) {
@@ -504,13 +443,11 @@ extension PlayerView: UITableViewDataSource {
         // 하이라이트 저장 콜백 설정 (ViewModel로 전달)
         cell.onHighlightSaved = { [weak self] highlight in
             self?.onHighlightCreated?(highlight)
-            self?.showSaveSuccessMessage()
         }
         
         // 하이라이트 삭제 콜백 설정 (ViewModel로 전달)
         cell.onHighlightDeleted = { [weak self] highlight in
             self?.onHighlightDeleted?(highlight)
-            self?.showDeleteSuccessMessage()
         }
         
         // 텍스트 선택 상태 설정 

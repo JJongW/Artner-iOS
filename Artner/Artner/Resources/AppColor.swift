@@ -22,4 +22,9 @@ enum AppColor {
 
     // 아이콘 컬러
     static let accentColor = UIColor(hex: "#F2F2F2")
+    
+    // Toast 전용 컬러
+    static let toastBackground = UIColor(hex: "#222222")
+    static let toastText = UIColor(hex: "#FFFFFF")
+    static let toastIcon = UIColor(hex: "#FF7C27")
 }
