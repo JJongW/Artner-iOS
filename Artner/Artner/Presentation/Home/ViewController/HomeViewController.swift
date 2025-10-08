@@ -10,8 +10,8 @@ import Combine
 final class HomeViewController: BaseViewController<HomeViewModel, AppCoordinator> {
 
     private let homeView = HomeView()
-    private var cancellables = Set<AnyCancellable>()  // ← 프로퍼티 위치 이동
-    
+    private var cancellables = Set<AnyCancellable>()
+
     var onCameraTapped: (() -> Void)?
     var onShowSidebar: (() -> Void)?
     override func loadView() {
@@ -49,7 +49,7 @@ final class HomeViewController: BaseViewController<HomeViewModel, AppCoordinator
             .store(in: &cancellables)
 
         homeView.configureBanner(
-            image: UIImage(named: "titleImage1"),
+            image: UIImage(named: "banner2"),
             title: "새로운 작품을 만나볼까요?",
             subtitle: "앤젤리너스 커피님을 위해 준비했어요!"
         )

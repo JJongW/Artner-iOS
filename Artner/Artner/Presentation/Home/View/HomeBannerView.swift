@@ -30,6 +30,7 @@ final class HomeBannerView: BaseView {
 
         backgroundImageView.contentMode = .scaleToFill
         backgroundImageView.clipsToBounds = true
+        backgroundImageView.layer.cornerRadius = 16
 
         titleLabel.font = UIFont.boldSystemFont(ofSize: 20)
         titleLabel.textColor = .white
@@ -62,7 +63,8 @@ final class HomeBannerView: BaseView {
 
         backgroundImageView.snp.makeConstraints {
             $0.top.equalTo(subtitleLabel.snp.bottom).offset(26)
-            $0.leading.trailing.equalToSuperview()  // ← 빠진 좌우 제약 조건 추가
+            $0.leading.equalToSuperview()
+            $0.trailing.equalToSuperview()
             $0.height.equalTo(120)
             $0.bottom.equalToSuperview()
         }

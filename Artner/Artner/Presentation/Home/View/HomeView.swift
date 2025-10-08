@@ -61,10 +61,6 @@ final class HomeView: BaseView {
             $0.bottom.equalToSuperview()
         }
 
-        bannerView.snp.makeConstraints {
-            $0.leading.trailing.equalToSuperview()  // ← bannerView는 화면 전체 너비
-        }
-
         bottomFadeView.snp.makeConstraints {
             $0.leading.trailing.bottom.equalToSuperview()
             $0.height.equalTo(135)
