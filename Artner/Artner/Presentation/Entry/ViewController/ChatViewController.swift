@@ -65,7 +65,7 @@ final class ChatViewController: BaseViewController<ChatViewModel, AppCoordinator
         let textField = chatView.chatInputBar.textField
         
         // RTI 에러 방지를 위한 키보드 설정 재확인
-        textField.keyboardType = .asciiCapable
+        textField.keyboardType = .default
         textField.autocorrectionType = .no
         textField.spellCheckingType = .no
         textField.smartDashesType = .no

@@ -42,8 +42,8 @@ final class ChatInputBar: UIView {
         // 자동완성 패널 관련 문제 방지
         tf.textContentType = .none
         
-        // RTI 에러 방지를 위한 키보드 속성 설정 (직접 설정)
-        tf.keyboardType = .asciiCapable  // 이모지 키보드 완전 비활성화
+        // 키보드 속성 설정 (한/영 전환 가능한 기본 키보드)
+        tf.keyboardType = .default       // 기본 키보드 (한/영 전환 가능)
         tf.returnKeyType = .send
         tf.autocapitalizationType = .sentences
         tf.autocorrectionType = .no      // 자동완성 완전 비활성화
