@@ -48,12 +48,21 @@ final class UnderlineViewController: UIViewController {
                 self?.updateButtonStates(selectedCategory: category)
             }
             .store(in: &cancellables)
+        
+        // 정렬 상태 변경 시 정렬 버튼 업데이트
+        viewModel.$sortDescending
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isDescending in
+                self?.updateSortButton(isDescending: isDescending)
+            }
+            .store(in: &cancellables)
     }
     private func setupActions() {
         underlineView.allButton.addTarget(self, action: #selector(didTapAll), for: .touchUpInside)
         underlineView.exhibitionButton.addTarget(self, action: #selector(didTapExhibition), for: .touchUpInside)
         underlineView.artistButton.addTarget(self, action: #selector(didTapArtist), for: .touchUpInside)
         underlineView.artworkButton.addTarget(self, action: #selector(didTapArtwork), for: .touchUpInside)
+        underlineView.sortButton.addTarget(self, action: #selector(didTapSort), for: .touchUpInside)
         underlineView.emptyView.goFeedButton.addTarget(self, action: #selector(didTapGoFeed), for: .touchUpInside)
     }
     // MARK: - Button State Management
@@ -80,9 +89,29 @@ final class UnderlineViewController: UIViewController {
         }
         
         // 선택된 버튼 스타일 적용
-        selectedButton.backgroundColor = UIColor.white.withAlphaComponent(0.2)
-        selectedButton.setTitleColor(.white, for: .normal)
+        selectedButton.backgroundColor = UIColor.white.withAlphaComponent(0.8) // #FFFFFF 80% 투명도
+        selectedButton.setTitleColor(UIColor(hex: "#292929"), for: .normal) // #292929 글자색
         selectedButton.layer.borderColor = UIColor.white.cgColor
+    }
+    
+    /// 정렬 버튼 상태 업데이트
+    /// - Parameter isDescending: 내림차순 여부 (true: 최신순, false: 오래된순)
+    private func updateSortButton(isDescending: Bool) {
+        if isDescending {
+            // 최신순 (내림차순)
+            underlineView.sortButton.setTitle("최신순", for: .normal)
+            // 위쪽 화살표 아이콘 찾아서 업데이트
+            if let chevronImageView = underlineView.sortButton.subviews.first(where: { $0 is UIImageView }) as? UIImageView {
+                chevronImageView.image = UIImage(systemName: "chevron.up")
+            }
+        } else {
+            // 오래된순 (오름차순)
+            underlineView.sortButton.setTitle("오래된순", for: .normal)
+            // 아래쪽 화살표 아이콘 찾아서 업데이트
+            if let chevronImageView = underlineView.sortButton.subviews.first(where: { $0 is UIImageView }) as? UIImageView {
+                chevronImageView.image = UIImage(systemName: "chevron.down")
+            }
+        }
     }
     
     @objc private func didTapBack() { navigationController?.popViewController(animated: true) }

@@ -96,10 +96,30 @@ final class LikeViewController: UIViewController {
             selectedButton = likeView.allButton // 전체 선택 시 allButton 활성화
         }
         
-        // 선택된 버튼 스타일 적용 (검은색 텍스트, 80% opacity 흰색 배경)
+        // 선택된 버튼 스타일 적용 (#292929 텍스트, 80% opacity 흰색 배경)
         selectedButton.backgroundColor = UIColor.white.withAlphaComponent(0.8)
-        selectedButton.setTitleColor(.black, for: .normal)
-        selectedButton.layer.borderColor = UIColor.white.withAlphaComponent(0.3).cgColor
+        selectedButton.setTitleColor(UIColor(hex: "#292929"), for: .normal)
+        selectedButton.layer.borderColor = UIColor.white.cgColor
+    }
+    
+    /// 정렬 버튼 상태 업데이트
+    /// - Parameter isDescending: 내림차순 여부 (true: 최신순, false: 오래된순)
+    private func updateSortButton(isDescending: Bool) {
+        if isDescending {
+            // 최신순 (내림차순)
+            likeView.sortButton.setTitle("최신순", for: .normal)
+            // 위쪽 화살표 아이콘 찾아서 업데이트
+            if let chevronImageView = likeView.sortButton.subviews.first(where: { $0 is UIImageView }) as? UIImageView {
+                chevronImageView.image = UIImage(systemName: "chevron.up")
+            }
+        } else {
+            // 오래된순 (오름차순)
+            likeView.sortButton.setTitle("오래된순", for: .normal)
+            // 아래쪽 화살표 아이콘 찾아서 업데이트
+            if let chevronImageView = likeView.sortButton.subviews.first(where: { $0 is UIImageView }) as? UIImageView {
+                chevronImageView.image = UIImage(systemName: "chevron.down")
+            }
+        }
     }
     
     @objc private func didTapSearch() {}
