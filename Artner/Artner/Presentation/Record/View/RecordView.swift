@@ -3,6 +3,14 @@ import SnapKit
 
 final class RecordView: BaseView {
     let navigationBar = CustomNavigationBar()
+    
+    // Navigation 바 아래 divider (1px, #FFFFFF 10% opacity)
+    let navigationDivider: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.white.withAlphaComponent(0.1)
+        return view
+    }()
+    
     let categoryStackView: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .horizontal
@@ -25,6 +33,10 @@ final class RecordView: BaseView {
         navigationBar.titleLabel.textColor = .white
         navigationBar.backButton.tintColor = .white
         navigationBar.rightButton.tintColor = .white
+        
+        // Navigation divider 추가
+        addSubview(navigationDivider)
+        
         addSubview(categoryStackView)
         [allButton, exhibitionButton, artistButton, artworkButton].forEach {
             $0.setTitleColor(.white, for: .normal)
@@ -46,6 +58,14 @@ final class RecordView: BaseView {
     }
     override func setupLayout() {
         navigationBar.snp.makeConstraints { $0.top.leading.trailing.equalTo(safeAreaLayoutGuide); $0.height.equalTo(56) }
+        
+        // Navigation divider (1px 높이, 좌우 전체)
+        navigationDivider.snp.makeConstraints {
+            $0.top.equalTo(navigationBar.snp.bottom)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(1)
+        }
+        
         categoryStackView.snp.makeConstraints { $0.top.equalTo(navigationBar.snp.bottom).offset(16); $0.leading.trailing.equalToSuperview().inset(16); $0.height.equalTo(32) }
         tableView.snp.makeConstraints { $0.top.equalTo(categoryStackView.snp.bottom).offset(16); $0.leading.trailing.bottom.equalToSuperview() }
         emptyView.snp.makeConstraints { $0.edges.equalTo(tableView) }

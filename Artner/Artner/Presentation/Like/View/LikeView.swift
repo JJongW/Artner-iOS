@@ -3,6 +3,13 @@ import SnapKit
 
 final class LikeView: BaseView {
     let navigationBar = CustomNavigationBar()
+    }()
+    // Navigation 바 아래 divider (1px, #FFFFFF 10% opacity)
+    let navigationDivider: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.white.withAlphaComponent(0.1)
+        return view
+    }()
     let categoryStackView: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .horizontal
@@ -25,8 +32,8 @@ final class LikeView: BaseView {
         navigationBar.backButton.tintColor = .white
         navigationBar.rightButton.tintColor = .white
         addSubview(categoryStackView)
-        [allButton, exhibitionButton, artistButton, artworkButton].forEach {
-            $0.setTitleColor(.white, for: .normal)
+        // Navigation divider 추가
+        addSubview(navigationDivider)
             $0.titleLabel?.font = .systemFont(ofSize: 14)
             $0.layer.cornerRadius = 16
             $0.layer.borderWidth = 1
@@ -48,7 +55,13 @@ final class LikeView: BaseView {
             $0.top.leading.trailing.equalTo(safeAreaLayoutGuide)
             $0.height.equalTo(56) 
         }
-        categoryStackView.snp.makeConstraints { 
+        
+        // Navigation divider (1px 높이, 좌우 전체)
+        navigationDivider.snp.makeConstraints {
+            $0.top.equalTo(navigationBar.snp.bottom)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(1)
+        }
             $0.top.equalTo(navigationBar.snp.bottom).offset(16)
             $0.leading.trailing.equalToSuperview().inset(16)
             $0.height.equalTo(32) 
