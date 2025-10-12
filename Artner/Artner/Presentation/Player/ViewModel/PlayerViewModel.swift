@@ -93,21 +93,34 @@ final class PlayerViewModel {
             savedHighlights[highlight.paragraphId] = []
         }
         
-        // 간단한 중복 방지: 동일 범위/텍스트가 이미 있으면 무시
-        let isDuplicate = savedHighlights[highlight.paragraphId]!.contains {
-            $0.startIndex == highlight.startIndex &&
-            $0.endIndex == highlight.endIndex &&
-            $0.highlightedText == highlight.highlightedText
-        }
-        if !isDuplicate {
-            savedHighlights[highlight.paragraphId]?.append(highlight)
-            saveHighlightsToStorage()
-            
-            // Toast 표시 - 하이라이트 저장 완료 알림
-            showHighlightSavedToast(highlight: highlight)
+        // 강화된 중복 방지: 동일 범위가 이미 있으면 무시
+        // 조건을 완화하여 범위가 겹치는 경우도 체크
+        let isDuplicate = savedHighlights[highlight.paragraphId]!.contains { existing in
+            // 정확히 동일한 범위
+            if existing.startIndex == highlight.startIndex && existing.endIndex == highlight.endIndex {
+                return true
+            }
+            // 범위가 겹치는 경우 (더 엄격한 체크)
+            if existing.startIndex <= highlight.endIndex && existing.endIndex >= highlight.startIndex {
+                print("⚠️ [ViewModel] 하이라이트 범위가 기존 하이라이트와 겹칩니다")
+                return true
+            }
+            return false
         }
         
-        // UI에 알림
+        if isDuplicate {
+            print("⚠️ [ViewModel] 중복 하이라이트 - 저장 무시")
+            ToastManager.shared.showSimple("이미 하이라이트된 영역입니다")
+            return
+        }
+        
+        savedHighlights[highlight.paragraphId]?.append(highlight)
+        saveHighlightsToStorage()
+        
+        // Toast 표시 - 하이라이트 저장 완료 알림
+        showHighlightSavedToast(highlight: highlight)
+        
+        // UI에 즉시 알림 (UI 업데이트 강제)
         onHighlightSaved?(highlight)
     }
     
@@ -128,18 +141,26 @@ final class PlayerViewModel {
     
     // 하이라이트 삭제
     func deleteHighlight(_ highlight: TextHighlight) {
+        print("🗑️ [ViewModel] 하이라이트 삭제 요청: ID=\(highlight.id), 문단=\(highlight.paragraphId)")
+        
         // 해당 문단의 하이라이트 목록에서 제거
         if var paragraphHighlights = savedHighlights[highlight.paragraphId] {
+            let beforeCount = paragraphHighlights.count
             paragraphHighlights.removeAll { $0.id == highlight.id }
             savedHighlights[highlight.paragraphId] = paragraphHighlights
+            let afterCount = paragraphHighlights.count
+            
+            print("🗑️ [ViewModel] 삭제 전: \(beforeCount)개, 삭제 후: \(afterCount)개")
             
             // 스토리지에 저장
             saveHighlightsToStorage()
             
-            // UI에 알림
+            // UI에 즉시 알림 (UI 업데이트 트리거)
             onHighlightSaved?(highlight) // 같은 콜백 사용 (UI 업데이트 트리거)
             
-            print("🗑️ [ViewModel] 하이라이트 삭제: \(highlight.id)")
+            print("🗑️ [ViewModel] 하이라이트 삭제 완료 및 UI 업데이트 트리거")
+        } else {
+            print("❌ [ViewModel] 해당 문단의 하이라이트를 찾을 수 없음")
         }
     }
     

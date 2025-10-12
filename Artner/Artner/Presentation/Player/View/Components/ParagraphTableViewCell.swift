@@ -20,6 +20,22 @@ final class ParagraphTableViewCell: UITableViewCell {
     var onHighlightSaved: ((TextHighlight) -> Void)?
     var onHighlightDeleted: ((TextHighlight) -> Void)?
     
+    // MARK: - UX 개선 프로퍼티 추가
+    
+    // 터치 상태 관리
+    private var canHighlight: Bool = false
+    private var isActiveCell: Bool = false
+    
+    // 시각적 피드백 뷰들
+    private let touchIndicatorView = UIView()
+    private let highlightPreviewView = UIView()
+    private let highlightStatusBar = UIView()  // 상단 상태바로 변경
+    
+    // 터치 추적
+    private var touchStartLocation: CGPoint = .zero
+    private var currentTouchLocation: CGPoint = .zero
+    private var isTrackingTouch: Bool = false
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupUI()
@@ -29,9 +45,35 @@ final class ParagraphTableViewCell: UITableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        
+        print("♻️ [Cell] prepareForReuse - 셀 상태 초기화")
+        
+        // 터치 상태 초기화
+        isTrackingTouch = false
+        canHighlight = false
+        isActiveCell = false
+        
+        // 하이라이트 배열 초기화
+        highlights = []
+        
+        // 시각적 피드백 초기화
+        touchIndicatorView.isHidden = true
+        highlightPreviewView.isHidden = true
+        highlightStatusBar.isHidden = true
+        
+        // 텍스트뷰 초기화
+        paragraphTextView.text = ""
+        paragraphTextView.isHighlightEnabled = false
+    }
+    
     private func setupUI() {
         backgroundColor = .clear
         selectionStyle = .none
+        
+        // 시각적 피드백 뷰들 추가
+        setupVisualFeedbackViews()
         
         contentView.addSubview(paragraphTextView)
         
@@ -87,6 +129,76 @@ final class ParagraphTableViewCell: UITableViewCell {
             $0.leading.trailing.equalToSuperview().inset(20)
             $0.top.bottom.equalToSuperview().inset(20)
         }
+        
+        // 터치 제스처 설정
+        setupTouchGestures()
+    }
+    
+    // MARK: - 시각적 피드백 설정
+    
+    private func setupVisualFeedbackViews() {
+        // 하이라이트 상태바 (상단에 표시되는 안내 바)
+        setupHighlightStatusBar()
+        
+        // 터치 인디케이터 (현재 터치 위치 표시)
+        touchIndicatorView.backgroundColor = AppColor.toastIcon.withAlphaComponent(0.8)
+        touchIndicatorView.layer.cornerRadius = 8
+        touchIndicatorView.isHidden = true
+        contentView.addSubview(touchIndicatorView)
+        
+        touchIndicatorView.snp.makeConstraints {
+            $0.width.height.equalTo(16)
+        }
+        
+        // 하이라이트 프리뷰 (드래그 중 하이라이트 영역 미리보기)
+        highlightPreviewView.backgroundColor = AppColor.highlightColor
+        highlightPreviewView.layer.cornerRadius = 4
+        highlightPreviewView.isHidden = true
+        contentView.insertSubview(highlightPreviewView, belowSubview: paragraphTextView)
+    }
+    
+    private func setupHighlightStatusBar() {
+        // 상태바 컨테이너 설정
+        highlightStatusBar.backgroundColor = AppColor.toastBackground.withAlphaComponent(0.95)
+        highlightStatusBar.layer.cornerRadius = 8
+        highlightStatusBar.isHidden = true
+        contentView.addSubview(highlightStatusBar)
+        
+        // 상태바 레이블
+        let statusLabel = UILabel()
+        statusLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        statusLabel.textColor = AppColor.toastText
+        statusLabel.text = "길게 눌러서 드래그하여 하이라이트 영역을 선택하세요"
+        statusLabel.textAlignment = .center
+        statusLabel.numberOfLines = 1
+        statusLabel.tag = 999 // 나중에 찾기 위한 태그
+        
+        highlightStatusBar.addSubview(statusLabel)
+        
+        // 상태바 제약조건
+        highlightStatusBar.snp.makeConstraints {
+            $0.top.equalToSuperview().inset(4)
+            $0.leading.trailing.equalToSuperview().inset(12)
+            $0.height.equalTo(32)
+        }
+        
+        // 레이블 제약조건
+        statusLabel.snp.makeConstraints {
+            $0.center.equalToSuperview()
+            $0.leading.trailing.equalToSuperview().inset(12)
+        }
+    }
+    
+    private func setupTouchGestures() {
+        // 커스텀 터치 처리를 위한 제스처 추가 (delegate 제거)
+        let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+        longPressGesture.minimumPressDuration = 0.3
+        // delegate 설정 제거 - 제스처 핸들러에서 직접 조건 확인
+        contentView.addGestureRecognizer(longPressGesture)
+        
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        // delegate 설정 제거 - 제스처 핸들러에서 직접 조건 확인
+        contentView.addGestureRecognizer(tapGesture)
     }
     
     private func setupTextSelection() {
@@ -184,6 +296,7 @@ final class ParagraphTableViewCell: UITableViewCell {
     
     // 하이라이트 설정 (외부에서 저장된 하이라이트 로드 시 사용)
     func setHighlights(_ highlights: [TextHighlight]) {
+        print("📝 [Cell] setHighlights 호출됨 - 문단: \(paragraph?.id ?? "nil"), 하이라이트 개수: \(highlights.count)")
         self.highlights = highlights
         
         // NonEditableTextView에 하이라이트 정보 전달 (삭제 감지용)
@@ -265,7 +378,15 @@ final class ParagraphTableViewCell: UITableViewCell {
     }
     
     func configure(with paragraph: DocentParagraph, isHighlighted: Bool, canHighlight: Bool = false) {
+        print("🔧 [Cell] configure 호출 - 문단: \(paragraph.id), isHighlighted: \(isHighlighted), canHighlight: \(canHighlight)")
+        
         self.paragraph = paragraph
+        
+        // UX 개선: 터치 상태 업데이트
+        self.canHighlight = canHighlight
+        self.isActiveCell = isHighlighted
+        
+        print("🔧 [Cell] 현재 상태 - isActiveCell: \(self.isActiveCell), canHighlight: \(self.canHighlight)")
         
         // NonEditableTextView에 문단 ID 설정 (하이라이트 저장용)
         paragraphTextView.paragraphId = paragraph.id
@@ -325,6 +446,18 @@ final class ParagraphTableViewCell: UITableViewCell {
         paragraphTextView.layoutIfNeeded()
         setNeedsLayout()
         layoutIfNeeded()
+        
+        // UX 개선: 시각적 피드백 업데이트
+        updateCellVisualState()
+    }
+    
+    // MARK: - UX 개선 메서드들
+    
+    /// 셀의 시각적 상태 업데이트
+    private func updateCellVisualState() {
+        // 상태바 방식으로 변경하여 별도의 시각적 인디케이터 불필요
+        // 모든 셀에서 터치를 받아서 적절한 피드백을 제공
+        contentView.isUserInteractionEnabled = true
     }
     
     private func applyHighlights(textColor: UIColor? = nil, font: UIFont? = nil) {
@@ -371,7 +504,7 @@ final class ParagraphTableViewCell: UITableViewCell {
             do {
                 attributedText.addAttribute(
                     .backgroundColor, 
-                    value: UIColor.systemYellow.withAlphaComponent(0.3), 
+                    value: AppColor.highlightColor, // #A0581D with 45% opacity
                     range: range
                 )
             } catch {
@@ -513,5 +646,292 @@ extension ParagraphTableViewCell: UIEditMenuInteractionDelegate {
         }
         
         return paragraphTextView.firstRect(for: selectedRange)
+    }
+    
+    // MARK: - 터치 제스처 핸들러
+    
+    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        let location = gesture.location(in: contentView)
+        
+        // 현재 활성화된 셀(재생 중이거나 일시정지된 문단)에서만 하이라이트 처리
+        guard isActiveCell else {
+            // 비활성화된 셀일 때 Toast로 피드백
+            if gesture.state == .began {
+                ToastManager.shared.showSimple("현재 재생 중인 문단에서만 하이라이트가 가능합니다")
+            }
+            return
+        }
+        
+        switch gesture.state {
+        case .began:
+            startHighlightGesture(at: location)
+            
+        case .changed:
+            updateHighlightGesture(to: location)
+            
+        case .ended, .cancelled:
+            finishHighlightGesture(at: location)
+            
+        default:
+            break
+        }
+    }
+    
+    @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
+        let location = gesture.location(in: paragraphTextView)
+        
+        print("👆 [Cell] 탭 감지 - isActiveCell: \(isActiveCell), canHighlight: \(canHighlight)")
+        
+        // 현재 활성화된 셀(재생 중이거나 일시정지된 문단)에서만 하이라이트 삭제 처리
+        guard isActiveCell else {
+            print("⚠️ [Cell] 비활성화된 셀에서 탭 - Toast 표시")
+            // 비활성화된 셀일 때 Toast로 피드백
+            ToastManager.shared.showSimple("현재 재생 중인 문단에서만 하이라이트 조작이 가능합니다")
+            return
+        }
+        
+        print("👆 [Cell] 활성화된 셀에서 탭 - 하이라이트 검색")
+        
+        // 기존 하이라이트 영역을 탭했는지 확인하여 삭제 처리
+        if let tappedHighlight = findHighlightAt(location: location) {
+            print("✅ [Cell] 하이라이트 발견 - 삭제 진행")
+            deleteHighlightWithAnimation(tappedHighlight)
+        } else {
+            print("ℹ️ [Cell] 하이라이트가 없는 영역 탭 - 무시")
+        }
+    }
+    
+    // MARK: - 하이라이트 제스처 처리
+    
+    private func startHighlightGesture(at location: CGPoint) {
+        isTrackingTouch = true
+        touchStartLocation = location
+        currentTouchLocation = location
+        
+        // 상태바 표시 (새로운 방식)
+        showHighlightStatusBar(message: "드래그하여 하이라이트 영역을 선택하세요")
+        
+        // 터치 인디케이터 표시
+        showTouchIndicator(at: location)
+        
+        // 햅틱 피드백
+        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+        impactFeedback.impactOccurred()
+    }
+    
+    private func updateHighlightGesture(to location: CGPoint) {
+        guard isTrackingTouch else { return }
+        
+        currentTouchLocation = location
+        
+        // 터치 인디케이터 위치 업데이트
+        updateTouchIndicator(to: location)
+        
+        // 하이라이트 프리뷰 표시
+        showHighlightPreview(from: touchStartLocation, to: location)
+    }
+    
+    private func finishHighlightGesture(at location: CGPoint) {
+        guard isTrackingTouch else { return }
+        
+        isTrackingTouch = false
+        
+        // 시각적 피드백 숨김
+        hideTouchIndicator()
+        hideHighlightPreview()
+        hideHighlightStatusBar()  // 상태바 숨김
+        
+        // 하이라이트 생성 (충분한 드래그 거리가 있을 때만)
+        let distance = sqrt(pow(location.x - touchStartLocation.x, 2) + pow(location.y - touchStartLocation.y, 2))
+        if distance > 20 { // 최소 드래그 거리
+            createHighlightFromGesture(from: touchStartLocation, to: location)
+            // 성공 시는 ViewModel에서 Toast 표시 (중복 방지)
+        } else {
+            // 드래그 거리가 부족한 경우 Toast로 안내
+            ToastManager.shared.showSimple("더 길게 드래그해주세요")
+        }
+    }
+    
+    // MARK: - 시각적 피드백 메서드
+    
+    private func showTouchIndicator(at location: CGPoint) {
+        touchIndicatorView.center = location
+        touchIndicatorView.isHidden = false
+        touchIndicatorView.alpha = 0
+        
+        UIView.animate(withDuration: 0.2) {
+            self.touchIndicatorView.alpha = 1.0
+            self.touchIndicatorView.transform = CGAffineTransform(scaleX: 1.2, y: 1.2)
+        }
+    }
+    
+    private func updateTouchIndicator(to location: CGPoint) {
+        UIView.animate(withDuration: 0.1) {
+            self.touchIndicatorView.center = location
+        }
+    }
+    
+    private func hideTouchIndicator() {
+        UIView.animate(withDuration: 0.2) {
+            self.touchIndicatorView.alpha = 0
+            self.touchIndicatorView.transform = CGAffineTransform.identity
+        } completion: { _ in
+            self.touchIndicatorView.isHidden = true
+        }
+    }
+    
+    private func showHighlightPreview(from startLocation: CGPoint, to endLocation: CGPoint) {
+        let textViewFrame = paragraphTextView.frame
+        let startPoint = CGPoint(x: startLocation.x - textViewFrame.minX, y: startLocation.y - textViewFrame.minY)
+        let endPoint = CGPoint(x: endLocation.x - textViewFrame.minX, y: endLocation.y - textViewFrame.minY)
+        
+        let previewFrame = CGRect(
+            x: min(startPoint.x, endPoint.x) + textViewFrame.minX,
+            y: min(startPoint.y, endPoint.y) + textViewFrame.minY,
+            width: abs(endPoint.x - startPoint.x),
+            height: max(abs(endPoint.y - startPoint.y), 20)
+        )
+        
+        highlightPreviewView.frame = previewFrame
+        highlightPreviewView.isHidden = false
+        
+        if highlightPreviewView.alpha == 0 {
+            UIView.animate(withDuration: 0.2) {
+                self.highlightPreviewView.alpha = 1.0
+            }
+        }
+    }
+    
+    private func hideHighlightPreview() {
+        UIView.animate(withDuration: 0.2) {
+            self.highlightPreviewView.alpha = 0
+        } completion: { _ in
+            self.highlightPreviewView.isHidden = true
+        }
+    }
+    
+    // MARK: - 상태바 관리 메서드
+    
+    private func showHighlightStatusBar(message: String, duration: TimeInterval? = nil) {
+        // 상태바 레이블 찾아서 텍스트 업데이트
+        if let statusLabel = highlightStatusBar.viewWithTag(999) as? UILabel {
+            statusLabel.text = message
+        }
+        
+        highlightStatusBar.isHidden = false
+        highlightStatusBar.alpha = 0
+        
+        UIView.animate(withDuration: 0.3, animations: {
+            self.highlightStatusBar.alpha = 1.0
+        })
+        
+        // 지정된 시간 후 자동 숨김
+        if let duration = duration {
+            DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+                self.hideHighlightStatusBar()
+            }
+        }
+    }
+    
+    private func hideHighlightStatusBar() {
+        UIView.animate(withDuration: 0.3, animations: {
+            self.highlightStatusBar.alpha = 0
+        }) { _ in
+            self.highlightStatusBar.isHidden = true
+        }
+    }
+    
+    // MARK: - 하이라이트 생성/삭제
+    
+    private func createHighlightFromGesture(from startLocation: CGPoint, to endLocation: CGPoint) {
+        // TextView 내의 상대 좌표로 변환
+        let textViewFrame = paragraphTextView.frame
+        let startPoint = CGPoint(x: startLocation.x - textViewFrame.minX, y: startLocation.y - textViewFrame.minY)
+        let endPoint = CGPoint(x: endLocation.x - textViewFrame.minX, y: endLocation.y - textViewFrame.minY)
+        
+        // 텍스트 위치를 문자 인덱스로 변환
+        guard let startPosition = paragraphTextView.closestPosition(to: startPoint),
+              let endPosition = paragraphTextView.closestPosition(to: endPoint),
+              let textRange = paragraphTextView.textRange(from: startPosition, to: endPosition),
+              let paragraph = self.paragraph else { 
+            print("❌ [Cell] 하이라이트 생성 실패 - 텍스트 범위를 찾을 수 없음")
+            return 
+        }
+        
+        let startIndex = paragraphTextView.offset(from: paragraphTextView.beginningOfDocument, to: textRange.start)
+        let endIndex = paragraphTextView.offset(from: paragraphTextView.beginningOfDocument, to: textRange.end)
+        
+        guard startIndex != endIndex else { 
+            print("❌ [Cell] 하이라이트 생성 실패 - 범위가 비어있음")
+            return 
+        }
+        
+        let highlightedText = String(paragraph.fullText[
+            paragraph.fullText.index(paragraph.fullText.startIndex, offsetBy: min(startIndex, endIndex))..<paragraph.fullText.index(paragraph.fullText.startIndex, offsetBy: max(startIndex, endIndex))
+        ])
+        
+        let highlight = TextHighlight(
+            paragraphId: paragraph.id,
+            startIndex: min(startIndex, endIndex),
+            endIndex: max(startIndex, endIndex),
+            highlightedText: highlightedText
+        )
+        
+        print("✏️ [Cell] 하이라이트 생성 요청: [\(highlight.startIndex)-\(highlight.endIndex)] '\(highlight.highlightedText)'")
+        
+        onHighlightSaved?(highlight)
+        
+        // 성공 햅틱 피드백
+        let notificationFeedback = UINotificationFeedbackGenerator()
+        notificationFeedback.notificationOccurred(.success)
+    }
+    
+    private func findHighlightAt(location: CGPoint) -> TextHighlight? {
+        // 탭한 위치의 텍스트 위치를 찾아 해당하는 하이라이트가 있는지 확인
+        guard let position = paragraphTextView.closestPosition(to: location) else { 
+            print("🔍 [Cell] 텍스트 위치를 찾을 수 없음")
+            return nil 
+        }
+        
+        let charIndex = paragraphTextView.offset(from: paragraphTextView.beginningOfDocument, to: position)
+        
+        print("🔍 [Cell] 탭한 위치의 문자 인덱스: \(charIndex), 저장된 하이라이트 개수: \(highlights.count)")
+        
+        let foundHighlight = highlights.first { highlight in
+            let isInRange = charIndex >= highlight.startIndex && charIndex <= highlight.endIndex
+            if isInRange {
+                print("✅ [Cell] 하이라이트 발견: [\(highlight.startIndex)-\(highlight.endIndex)] '\(highlight.highlightedText)'")
+            }
+            return isInRange
+        }
+        
+        if foundHighlight == nil {
+            print("❌ [Cell] 해당 위치에 하이라이트 없음")
+        }
+        
+        return foundHighlight
+    }
+    
+    private func deleteHighlightWithAnimation(_ highlight: TextHighlight) {
+        print("🗑️ [Cell] 하이라이트 삭제 시작: ID=\(highlight.id), [\(highlight.startIndex)-\(highlight.endIndex)]")
+        
+        // 삭제 햅틱 피드백
+        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+        impactFeedback.impactOccurred()
+        
+        // 삭제 애니메이션 (해당 하이라이트 영역을 잠깐 깜빡임)
+        UIView.animate(withDuration: 0.1, animations: {
+            self.alpha = 0.7
+        }) { _ in
+            UIView.animate(withDuration: 0.1) {
+                self.alpha = 1.0
+            }
+        }
+        
+        // Toast는 ViewModel에서 표시하지 않으므로 여기서 표시
+        ToastManager.shared.showSimple("하이라이트가 삭제되었습니다")
+        
+        print("🗑️ [Cell] onHighlightDeleted 콜백 호출")
+        onHighlightDeleted?(highlight)
     }
 }

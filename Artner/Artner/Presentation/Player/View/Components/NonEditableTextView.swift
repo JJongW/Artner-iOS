@@ -58,7 +58,6 @@ final class NonEditableTextView: UITextView, UIGestureRecognizerDelegate {
         
         // 터치한 지점에 하이라이트가 있는지 확인
         if let highlightToDelete = findHighlight(at: characterIndex) {
-            // 하이라이트 삭제
             removeHighlight(highlightToDelete)
             onHighlightDeleted?(highlightToDelete)
             print("🗑️ [Tap] 하이라이트 삭제: \(highlightToDelete)")

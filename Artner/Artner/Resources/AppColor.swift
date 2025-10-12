@@ -27,4 +27,7 @@ enum AppColor {
     static let toastBackground = UIColor(hex: "#222222")
     static let toastText = UIColor(hex: "#FFFFFF")
     static let toastIcon = UIColor(hex: "#FF7C27")
+    
+    // 하이라이트 컬러
+    static let highlightColor = UIColor(hex: "#A0581D", alpha: 0.45)
 }

@@ -26,7 +26,7 @@ final class ChatViewController: BaseViewController<ChatViewModel, AppCoordinator
         setupKeyboardNotifications()
         bindActions()
         bindViewModel()
-        setupTextFieldSettings() // RTI 에러 방지를 위한 안전한 설정
+        setupTextFieldSettings()
     }
     
     override func viewDidAppear(_ animated: Bool) {

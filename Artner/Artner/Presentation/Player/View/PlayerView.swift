@@ -437,8 +437,9 @@ extension PlayerView: UITableViewDataSource {
         let paragraph = paragraphs[indexPath.row]
         let isHighlighted = indexPath.row == currentHighlightIndex
         
-        // 하이라이트 가능 조건: 현재 재생 중인 문단 + 재생 중인 상태
-        let canHighlight = isHighlighted && isPlaying
+        // 하이라이트 가능 조건: 현재 활성화된 문단이면 재생/정지 상관없이 가능
+        // 사용자가 해당 문단에서 작업하는 동안 계속 상호작용 가능
+        let canHighlight = isHighlighted
         
         // 하이라이트 저장 콜백 설정 (ViewModel로 전달)
         cell.onHighlightSaved = { [weak self] highlight in
