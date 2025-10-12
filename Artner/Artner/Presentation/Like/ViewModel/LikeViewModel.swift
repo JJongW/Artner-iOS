@@ -28,7 +28,16 @@ final class LikeViewModel {
     private var cancellables = Set<AnyCancellable>()
 
     init() {
-        // 더미 데이터 세팅 (최근 추가된 순서로 정렬)
+        // 빈 상태 테스트를 위해 더미 데이터 제거
+        // 실제 앱에서는 UserDefaults나 Core Data에서 좋아요 데이터를 로드
+        allItems = []
+        
+        bind()
+        filterAndSort()
+    }
+    
+    // 테스트용 더미 데이터 추가 메서드 (필요시 사용)
+    func addDummyData() {
         let now = Date()
         allItems = [
             LikeItem(id: "4", type: .artist, title: "자코모 카베도네", subtitle: "1870-1926", imageUrl: nil, isDocentAvailable: false, createdAt: now.addingTimeInterval(-3600)), // 1시간 전
@@ -36,7 +45,6 @@ final class LikeViewModel {
             LikeItem(id: "2", type: .artwork, title: "Ascension of Christ Ascension of Christ", subtitle: "자코모 카베도네", imageUrl: nil, isDocentAvailable: true, createdAt: now.addingTimeInterval(-10800)), // 3시간 전
             LikeItem(id: "1", type: .exhibition, title: "알폰스 무하 원화전 전시", subtitle: "서울 종로구 | 마이아트 뮤지엄", imageUrl: nil, isDocentAvailable: false, createdAt: now.addingTimeInterval(-14400)) // 4시간 전
         ]
-        bind()
         filterAndSort()
     }
 
