@@ -12,103 +12,201 @@ final class SaveViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupNavigationBar()
-        setupTableView()
+        setupCollectionView()
         bindViewModel()
         setupActions()
-        // 초기 로딩 시 "전체" 카테고리 선택 상태로 설정
-        updateButtonStates(selectedCategory: nil)
     }
+    
+    // MARK: - Setup Methods
+    
     private func setupNavigationBar() {
         saveView.navigationBar.setTitle("저장")
-        saveView.navigationBar.onBackButtonTapped = { [weak self] in self?.navigationController?.popViewController(animated: true) }
+        saveView.navigationBar.onBackButtonTapped = { [weak self] in 
+            self?.navigationController?.popViewController(animated: true) 
+        }
         saveView.navigationBar.backButton.setImage(UIImage(named: "ic_left_arrow"), for: .normal)
         saveView.navigationBar.rightButton.setImage(UIImage(named: "ic_search"), for: .normal)
         saveView.navigationBar.didTapMenuButton = { [weak self] in self?.didTapSearch() }
     }
-    private func setupTableView() {
-        saveView.tableView.dataSource = self
-        saveView.tableView.delegate = self
-        saveView.tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+    
+    private func setupCollectionView() {
+        saveView.collectionView.dataSource = self
+        saveView.collectionView.delegate = self
+        
+        // 폴더 셀 등록
+        saveView.collectionView.register(SaveFolderCell.self, forCellWithReuseIdentifier: SaveFolderCell.identifier)
+        
+        // 추가 버튼 셀 등록
+        saveView.collectionView.register(AddFolderCell.self, forCellWithReuseIdentifier: AddFolderCell.identifier)
     }
+    
     private func bindViewModel() {
-        viewModel.$items
+        // 폴더 목록 변경 시 컬렉션뷰 업데이트
+        viewModel.$folders
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.saveView.tableView.reloadData() }
+            .sink { [weak self] _ in 
+                self?.saveView.collectionView.reloadData() 
+            }
             .store(in: &cancellables)
+        
+        // 빈 상태 변경 시 뷰 표시/숨김
         viewModel.$isEmpty
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isEmpty in
                 self?.saveView.emptyView.isHidden = !isEmpty
-                self?.saveView.tableView.isHidden = isEmpty
+                self?.saveView.collectionView.isHidden = isEmpty
             }
             .store(in: &cancellables)
-        
-        // 선택된 카테고리 변경 시 버튼 상태 업데이트
-        viewModel.$selectedCategory
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] category in
-                self?.updateButtonStates(selectedCategory: category)
-            }
-            .store(in: &cancellables)
-    }
-    private func setupActions() {
-        saveView.allButton.addTarget(self, action: #selector(didTapAll), for: .touchUpInside)
-        saveView.exhibitionButton.addTarget(self, action: #selector(didTapExhibition), for: .touchUpInside)
-        saveView.artistButton.addTarget(self, action: #selector(didTapArtist), for: .touchUpInside)
-        saveView.artworkButton.addTarget(self, action: #selector(didTapArtwork), for: .touchUpInside)
-        saveView.emptyView.goFeedButton.addTarget(self, action: #selector(didTapGoFeed), for: .touchUpInside)
-    }
-    // MARK: - Button State Management
-    private func updateButtonStates(selectedCategory: SaveItemType?) {
-        // 모든 버튼을 기본 상태로 초기화
-        let allButtons = [saveView.allButton, saveView.exhibitionButton, saveView.artistButton, saveView.artworkButton]
-        allButtons.forEach { button in
-            button.backgroundColor = .clear
-            button.setTitleColor(.white, for: .normal)
-            button.layer.borderColor = UIColor.white.withAlphaComponent(0.3).cgColor
-        }
-        
-        // 선택된 카테고리에 따라 해당 버튼을 활성화 상태로 변경
-        let selectedButton: UIButton
-        switch selectedCategory {
-        case nil:
-            selectedButton = saveView.allButton
-        case .exhibition:
-            selectedButton = saveView.exhibitionButton
-        case .artist:
-            selectedButton = saveView.artistButton
-        case .artwork:
-            selectedButton = saveView.artworkButton
-        }
-        
-        // 선택된 버튼 스타일 적용
-        selectedButton.backgroundColor = UIColor.white.withAlphaComponent(0.2)
-        selectedButton.setTitleColor(.white, for: .normal)
-        selectedButton.layer.borderColor = UIColor.white.cgColor
     }
     
-    @objc private func didTapBack() { navigationController?.popViewController(animated: true) }
-    @objc private func didTapSearch() {}
-    @objc private func didTapAll() { viewModel.selectCategory(nil) }
-    @objc private func didTapExhibition() { viewModel.selectCategory(.exhibition) }
-    @objc private func didTapArtist() { viewModel.selectCategory(.artist) }
-    @objc private func didTapArtwork() { viewModel.selectCategory(.artwork) }
-    @objc private func didTapSort() { viewModel.toggleSort() }
-    @objc private func didTapGoFeed() { goToFeedHandler?() }
+    private func setupActions() {
+        // 빈 상태에서 폴더 생성하기 버튼
+        saveView.emptyView.createFolderButton.addTarget(self, action: #selector(didTapCreateFolder), for: .touchUpInside)
+    }
+    
+    // MARK: - Actions
+    
+    @objc private func didTapSearch() {
+        // 검색 기능 구현
+        print("🔍 [SaveViewController] 검색 버튼 클릭")
+    }
+    
+    @objc private func didTapCreateFolder() {
+        showCreateFolderAlert()
+    }
+    
+    // MARK: - Folder Management
+    
+    private func showCreateFolderAlert() {
+        CreateFolderModalView.present(
+            in: view,
+            onCancel: {
+                print("📁 [SaveViewController] 폴더 생성 취소")
+            },
+            onConfirm: { [weak self] folderName in
+                print("📁 [SaveViewController] 새 폴더 생성: \(folderName)")
+                self?.viewModel.createFolder(name: folderName)
+            }
+        )
+    }
+    
+    private func showFolderOptions(for folder: SaveFolderModel) {
+        let alert = UIAlertController(title: folder.name, message: nil, preferredStyle: .actionSheet)
+        
+        let renameAction = UIAlertAction(title: "이름 변경", style: .default) { [weak self] _ in
+            self?.showRenameFolderAlert(for: folder)
+        }
+        
+        let deleteAction = UIAlertAction(title: "삭제", style: .destructive) { [weak self] _ in
+            self?.showDeleteFolderAlert(for: folder)
+        }
+        
+        let cancelAction = UIAlertAction(title: "취소", style: .cancel)
+        
+        alert.addAction(renameAction)
+        alert.addAction(deleteAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
+    }
+    
+    private func showRenameFolderAlert(for folder: SaveFolderModel) {
+        let alert = UIAlertController(title: "폴더 이름 변경", message: nil, preferredStyle: .alert)
+        
+        alert.addTextField { textField in
+            textField.text = folder.name
+            textField.autocapitalizationType = .words
+        }
+        
+        let saveAction = UIAlertAction(title: "저장", style: .default) { [weak self] _ in
+            guard let textField = alert.textFields?.first,
+                  let newName = textField.text,
+                  !newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                ToastManager.shared.showError("폴더 이름을 입력해주세요")
+                return
+            }
+            
+            self?.viewModel.renameFolder(folderId: folder.id, newName: newName.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        
+        let cancelAction = UIAlertAction(title: "취소", style: .cancel)
+        
+        alert.addAction(saveAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
+    }
+    
+    private func showDeleteFolderAlert(for folder: SaveFolderModel) {
+        let alert = UIAlertController(
+            title: "폴더 삭제", 
+            message: "'\(folder.name)' 폴더를 삭제하시겠습니까?\n폴더 안의 모든 항목도 함께 삭제됩니다.", 
+            preferredStyle: .alert
+        )
+        
+        let deleteAction = UIAlertAction(title: "삭제", style: .destructive) { [weak self] _ in
+            self?.viewModel.deleteFolder(folderId: folder.id)
+        }
+        
+        let cancelAction = UIAlertAction(title: "취소", style: .cancel)
+        
+        alert.addAction(deleteAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
+    }
 }
-extension SaveViewController: UITableViewDataSource, UITableViewDelegate {
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return viewModel.items.count
+
+// MARK: - UICollectionViewDataSource
+
+extension SaveViewController: UICollectionViewDataSource {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        // 폴더 개수 + 추가 버튼 1개
+        return viewModel.folders.count + 1
     }
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let item = viewModel.items[indexPath.row]
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        cell.backgroundColor = .clear
-        cell.textLabel?.textColor = .white
-        cell.textLabel?.text = item.title
-        return cell
+    
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        if indexPath.item < viewModel.folders.count {
+            // 폴더 셀
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SaveFolderCell.identifier, for: indexPath) as! SaveFolderCell
+            let folder = viewModel.folders[indexPath.item]
+            cell.configure(with: folder)
+            cell.onMeatballTapped = { [weak self] in
+                self?.showFolderOptions(for: folder)
+            }
+            return cell
+        } else {
+            // 추가 버튼 셀
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: AddFolderCell.identifier, for: indexPath) as! AddFolderCell
+            cell.onAddButtonTapped = { [weak self] in
+                self?.showCreateFolderAlert()
+            }
+            return cell
+        }
     }
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
+}
+
+// MARK: - UICollectionViewDelegate
+
+extension SaveViewController: UICollectionViewDelegate {
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        if indexPath.item < viewModel.folders.count {
+            // 폴더 선택 시 상세 화면으로 이동
+            let folder = viewModel.folders[indexPath.item]
+            print("📁 [SaveViewController] 폴더 선택: \(folder.name)")
+            // TODO: 폴더 상세 화면으로 이동
+        }
+    }
+}
+
+// MARK: - UICollectionViewDelegateFlowLayout
+
+extension SaveViewController: UICollectionViewDelegateFlowLayout {
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        // 모든 셀은 동일한 크기 (2열 그리드)
+        let layout = collectionViewLayout as! UICollectionViewFlowLayout
+        let totalSpacing = layout.minimumInteritemSpacing + layout.sectionInset.left + layout.sectionInset.right
+        let width = (collectionView.bounds.width - totalSpacing) / 2
+        return CGSize(width: width, height: 120)
     }
 } 

@@ -112,14 +112,94 @@ final class ToastManager {
     /// 성공 Toast 표시 (체크 아이콘 포함)
     /// - Parameter message: 표시할 메시지
     func showSuccess(_ message: String) {
-        let successIcon = UIImage(systemName: "checkmark.circle.fill")
+        // 커스텀 성공 아이콘 생성 (오렌지 배경에 체크표시)
+        let successIcon = createSuccessIcon()
         let configuration = ToastConfiguration(
             message: message,
             leftIcon: successIcon,
-            backgroundColor: UIColor(hex: "#2E7D32"),
-            textColor: AppColor.toastText
+            backgroundColor: UIColor(hex: "#222222"), // 어두운 배경
+            textColor: UIColor(hex: "#FFFFFF") // 흰색 글자
         )
         show(configuration)
+    }
+    
+    /// 삭제 Toast 표시 (빨간색 아이콘 포함)
+    /// - Parameter message: 표시할 메시지
+    func showDelete(_ message: String) {
+        // 커스텀 삭제 아이콘 생성 (빨간색 배경에 체크표시)
+        let deleteIcon = createDeleteIcon()
+        let configuration = ToastConfiguration(
+            message: message,
+            leftIcon: deleteIcon,
+            backgroundColor: UIColor(hex: "#222222"), // 어두운 배경
+            textColor: UIColor(hex: "#FFFFFF") // 흰색 글자
+        )
+        show(configuration)
+    }
+    
+    /// 수정 Toast 표시 (초록색 아이콘 포함)
+    /// - Parameter message: 표시할 메시지
+    func showUpdate(_ message: String) {
+        // 커스텀 수정 아이콘 생성 (초록색 배경에 체크표시)
+        let updateIcon = createUpdateIcon()
+        let configuration = ToastConfiguration(
+            message: message,
+            leftIcon: updateIcon,
+            backgroundColor: UIColor(hex: "#222222"), // 어두운 배경
+            textColor: UIColor(hex: "#FFFFFF") // 흰색 글자
+        )
+        show(configuration)
+    }
+    
+    /// 성공 Toast용 커스텀 아이콘 생성
+    /// - Returns: 오렌지 배경에 체크표시가 있는 이미지
+    private func createSuccessIcon() -> UIImage? {
+        return createCustomIcon(backgroundColor: "#FF7c27")
+    }
+    
+    /// 삭제 Toast용 커스텀 아이콘 생성
+    /// - Returns: 빨간색 배경에 체크표시가 있는 이미지
+    private func createDeleteIcon() -> UIImage? {
+        return createCustomIcon(backgroundColor: "#ec6868")
+    }
+    
+    /// 수정 Toast용 커스텀 아이콘 생성
+    /// - Returns: 초록색 배경에 체크표시가 있는 이미지
+    private func createUpdateIcon() -> UIImage? {
+        return createCustomIcon(backgroundColor: "#4CAF50") // Material Design 초록색
+    }
+    
+    /// 커스텀 아이콘 생성 헬퍼 메서드
+    /// - Parameter backgroundColor: 아이콘 배경색 (hex 코드)
+    /// - Returns: 지정된 배경색에 체크표시가 있는 이미지
+    private func createCustomIcon(backgroundColor: String) -> UIImage? {
+        let size = CGSize(width: 24, height: 24)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        
+        return renderer.image { context in
+            let cgContext = context.cgContext
+            
+            // 지정된 색상의 원 배경 그리기
+            let iconColor = UIColor(hex: backgroundColor).cgColor
+            cgContext.setFillColor(iconColor)
+            cgContext.fillEllipse(in: CGRect(origin: .zero, size: size))
+            
+            // 체크표시 그리기 (배경색과 동일한 색상)
+            let checkmarkColor = UIColor(hex: "#222222").cgColor
+            cgContext.setStrokeColor(checkmarkColor)
+            cgContext.setLineWidth(2.5)
+            cgContext.setLineCap(.round)
+            cgContext.setLineJoin(.round)
+            
+            // 체크표시 경로
+            let checkmarkPath = UIBezierPath()
+            checkmarkPath.move(to: CGPoint(x: 7, y: 12))
+            checkmarkPath.addLine(to: CGPoint(x: 10.5, y: 15.5))
+            checkmarkPath.addLine(to: CGPoint(x: 17, y: 9))
+            
+            cgContext.addPath(checkmarkPath.cgPath)
+            cgContext.strokePath()
+        }
     }
     
     /// 에러 Toast 표시 (경고 아이콘 포함)

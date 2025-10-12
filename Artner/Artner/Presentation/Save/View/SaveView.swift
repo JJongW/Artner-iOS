@@ -11,22 +11,28 @@ final class SaveView: BaseView {
         return view
     }()
     
-    let categoryStackView: UIStackView = {
-        let stackView = UIStackView()
-        stackView.axis = .horizontal
-        stackView.spacing = 10
-        stackView.distribution = .fillEqually
-        return stackView
+    // 폴더 컬렉션뷰 (2열 그리드 레이아웃)
+    let collectionView: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .vertical
+        layout.minimumInteritemSpacing = 10 // 가로 간격 10px
+        layout.minimumLineSpacing = 10 // 세로 간격 10px
+        layout.sectionInset = UIEdgeInsets(top: 32, left: 16, bottom: 32, right: 16) // divider로부터 32px, 좌우 16px
+        layout.itemSize = CGSize(width: (UIScreen.main.bounds.width - 52) / 2, height: 120) // 2열 그리드, 적절한 높이
+        
+        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.backgroundColor = .clear
+        collectionView.showsVerticalScrollIndicator = false
+        return collectionView
     }()
-    let allButton = UIButton(type: .system)
-    let exhibitionButton = UIButton(type: .system)
-    let artistButton = UIButton(type: .system)
-    let artworkButton = UIButton(type: .system)
-    let tableView = UITableView()
+    
+    // 빈 상태 뷰 (폴더가 없을 때)
     let emptyView = SaveEmptyView()
 
     override func setupUI() {
         backgroundColor = .black
+        
+        // 네비게이션 바 설정
         addSubview(navigationBar)
         navigationBar.backgroundColor = .black
         navigationBar.titleLabel.textColor = .white
@@ -37,37 +43,37 @@ final class SaveView: BaseView {
         // Navigation divider 추가
         addSubview(navigationDivider)
         
-        addSubview(categoryStackView)
-        [allButton, exhibitionButton, artistButton, artworkButton].forEach {
-            $0.setTitleColor(.white, for: .normal)
-            $0.titleLabel?.font = .systemFont(ofSize: 14)
-            $0.layer.cornerRadius = 16
-            $0.layer.borderWidth = 1
-            $0.layer.borderColor = UIColor.white.withAlphaComponent(0.3).cgColor
-            categoryStackView.addArrangedSubview($0)
-        }
-        allButton.setTitle("전체", for: .normal)
-        exhibitionButton.setTitle("전시", for: .normal)
-        artistButton.setTitle("작가", for: .normal)
-        artworkButton.setTitle("작품", for: .normal)
-        addSubview(tableView)
+        // 컬렉션뷰 설정
+        addSubview(collectionView)
+        
+        // 빈 상태 뷰 설정
         addSubview(emptyView)
-        tableView.backgroundColor = .clear
-        tableView.separatorStyle = .none
         emptyView.isHidden = true
     }
+    
     override func setupLayout() {
-        navigationBar.snp.makeConstraints { $0.top.leading.trailing.equalTo(safeAreaLayoutGuide); $0.height.equalTo(56) }
-        
-        // Navigation divider (1px 높이, 좌우 전체)
-        navigationDivider.snp.makeConstraints {
-            $0.top.equalTo(navigationBar.snp.bottom)
-            $0.leading.trailing.equalToSuperview()
-            $0.height.equalTo(1)
+        // 네비게이션 바
+        navigationBar.snp.makeConstraints { make in
+            make.top.leading.trailing.equalTo(safeAreaLayoutGuide)
+            make.height.equalTo(56)
         }
         
-        categoryStackView.snp.makeConstraints { $0.top.equalTo(navigationBar.snp.bottom).offset(16); $0.leading.trailing.equalToSuperview().inset(16); $0.height.equalTo(32) }
-        tableView.snp.makeConstraints { $0.top.equalTo(categoryStackView.snp.bottom).offset(16); $0.leading.trailing.bottom.equalToSuperview() }
-        emptyView.snp.makeConstraints { $0.edges.equalTo(tableView) }
+        // Navigation divider (1px 높이, 좌우 전체)
+        navigationDivider.snp.makeConstraints { make in
+            make.top.equalTo(navigationBar.snp.bottom)
+            make.leading.trailing.equalToSuperview()
+            make.height.equalTo(1)
+        }
+        
+        // 컬렉션뷰 (divider 아래부터 시작)
+        collectionView.snp.makeConstraints { make in
+            make.top.equalTo(navigationDivider.snp.bottom)
+            make.leading.trailing.bottom.equalToSuperview()
+        }
+        
+        // 빈 상태 뷰 (컬렉션뷰와 동일한 영역)
+        emptyView.snp.makeConstraints { make in
+            make.edges.equalTo(collectionView)
+        }
     }
 } 
