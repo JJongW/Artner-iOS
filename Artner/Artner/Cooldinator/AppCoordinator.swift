@@ -127,8 +127,26 @@ final class AppCoordinator {
     }
     func showRecord() {
         let recordVC = RecordViewController()
-        recordVC.goToFeedHandler = { [weak self] in self?.popToHome() }
+        recordVC.goToRecordHandler = { [weak self] in 
+            self?.showRecordInput()
+        }
         navigationController.pushViewController(recordVC, animated: true)
+    }
+    
+    func showRecordInput() {
+        let recordInputVC = RecordInputViewController()
+        recordInputVC.onRecordSaved = { [weak self] recordItem in
+            print("📝 [AppCoordinator] 전시 기록이 저장되었습니다: \(recordItem.exhibitionName)")
+            // RecordViewModel 싱글톤에 데이터 추가
+            RecordViewModel.shared.addRecordItem(recordItem)
+        }
+        recordInputVC.onDismiss = { [weak self] in
+            print("📝 [AppCoordinator] 전시 기록 입력 취소")
+        }
+        
+        // Full screen 모달로 표시
+        recordInputVC.modalPresentationStyle = .fullScreen
+        navigationController.present(recordInputVC, animated: true)
     }
     // 홈으로 이동 (예시)
     private func popToHome() {
