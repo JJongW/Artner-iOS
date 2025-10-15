@@ -81,10 +81,11 @@ final class CreateFolderModalView: UIView {
     let confirmButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("확인", for: .normal)
-        button.backgroundColor = UIColor(hex: "#A75825")
+        button.backgroundColor = UIColor(hex: "#A75825") // 비활성화 색상
         button.setTitleColor(.white, for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
         button.layer.cornerRadius = 10
+        button.isEnabled = false // 초기에는 비활성화
         
         // 버튼 내부 패딩 (상하 10, 좌우 53)
         button.contentEdgeInsets = UIEdgeInsets(top: 10, left: 53, bottom: 10, right: 53)
@@ -170,6 +171,9 @@ final class CreateFolderModalView: UIView {
         cancelButton.addTarget(self, action: #selector(cancelButtonTapped), for: .touchUpInside)
         confirmButton.addTarget(self, action: #selector(confirmButtonTapped), for: .touchUpInside)
         
+        // 텍스트 필드 변경 감지
+        folderNameTextField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
+        
         // 배경 터치 시 닫기
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(backgroundTapped))
         addGestureRecognizer(tapGesture)
@@ -191,11 +195,39 @@ final class CreateFolderModalView: UIView {
         onConfirmTapped?(folderName.trimmingCharacters(in: .whitespacesAndNewlines))
     }
     
+    @objc private func textFieldDidChange() {
+        updateConfirmButtonState()
+    }
+    
     @objc private func backgroundTapped(_ gesture: UITapGestureRecognizer) {
         // 컨테이너 뷰 외부를 터치한 경우에만 닫기
         let location = gesture.location(in: self)
         if !containerView.frame.contains(location) {
             onCancelTapped?()
+        }
+    }
+    
+    // MARK: - Private Methods
+    
+    /// 확인 버튼 활성화 상태 업데이트
+    /// - 텍스트가 비어있지 않으면 활성화 (#FF7C27)
+    /// - 텍스트가 비어있으면 비활성화 (#A75825)
+    private func updateConfirmButtonState() {
+        let text = folderNameTextField.text ?? ""
+        let isEmpty = text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        
+        // 버튼 활성화 상태 변경
+        confirmButton.isEnabled = !isEmpty
+        
+        // 색상 애니메이션과 함께 변경
+        UIView.animate(withDuration: 0.2) {
+            if isEmpty {
+                // 비활성화 상태: #A75825
+                self.confirmButton.backgroundColor = UIColor(hex: "#A75825")
+            } else {
+                // 활성화 상태: #FF7C27
+                self.confirmButton.backgroundColor = UIColor(hex: "#FF7C27")
+            }
         }
     }
     
@@ -210,6 +242,9 @@ final class CreateFolderModalView: UIView {
     func hide() {
         folderNameTextField.resignFirstResponder()
         folderNameTextField.text = ""
+        // 버튼 상태도 초기화
+        confirmButton.isEnabled = false
+        confirmButton.backgroundColor = UIColor(hex: "#A75825")
     }
 }
 
