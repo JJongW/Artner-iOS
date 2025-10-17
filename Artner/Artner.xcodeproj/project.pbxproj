@@ -161,7 +161,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 396HBTZTGH;
+				DEVELOPMENT_TEAM = 39MK2JX9R4;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Artner/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "작품을 촬영하여 AI 도슨트 서비스를 이용하기 위해 카메라 접근 권한이 필요합니다.";
@@ -190,7 +190,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 396HBTZTGH;
+				DEVELOPMENT_TEAM = 39MK2JX9R4;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Artner/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "작품을 촬영하여 AI 도슨트 서비스를 이용하기 위해 카메라 접근 권한이 필요합니다.";

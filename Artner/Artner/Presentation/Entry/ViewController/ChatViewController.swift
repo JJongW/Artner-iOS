@@ -102,14 +102,14 @@ final class ChatViewController: BaseViewController<ChatViewModel, AppCoordinator
         
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(keyboardDidShow(_:)),
+            selector: #selector(handleKeyboardDidShow(_:)),
             name: UIResponder.keyboardDidShowNotification,
             object: nil
         )
         
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(keyboardDidHide(_:)),
+            selector: #selector(handleKeyboardDidHide(_:)),
             name: UIResponder.keyboardDidHideNotification,
             object: nil
         )
@@ -138,12 +138,12 @@ final class ChatViewController: BaseViewController<ChatViewModel, AppCoordinator
         }
     }
     
-    @objc private func keyboardDidShow(_ notification: Notification) {
+    @objc private func handleKeyboardDidShow(_ notification: Notification) {
         // 키보드가 완전히 표시된 후 스크롤 위치 조정
         scrollToBottom()
     }
     
-    @objc private func keyboardDidHide(_ notification: Notification) {
+    @objc private func handleKeyboardDidHide(_ notification: Notification) {
         keyboardHeight = 0
     }
     
