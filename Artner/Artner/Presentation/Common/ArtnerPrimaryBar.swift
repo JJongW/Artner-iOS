@@ -15,7 +15,7 @@ final class ArtnerPrimaryBar: UIView {
     private let stackView: UIStackView = {
         let stack = UIStackView()
         stack.axis = .vertical
-        stack.spacing = 4  // 2 → 4로 증가
+        stack.spacing = 4
         stack.alignment = .leading
         stack.distribution = .fillProportionally
         return stack

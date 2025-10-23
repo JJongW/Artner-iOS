@@ -14,6 +14,7 @@ import Alamofire
 protocol APIServiceProtocol {
     func getFeedList() -> AnyPublisher<[FeedItemType], NetworkError>
     func getDashboardSummary() -> AnyPublisher<DashboardSummary, NetworkError>
+    func getAIDocentSettings() -> AnyPublisher<AIDocentSettings, NetworkError>
     // Docent 관련은 현재 Dummy 데이터 사용으로 제외
 }
 
@@ -165,6 +166,24 @@ private extension APIService {
         }
         .receive(on: DispatchQueue.main)  // 메인 스레드에서 결과 전달
         .eraseToAnyPublisher()
+    }
+    
+    // MARK: - AI Docent Settings API
+    
+    internal func getAIDocentSettings() -> AnyPublisher<AIDocentSettings, NetworkError> {
+        return request(target: .getAIDocentSettings, responseType: AIDocentSettingsDTO.self)
+            .map { (dto: AIDocentSettingsDTO) in
+                print("📊 AI 도슨트 설정 데이터 로드 완료")
+                print("   ID: \(dto.id)")
+                print("   Personal: \(dto.personal)")
+                print("   Length: \(dto.length) -> \(dto.toDomainEntity().lengthKorean)")
+                print("   Speed: \(dto.speed) -> \(dto.toDomainEntity().speedKorean)")
+                print("   Difficulty: \(dto.difficulty) -> \(dto.toDomainEntity().difficultyKorean)")
+                print("   Viewer Font Size: \(dto.viewerFontSize)")
+                print("   Viewer Line Spacing: \(dto.viewerLineSpacing)")
+                return dto.toDomainEntity()
+            }
+            .eraseToAnyPublisher()
     }
 }
 

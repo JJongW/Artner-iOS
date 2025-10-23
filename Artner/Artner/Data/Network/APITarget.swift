@@ -33,6 +33,7 @@ enum APITarget {
     
     // MARK: - User API
     case getDashboardSummary
+    case getAIDocentSettings
 }
 
 // MARK: - TargetType 구현
@@ -76,6 +77,8 @@ extension APITarget: TargetType {
         // User
         case .getDashboardSummary:
             return "/users/dashboard_summary"
+        case .getAIDocentSettings:
+            return "/users/docent_settings"
         }
     }
     
@@ -94,7 +97,8 @@ extension APITarget: TargetType {
              .getExhibitionList,
              .getArtworkList,
              .getArtistList,
-             .getDashboardSummary:
+             .getDashboardSummary,
+             .getAIDocentSettings:
             return .requestPlain
             
         case .getFeedDetail,

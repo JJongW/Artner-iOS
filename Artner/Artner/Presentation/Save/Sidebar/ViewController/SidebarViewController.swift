@@ -43,7 +43,12 @@ final class SidebarViewController: UIViewController {
         setupStatButtons()
         setupSliders()
         setupBottomMenu()
+        setupSkeletonUI()
         bindViewModel()
+        
+        // 초기 로딩 상태 설정
+        sidebarView.updateLoadingState(isLoading: true, isAISettingsLoading: true)
+        
         sidebarView.closeButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
         sidebarView.easyModeSwitch.addTarget(self, action: #selector(didToggleEasyMode), for: .valueChanged)
     }
@@ -58,7 +63,8 @@ final class SidebarViewController: UIViewController {
         sidebarView.statStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         for (i, (type, title, iconName)) in statTypes.enumerated() {
             let btn = SidebarStatButton()
-            btn.configure(icon: UIImage(systemName: iconName), title: title, count: viewModel.stats[i].count)
+            let count = i < viewModel.stats.count ? viewModel.stats[i].count : 0
+            btn.configure(icon: UIImage(systemName: iconName), title: title, count: count)
             btn.tag = i
             btn.addTarget(self, action: #selector(didTapStatButton(_:)), for: .touchUpInside)
             sidebarView.statStackView.addArrangedSubview(btn)
@@ -77,7 +83,7 @@ final class SidebarViewController: UIViewController {
     }
 
     private func setupBottomMenu() {
-        let menuTitles = ["이용약관", "개인정보 처리방침", "의견 남기기", "버전 정보 v.0.0.0"]
+        let menuTitles = ["이용약관", "개인정보 처리방침", "의견 남기기", "버전 정보"]
         sidebarView.bottomMenuStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         
         for (i, title) in menuTitles.enumerated() {
@@ -93,26 +99,46 @@ final class SidebarViewController: UIViewController {
             btn.tag = i
             btn.addTarget(self, action: #selector(didTapBottomMenu(_:)), for: .touchUpInside)
             
-            // 화살표
-            let arrow = UIImageView(image: UIImage(named: "ic_arrow"))
-            arrow.tintColor = UIColor.white.withAlphaComponent(0.7)
-            
             // 컨테이너에 추가
             containerView.addSubview(btn)
-            containerView.addSubview(arrow)
             
-            // 레이아웃 설정
-            btn.snp.makeConstraints {
-                $0.leading.centerY.equalToSuperview()
-                $0.trailing.equalTo(arrow.snp.leading).offset(-8)
-            }
-            arrow.snp.makeConstraints {
-                $0.trailing.equalToSuperview().offset(-20)
-                $0.centerY.equalToSuperview()
-                $0.width.height.equalTo(24)
+            if i == 3 { // 버전 정보
+                // 버전 텍스트
+                let versionLabel = UILabel()
+                versionLabel.text = "v.0.0.0"
+                versionLabel.textColor = UIColor.white.withAlphaComponent(0.6)
+                versionLabel.font = UIFont.systemFont(ofSize: 16)
+                
+                containerView.addSubview(versionLabel)
+                
+                // 레이아웃 설정
+                btn.snp.makeConstraints {
+                    $0.leading.centerY.equalToSuperview()
+                    $0.trailing.equalTo(versionLabel.snp.leading).offset(-8)
+                }
+                versionLabel.snp.makeConstraints {
+                    $0.trailing.equalToSuperview()
+                    $0.centerY.equalToSuperview()
+                }
+            } else {
+                // 화살표
+                let arrow = UIImageView(image: UIImage(named: "ic_arrow"))
+                arrow.tintColor = UIColor.white.withAlphaComponent(0.7)
+                
+                containerView.addSubview(arrow)
+                
+                // 레이아웃 설정
+                btn.snp.makeConstraints {
+                    $0.leading.centerY.equalToSuperview()
+                    $0.trailing.equalTo(arrow.snp.leading).offset(-8)
+                }
+                arrow.snp.makeConstraints {
+                    $0.trailing.equalToSuperview()
+                    $0.centerY.equalToSuperview()
+                    $0.width.height.equalTo(24)
+                }
             }
             
-            // 컨테이너 높이 설정 (16pt 간격 확보)
             containerView.snp.makeConstraints {
                 $0.height.equalTo(24)
             }
@@ -120,13 +146,66 @@ final class SidebarViewController: UIViewController {
             sidebarView.bottomMenuStackView.addArrangedSubview(containerView)
             
             // 마지막이 아니면 separator 추가
-            if i < menuTitles.count {
+            if i < menuTitles.count - 1 {
                 let separator = UIView()
                 separator.backgroundColor = UIColor.white.withAlphaComponent(0.2)
                 separator.snp.makeConstraints { $0.height.equalTo(1) }
                 sidebarView.bottomMenuStackView.addArrangedSubview(separator)
             }
         }
+        
+        // 하단 divider 추가
+        let bottomDivider = UIView()
+        bottomDivider.backgroundColor = UIColor.white.withAlphaComponent(0.2)
+        sidebarView.bottomMenuStackView.addArrangedSubview(bottomDivider)
+        bottomDivider.snp.makeConstraints { $0.height.equalTo(1) }
+        
+        let spacer = UIView()
+        sidebarView.bottomMenuStackView.addArrangedSubview(spacer)
+        spacer.snp.makeConstraints { $0.height.equalTo(43) }
+        
+        // 회원 탈퇴 | 로그아웃 추가
+        let accountContainer = UIView()
+        let withdrawButton = UIButton(type: .system)
+        let logoutButton = UIButton(type: .system)
+        let verticalDivider = UIView()
+        
+        withdrawButton.setTitle("회원 탈퇴", for: .normal)
+        withdrawButton.setTitleColor(UIColor(red: 0.62, green: 0.61, blue: 0.61, alpha: 1.0), for: .normal) // #9e9c9c
+        withdrawButton.titleLabel?.font = UIFont.systemFont(ofSize: 14)
+        
+        logoutButton.setTitle("로그아웃", for: .normal)
+        logoutButton.setTitleColor(UIColor(red: 0.62, green: 0.61, blue: 0.61, alpha: 1.0), for: .normal) // #9e9c9c
+        logoutButton.titleLabel?.font = UIFont.systemFont(ofSize: 14)
+        
+        verticalDivider.backgroundColor = UIColor(red: 0.62, green: 0.61, blue: 0.61, alpha: 1.0) // #9e9c9c
+        
+        accountContainer.addSubview(withdrawButton)
+        accountContainer.addSubview(verticalDivider)
+        accountContainer.addSubview(logoutButton)
+        
+        withdrawButton.snp.makeConstraints {
+            $0.leading.centerY.equalToSuperview()
+            $0.trailing.equalTo(verticalDivider.snp.leading)
+        }
+        
+        verticalDivider.snp.makeConstraints {
+            $0.centerX.centerY.equalToSuperview()
+            $0.width.equalTo(1)
+            $0.height.equalTo(8)
+        }
+        
+        logoutButton.snp.makeConstraints {
+            $0.trailing.centerY.equalToSuperview()
+            $0.leading.equalTo(verticalDivider.snp.trailing)
+        }
+        
+        accountContainer.snp.makeConstraints {
+            $0.height.equalTo(24)
+            $0.width.equalTo(150)
+        }
+        
+        sidebarView.bottomMenuStackView.addArrangedSubview(accountContainer)
     }
 
     private func bindViewModel() {
@@ -170,6 +249,7 @@ final class SidebarViewController: UIViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] value in
                 self?.sidebarView.lengthValueLabel.text = value
+                self?.sidebarView.updateAISettingsSpacing()
             }
             .store(in: &cancellables)
         
@@ -177,6 +257,7 @@ final class SidebarViewController: UIViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] value in
                 self?.sidebarView.speedValueLabel.text = value
+                self?.sidebarView.updateAISettingsSpacing()
             }
             .store(in: &cancellables)
         
@@ -184,8 +265,12 @@ final class SidebarViewController: UIViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] value in
                 self?.sidebarView.difficultyValueLabel.text = value
+                self?.sidebarView.updateAISettingsSpacing()
             }
             .store(in: &cancellables)
+        
+        // 로딩 상태 바인딩
+        bindLoadingStates()
     }
 
     @objc private func didTapStatButton(_ sender: SidebarStatButton) {
@@ -226,5 +311,37 @@ final class SidebarViewController: UIViewController {
         // 기존: dismiss(animated: true)
         // 변경: delegate를 통해 닫기 요청 전달 (실제 닫기는 컨테이너가 담당)
         delegate?.sidebarDidRequestClose()
+    }
+    
+    // MARK: - Skeleton UI Setup
+    
+    private func setupSkeletonUI() {
+        sidebarView.setupSkeletonUI()
+    }
+    
+    // MARK: - Loading State Binding
+    
+    private func bindLoadingStates() {
+        // 대시보드 로딩 상태 바인딩
+        viewModel.$isLoading
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isLoading in
+                self?.sidebarView.updateLoadingState(
+                    isLoading: isLoading,
+                    isAISettingsLoading: self?.viewModel.isAISettingsLoading ?? true
+                )
+            }
+            .store(in: &cancellables)
+        
+        // AI 설정 로딩 상태 바인딩
+        viewModel.$isAISettingsLoading
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isAISettingsLoading in
+                self?.sidebarView.updateLoadingState(
+                    isLoading: self?.viewModel.isLoading ?? true,
+                    isAISettingsLoading: isAISettingsLoading
+                )
+            }
+            .store(in: &cancellables)
     }
 } 

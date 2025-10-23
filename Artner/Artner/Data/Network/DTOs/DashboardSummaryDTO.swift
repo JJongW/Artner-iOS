@@ -10,12 +10,10 @@ import Foundation
 /// 대시보드 요약 정보 DTO
 struct DashboardSummaryDTO: Codable {
     let counts: CountsDTO
-    let docentSettings: DocentSettingsDTO?
     let userInfo: UserInfoDTO
     
     enum CodingKeys: String, CodingKey {
         case counts
-        case docentSettings = "docent_settings"
         case userInfo = "user_info"
     }
 }
@@ -35,18 +33,7 @@ struct CountsDTO: Codable {
     }
 }
 
-/// 도슨트 설정 DTO
-struct DocentSettingsDTO: Codable {
-    let length: String?
-    let speed: String?
-    let difficulty: String?
-    
-    enum CodingKeys: String, CodingKey {
-        case length
-        case speed
-        case difficulty
-    }
-}
+// DocentSettingsDTO는 AIDocentSettingsDTO로 대체됨
 
 /// 사용자 정보 DTO
 struct UserInfoDTO: Codable {
@@ -69,8 +56,7 @@ extension DashboardSummaryDTO {
     func toDomainEntity() -> DashboardSummary {
         return DashboardSummary(
             user: userInfo.toDomainEntity(),
-            stats: counts.toDomainEntity(),
-            docentSettings: docentSettings?.toDomainEntity()
+            stats: counts.toDomainEntity()
         )
     }
 }
@@ -99,13 +85,4 @@ extension CountsDTO {
     }
 }
 
-extension DocentSettingsDTO {
-    /// DTO를 Domain Entity로 변환
-    func toDomainEntity() -> DocentSettings {
-        return DocentSettings(
-            length: length ?? "짧게",
-            speed: speed ?? "느리게", 
-            difficulty: difficulty ?? "초급"
-        )
-    }
-}
+// DocentSettingsDTO extension은 AIDocentSettingsDTO로 대체됨

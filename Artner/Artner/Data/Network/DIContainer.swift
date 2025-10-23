@@ -39,6 +39,11 @@ final class DIContainer {
         return DashboardRepositoryImpl(apiService: apiService)
     }()
     
+    /// AI Docent Settings Repository 인스턴스
+    lazy var aiDocentSettingsRepository: AIDocentSettingsRepository = {
+        return AIDocentSettingsRepositoryImpl(apiService: apiService)
+    }()
+    
     // MARK: - UseCase Layer
     
     /// Feed UseCase 인스턴스
@@ -54,6 +59,11 @@ final class DIContainer {
     /// Dashboard UseCase 인스턴스
     lazy var getDashboardSummaryUseCase: GetDashboardSummaryUseCase = {
         return GetDashboardSummaryUseCaseImpl(dashboardRepository: dashboardRepository)
+    }()
+    
+    /// AI Docent Settings UseCase 인스턴스
+    lazy var getAIDocentSettingsUseCase: GetAIDocentSettingsUseCase = {
+        return GetAIDocentSettingsUseCaseImpl(aiDocentSettingsRepository: aiDocentSettingsRepository)
     }()
 }
 
@@ -78,7 +88,10 @@ extension DIContainer {
     
     /// SidebarViewModel 생성
     func makeSidebarViewModel() -> SidebarViewModel {
-        return SidebarViewModel(getDashboardSummaryUseCase: getDashboardSummaryUseCase)
+        return SidebarViewModel(
+            getDashboardSummaryUseCase: getDashboardSummaryUseCase,
+            getAIDocentSettingsUseCase: getAIDocentSettingsUseCase
+        )
     }
 }
 

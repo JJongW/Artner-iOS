@@ -11,7 +11,7 @@ import Foundation
 struct DashboardSummary {
     let user: UserInfo
     let stats: Stats
-    let docentSettings: DocentSettings?
+    // docentSettings는 별도 API에서 처리하므로 제거
 }
 
 /// 사용자 정보 Domain Entity
@@ -30,9 +30,4 @@ struct Stats {
     let savedDocents: Int
 }
 
-/// 도슨트 설정 Domain Entity
-struct DocentSettings {
-    let length: String
-    let speed: String
-    let difficulty: String
-}
+// DocentSettings는 AIDocentSettings로 대체됨
