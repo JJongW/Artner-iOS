@@ -137,6 +137,7 @@ final class SidebarView: UIView {
         easyModeDescLabel.text = "단어와 표현을 쉽게 풀어서 이야기 해줍니다."
         easyModeDescLabel.font = UIFont.systemFont(ofSize: 12)
         easyModeDescLabel.textColor = UIColor.white.withAlphaComponent(0.7)
+        easyModeSwitch.onTintColor = UIColor(red: 1.0, green: 0.486, blue: 0.153, alpha: 1.0) // #FF7C27
         // 뷰어 설정
         viewerTitleLabel.text = "뷰어 설정"
         viewerTitleLabel.font = UIFont.boldSystemFont(ofSize: 15)
