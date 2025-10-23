@@ -34,6 +34,11 @@ final class DIContainer {
         return DocentRepositoryImpl() // API 의존성 제거
     }()
     
+    /// Dashboard Repository 인스턴스
+    lazy var dashboardRepository: DashboardRepository = {
+        return DashboardRepositoryImpl(apiService: apiService)
+    }()
+    
     // MARK: - UseCase Layer
     
     /// Feed UseCase 인스턴스
@@ -44,6 +49,11 @@ final class DIContainer {
     /// Docent UseCase 인스턴스
     lazy var playDocentUseCase: PlayDocentUseCase = {
         return PlayDocentUseCaseImpl(repository: docentRepository)
+    }()
+    
+    /// Dashboard UseCase 인스턴스
+    lazy var getDashboardSummaryUseCase: GetDashboardSummaryUseCase = {
+        return GetDashboardSummaryUseCaseImpl(dashboardRepository: dashboardRepository)
     }()
 }
 
@@ -64,6 +74,11 @@ extension DIContainer {
     /// TODO: 향후 PlayerViewModel이 UseCase 의존성을 가지도록 개선 고려
     func makePlayerViewModel(docent: Docent) -> PlayerViewModel {
         return PlayerViewModel(docent: docent)
+    }
+    
+    /// SidebarViewModel 생성
+    func makeSidebarViewModel() -> SidebarViewModel {
+        return SidebarViewModel(getDashboardSummaryUseCase: getDashboardSummaryUseCase)
     }
 }
 

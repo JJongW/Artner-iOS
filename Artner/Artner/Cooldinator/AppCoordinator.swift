@@ -98,7 +98,9 @@ final class AppCoordinator {
     }
 
     func showSidebar(from presentingVC: UIViewController) {
-        let sidebarVC = SidebarViewController()
+        // DI Container를 통해 SidebarViewModel 생성
+        let sidebarViewModel = container.makeSidebarViewModel()
+        let sidebarVC = SidebarViewController(viewModel: sidebarViewModel)
         sidebarVC.delegate = self // delegate 연결
         let sideMenu = SideMenuContainerView(menuViewController: sidebarVC, parentViewController: presentingVC)
         self.sideMenu = sideMenu

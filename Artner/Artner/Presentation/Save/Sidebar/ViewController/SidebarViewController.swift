@@ -21,10 +21,20 @@ protocol SidebarViewControllerDelegate: AnyObject {
 
 final class SidebarViewController: UIViewController {
     let sidebarView = SidebarView()
-    let viewModel = SidebarViewModel()
+    let viewModel: SidebarViewModel
     private var cancellables = Set<AnyCancellable>()
     // 사이드바 닫기 delegate
     weak var delegate: SidebarViewControllerDelegate?
+    
+    // MARK: - Initialization
+    init(viewModel: SidebarViewModel) {
+        self.viewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     override func loadView() { self.view = sidebarView }
 

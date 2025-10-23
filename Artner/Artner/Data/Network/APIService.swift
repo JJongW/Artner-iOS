@@ -13,6 +13,7 @@ import Alamofire
 /// API 서비스 프로토콜
 protocol APIServiceProtocol {
     func getFeedList() -> AnyPublisher<[FeedItemType], NetworkError>
+    func getDashboardSummary() -> AnyPublisher<DashboardSummary, NetworkError>
     // Docent 관련은 현재 Dummy 데이터 사용으로 제외
 }
 
@@ -69,6 +70,29 @@ final class APIService: APIServiceProtocol {
                 #endif
                 
                 return feedItems
+            }
+            .eraseToAnyPublisher()
+    }
+    
+    /// 대시보드 요약 정보 조회
+    func getDashboardSummary() -> AnyPublisher<DashboardSummary, NetworkError> {
+        return request(target: .getDashboardSummary, responseType: DashboardSummaryDTO.self)
+            .map { response in
+                // DTO를 Domain Entity로 변환
+                let dashboardSummary = response.toDomainEntity()
+                
+                #if DEBUG
+                print("📊 대시보드 요약 정보 로드 완료")
+                let displayName = dashboardSummary.user.nickname.isEmpty ? 
+                    dashboardSummary.user.username : dashboardSummary.user.nickname
+                print("   사용자: \(displayName) (ID: \(dashboardSummary.user.id))")
+                print("   좋아요: \(dashboardSummary.stats.likedItems)")
+                print("   저장: \(dashboardSummary.stats.savedDocents)")
+                print("   밑줄: \(dashboardSummary.stats.highlights)")
+                print("   전시기록: \(dashboardSummary.stats.exhibitionRecords)")
+                #endif
+                
+                return dashboardSummary
             }
             .eraseToAnyPublisher()
     }

@@ -30,6 +30,9 @@ enum APITarget {
     // MARK: - Artist API
     case getArtistList
     case getArtistDetail(id: String)
+    
+    // MARK: - User API
+    case getDashboardSummary
 }
 
 // MARK: - TargetType 구현
@@ -69,6 +72,10 @@ extension APITarget: TargetType {
             return "/artists"
         case .getArtistDetail(let id):
             return "/artists/\(id)"
+            
+        // User
+        case .getDashboardSummary:
+            return "/users/dashboard_summary"
         }
     }
     
@@ -86,7 +93,8 @@ extension APITarget: TargetType {
         case .getFeedList,
              .getExhibitionList,
              .getArtworkList,
-             .getArtistList:
+             .getArtistList,
+             .getDashboardSummary:
             return .requestPlain
             
         case .getFeedDetail,
@@ -105,9 +113,9 @@ extension APITarget: TargetType {
         ]
         
         // 인증 토큰이 필요한 경우
-        // if let token = UserDefaults.standard.string(forKey: "access_token") {
-        //     headers["Authorization"] = "Bearer \(token)"
-        // }
+        if let token = TokenManager.shared.accessToken {
+            headers["Authorization"] = "Bearer \(token)"
+        }
         
         return headers
     }
