@@ -186,7 +186,6 @@ final class SidebarViewController: UIViewController {
         
         withdrawButton.snp.makeConstraints {
             $0.leading.centerY.equalToSuperview()
-            $0.trailing.equalTo(verticalDivider.snp.leading)
         }
         
         verticalDivider.snp.makeConstraints {
@@ -197,15 +196,27 @@ final class SidebarViewController: UIViewController {
         
         logoutButton.snp.makeConstraints {
             $0.trailing.centerY.equalToSuperview()
-            $0.leading.equalTo(verticalDivider.snp.trailing)
         }
         
+        // UIStackView 내부에서는 leading/trailing 제약조건 대신 layoutMargins 사용
+        let marginContainer = UIView()
+        marginContainer.addSubview(accountContainer)
+        
+        // 마진 컨테이너를 스택뷰에 추가
+        sidebarView.bottomMenuStackView.addArrangedSubview(marginContainer)
+        
+        // 마진 컨테이너 제약조건
+        marginContainer.snp.makeConstraints {
+            $0.height.equalTo(24)
+        }
+        
+        // accountContainer 제약조건 (마진 컨테이너 내부에서)
         accountContainer.snp.makeConstraints {
             $0.height.equalTo(24)
-            $0.width.equalTo(150)
+            $0.leading.equalToSuperview().offset(96) // 좌측에서 96pt
+            $0.trailing.equalToSuperview().offset(-96) // 우측에서 96pt
+            $0.centerY.equalToSuperview()
         }
-        
-        sidebarView.bottomMenuStackView.addArrangedSubview(accountContainer)
     }
 
     private func bindViewModel() {
