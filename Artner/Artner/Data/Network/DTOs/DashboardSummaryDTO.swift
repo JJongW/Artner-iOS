@@ -37,7 +37,15 @@ struct CountsDTO: Codable {
 
 /// 도슨트 설정 DTO
 struct DocentSettingsDTO: Codable {
-    // 향후 도슨트 설정 관련 필드들이 추가될 수 있음
+    let length: String?
+    let speed: String?
+    let difficulty: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case length
+        case speed
+        case difficulty
+    }
 }
 
 /// 사용자 정보 DTO
@@ -61,7 +69,8 @@ extension DashboardSummaryDTO {
     func toDomainEntity() -> DashboardSummary {
         return DashboardSummary(
             user: userInfo.toDomainEntity(),
-            stats: counts.toDomainEntity()
+            stats: counts.toDomainEntity(),
+            docentSettings: docentSettings?.toDomainEntity()
         )
     }
 }
@@ -86,6 +95,17 @@ extension CountsDTO {
             highlights: highlights,
             exhibitionRecords: exhibitionRecords,
             savedDocents: savedDocents
+        )
+    }
+}
+
+extension DocentSettingsDTO {
+    /// DTO를 Domain Entity로 변환
+    func toDomainEntity() -> DocentSettings {
+        return DocentSettings(
+            length: length ?? "짧게",
+            speed: speed ?? "느리게", 
+            difficulty: difficulty ?? "초급"
         )
     }
 }

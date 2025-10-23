@@ -32,6 +32,11 @@ final class SidebarViewModel {
     ]
     @Published var aiDocent: String = "친절한 애나"
     @Published var aiSettings: SidebarAISettings = .default
+    
+    // AI 설정 세부 데이터
+    @Published var lengthValue: String = "짧게"
+    @Published var speedValue: String = "느리게"
+    @Published var difficultyValue: String = "초급"
     @Published var easyMode: Bool = false
     @Published var fontSize: Float = 1
     @Published var lineSpacing: Float = 10
@@ -74,6 +79,13 @@ final class SidebarViewModel {
             .init(type: .record, count: dashboardSummary.stats.exhibitionRecords) // exhibition_records
         ]
         
+        // AI 설정 데이터 업데이트
+        if let docentSettings = dashboardSummary.docentSettings {
+            lengthValue = docentSettings.length
+            speedValue = docentSettings.speed
+            difficultyValue = docentSettings.difficulty
+        }
+        
         #if DEBUG
         print("🔄 사이드바 데이터 업데이트 완료")
         print("   사용자: \(userName) (ID: \(dashboardSummary.user.id))")
@@ -81,6 +93,9 @@ final class SidebarViewModel {
         print("   저장: \(dashboardSummary.stats.savedDocents)")
         print("   밑줄: \(dashboardSummary.stats.highlights)")
         print("   전시기록: \(dashboardSummary.stats.exhibitionRecords)")
+        if let docentSettings = dashboardSummary.docentSettings {
+            print("   AI 설정 - 길이: \(docentSettings.length), 속도: \(docentSettings.speed), 난이도: \(docentSettings.difficulty)")
+        }
         #endif
     }
 }

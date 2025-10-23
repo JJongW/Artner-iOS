@@ -164,6 +164,28 @@ final class SidebarViewController: UIViewController {
                 self?.sidebarView.easyModeSwitch.isOn = isOn
             }
             .store(in: &cancellables)
+        
+        // AI 설정 데이터 바인딩
+        viewModel.$lengthValue
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] value in
+                self?.sidebarView.lengthValueLabel.text = value
+            }
+            .store(in: &cancellables)
+        
+        viewModel.$speedValue
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] value in
+                self?.sidebarView.speedValueLabel.text = value
+            }
+            .store(in: &cancellables)
+        
+        viewModel.$difficultyValue
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] value in
+                self?.sidebarView.difficultyValueLabel.text = value
+            }
+            .store(in: &cancellables)
     }
 
     @objc private func didTapStatButton(_ sender: SidebarStatButton) {

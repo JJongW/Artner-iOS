@@ -27,8 +27,19 @@ final class SidebarView: UIView {
     let aiProfileImageView = UIImageView()
     let aiNameLabel = UILabel()
     let aiArrow = UIImageView(image: UIImage(named: "ic_arrow"))
-    let aiSettingsStack = UIStackView()
     let aiDocentSeparator = UIView()
+    
+    // AI 설정 세부 항목들
+    let aiSettingsStack = UIStackView() // 길이, 속도, 난이도 전체 스택
+    let lengthContainer = UIView()
+    let speedContainer = UIView()
+    let difficultyContainer = UIView()
+    let lengthTitleLabel = UILabel()
+    let speedTitleLabel = UILabel()
+    let difficultyTitleLabel = UILabel()
+    let lengthValueLabel = UILabel()
+    let speedValueLabel = UILabel()
+    let difficultyValueLabel = UILabel()
     // 쉬운 말 모드
     let easyModeTitleLabel = UILabel()
     let easyModeDescLabel = UILabel()
@@ -81,10 +92,44 @@ final class SidebarView: UIView {
         aiNameLabel.font = UIFont.systemFont(ofSize: 15, weight: .medium)
         aiNameLabel.textColor = .white
         aiArrow.tintColor = UIColor.white.withAlphaComponent(0.7)
-        aiSettingsStack.axis = .horizontal
-        aiSettingsStack.spacing = 16
-        aiSettingsStack.distribution = .fillEqually
         aiDocentSeparator.backgroundColor = UIColor.white.withAlphaComponent(0.2)
+        
+        // AI 설정 세부 항목들
+        aiSettingsStack.axis = .horizontal
+        aiSettingsStack.distribution = .fillEqually
+        aiSettingsStack.spacing = 0
+        
+        // 길이, 속도, 난이도 제목 설정
+        lengthTitleLabel.text = "길이"
+        lengthTitleLabel.font = UIFont.systemFont(ofSize: 14, weight: .regular)
+        lengthTitleLabel.textColor = UIColor.white.withAlphaComponent(0.5)
+        lengthTitleLabel.textAlignment = .center
+        
+        speedTitleLabel.text = "속도"
+        speedTitleLabel.font = UIFont.systemFont(ofSize: 14, weight: .regular)
+        speedTitleLabel.textColor = UIColor.white.withAlphaComponent(0.5)
+        speedTitleLabel.textAlignment = .center
+        
+        difficultyTitleLabel.text = "난이도"
+        difficultyTitleLabel.font = UIFont.systemFont(ofSize: 14, weight: .regular)
+        difficultyTitleLabel.textColor = UIColor.white.withAlphaComponent(0.5)
+        difficultyTitleLabel.textAlignment = .center
+        
+        // API 데이터 값들 설정
+        lengthValueLabel.font = UIFont.systemFont(ofSize: 20, weight: .medium)
+        lengthValueLabel.textColor = .white
+        lengthValueLabel.textAlignment = .center
+        lengthValueLabel.text = "짧게" // 기본값
+        
+        speedValueLabel.font = UIFont.systemFont(ofSize: 20, weight: .medium)
+        speedValueLabel.textColor = .white
+        speedValueLabel.textAlignment = .center
+        speedValueLabel.text = "느리게" // 기본값
+        
+        difficultyValueLabel.font = UIFont.systemFont(ofSize: 20, weight: .medium)
+        difficultyValueLabel.textColor = .white
+        difficultyValueLabel.textAlignment = .center
+        difficultyValueLabel.text = "초급" // 기본값
         // 쉬운 말 모드
         easyModeTitleLabel.text = "쉬운 말 모드"
         easyModeTitleLabel.font = UIFont.boldSystemFont(ofSize: 16)
@@ -119,8 +164,23 @@ final class SidebarView: UIView {
         aiDocentContainer.addSubview(aiProfileImageView)
         aiDocentContainer.addSubview(aiNameLabel)
         aiDocentContainer.addSubview(aiArrow)
-        aiDocentContainer.addSubview(aiSettingsStack)
         aiDocentContainer.addSubview(aiDocentSeparator)
+        aiDocentContainer.addSubview(aiSettingsStack)
+        
+        // AI 설정 스택에 컨테이너들 추가
+        aiSettingsStack.addArrangedSubview(lengthContainer)
+        aiSettingsStack.addArrangedSubview(speedContainer)
+        aiSettingsStack.addArrangedSubview(difficultyContainer)
+        
+        // 각 컨테이너에 제목과 값 라벨 추가
+        lengthContainer.addSubview(lengthTitleLabel)
+        lengthContainer.addSubview(lengthValueLabel)
+        
+        speedContainer.addSubview(speedTitleLabel)
+        speedContainer.addSubview(speedValueLabel)
+        
+        difficultyContainer.addSubview(difficultyTitleLabel)
+        difficultyContainer.addSubview(difficultyValueLabel)
         // 쉬운 말 모드
         contentView.addSubview(easyModeTitleLabel)
         contentView.addSubview(easyModeSwitch)
@@ -198,11 +258,45 @@ final class SidebarView: UIView {
             $0.leading.trailing.equalToSuperview().inset(20)
             $0.height.equalTo(1)
         }
+        // AI 설정 스택 레이아웃
         aiSettingsStack.snp.makeConstraints {
-            $0.top.equalTo(aiDocentSeparator.snp.bottom).offset(12)
+            $0.top.equalTo(aiDocentSeparator.snp.bottom).offset(16)
             $0.leading.equalToSuperview().offset(20)
             $0.trailing.equalToSuperview().offset(-20)
-            $0.bottom.equalToSuperview().offset(-12)
+            $0.bottom.equalToSuperview().offset(-20)
+        }
+        
+        // 길이 컨테이너 내부 레이아웃
+        lengthTitleLabel.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(16)
+            $0.centerX.equalToSuperview()
+        }
+        lengthValueLabel.snp.makeConstraints {
+            $0.top.equalTo(lengthTitleLabel.snp.bottom).offset(88)
+            $0.centerX.equalToSuperview()
+            $0.bottom.equalToSuperview().offset(-16)
+        }
+        
+        // 속도 컨테이너 내부 레이아웃
+        speedTitleLabel.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(16)
+            $0.centerX.equalToSuperview()
+        }
+        speedValueLabel.snp.makeConstraints {
+            $0.top.equalTo(speedTitleLabel.snp.bottom).offset(88)
+            $0.centerX.equalToSuperview()
+            $0.bottom.equalToSuperview().offset(-16)
+        }
+        
+        // 난이도 컨테이너 내부 레이아웃
+        difficultyTitleLabel.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(16)
+            $0.centerX.equalToSuperview()
+        }
+        difficultyValueLabel.snp.makeConstraints {
+            $0.top.equalTo(difficultyTitleLabel.snp.bottom).offset(88)
+            $0.centerX.equalToSuperview()
+            $0.bottom.equalToSuperview().offset(-16)
         }
         // 쉬운 말 모드
         easyModeTitleLabel.snp.makeConstraints {
