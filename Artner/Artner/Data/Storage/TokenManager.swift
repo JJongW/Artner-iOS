@@ -48,8 +48,8 @@ final class TokenManager {
         
         #if DEBUG
         print("🔐 토큰 저장 완료")
-        print("   Access Token: \(access.prefix(20))...")
-        print("   Refresh Token: \(refresh.prefix(20))...")
+        print("   Access Token: \(maskToken(access))")
+        print("   Refresh Token: \(maskToken(refresh))")
         #endif
     }
     
@@ -70,15 +70,33 @@ final class TokenManager {
     
     // MARK: - Private Methods
     
-    /// 개발용 하드코딩된 토큰 설정
+    /// 개발용 토큰 설정 (환경변수 또는 설정 파일에서 로드)
     private func setupDevelopmentTokens() {
-        // 실제 로그인 구현 전까지 하드코딩된 토큰 사용
-        let accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzYxMzA2NTU2LCJpYXQiOjE3NjEyMjAxNTYsImp0aSI6Ijg3MmIyNGI0MzA1ODRmMTRhZjgwY2ZkMGVkNTlkZjZmIiwidXNlcl9pZCI6MX0.dUq6G2Y0dN7m4yXkwzewzWhsa_P_UMkl7tiONlj2LNk"
-        let refreshToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc2MzgxMjE1NiwiaWF0IjoxNzYxMjIwMTU2LCJqdGkiOiJjN2Y4M2U2NGI1Zjk0MWE2ODVkYzc3ZmIyNThjNGI3ZiIsInVzZXJfaWQiOjF9.3vG6XymzUH2p2ew6cGHJ7Y3ioIgOGV351Ndd-j7TcRA"
+        // 실제 로그인 구현 전까지 환경변수에서 토큰 로드
+        // 보안을 위해 하드코딩된 토큰 제거
         
-        // 토큰이 없을 때만 설정 (기존 토큰 보존)
-        if !hasValidTokens {
-            saveTokens(access: accessToken, refresh: refreshToken)
+        #if DEBUG
+        // 개발 환경에서만 환경변수에서 토큰 로드
+        if let accessToken = ProcessInfo.processInfo.environment["DEV_ACCESS_TOKEN"],
+           let refreshToken = ProcessInfo.processInfo.environment["DEV_REFRESH_TOKEN"] {
+            
+            // 토큰이 없을 때만 설정 (기존 토큰 보존)
+            if !hasValidTokens {
+                saveTokens(access: accessToken, refresh: refreshToken)
+            }
+        } else {
+            print("⚠️ 개발용 토큰이 설정되지 않았습니다.")
+            print("   환경변수 DEV_ACCESS_TOKEN, DEV_REFRESH_TOKEN을 설정해주세요.")
         }
+        #endif
+    }
+    
+    /// 토큰 마스킹 처리 (보안을 위해)
+    private func maskToken(_ token: String) -> String {
+        guard token.count > 20 else { return "***" }
+        let prefix = String(token.prefix(10))
+        let suffix = String(token.suffix(10))
+        let middle = String(repeating: "*", count: token.count - 20)
+        return "\(prefix)\(middle)\(suffix)"
     }
 }
