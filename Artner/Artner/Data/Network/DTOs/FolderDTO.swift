@@ -9,12 +9,12 @@ import Foundation
 
 /// 폴더 API 응답 DTO
 struct FolderDTO: Codable {
-    let id: Int
+    let id: Int?
     let name: String
-    let description: String
-    let createdAt: String
-    let updatedAt: String
-    let itemsCount: Int
+    let description: String?
+    let createdAt: String?
+    let updatedAt: String?
+    let itemsCount: Int?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -43,12 +43,12 @@ extension FolderDTO {
     /// Domain Entity로 변환
     func toDomainEntity() -> Folder {
         return Folder(
-            id: id,
+            id: id ?? 0, // 기본값 0
             name: name,
             description: description,
-            createdAt: createdAt,
-            updatedAt: updatedAt,
-            itemsCount: itemsCount
+            createdAt: createdAt ?? "", // 기본값 빈 문자열
+            updatedAt: updatedAt ?? "", // 기본값 빈 문자열
+            itemsCount: itemsCount ?? 0 // 기본값 0
         )
     }
 }

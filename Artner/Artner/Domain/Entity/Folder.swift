@@ -11,7 +11,7 @@ import Foundation
 struct Folder {
     let id: Int
     let name: String
-    let description: String
+    let description: String?
     let createdAt: String
     let updatedAt: String
     let itemsCount: Int
