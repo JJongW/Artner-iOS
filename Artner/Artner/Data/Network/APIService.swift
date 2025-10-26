@@ -24,7 +24,8 @@ protocol APIServiceProtocol {
     
     // MARK: - Record API
     func getRecords() -> AnyPublisher<RecordList, NetworkError>
-    func createRecord(visitDate: String, name: String, museum: String, note: String, image: String) -> AnyPublisher<Record, NetworkError>
+    func createRecord(visitDate: String, name: String, museum: String, note: String, image: String?) -> AnyPublisher<Record, NetworkError>
+    func deleteRecord(id: Int) -> AnyPublisher<Void, NetworkError>
     // Docent 관련은 현재 Dummy 데이터 사용으로 제외
 }
 
@@ -147,6 +148,12 @@ private extension APIService {
                         return
                     }
                     
+                    // EmptyResponse인 경우 빈 데이터로 성공 처리
+                    if T.self == EmptyResponse.self {
+                        promise(.success(EmptyResponse() as! T))
+                        return
+                    }
+                    
                     // 데이터 존재 확인
                     guard !response.data.isEmpty else {
                         promise(.failure(.noData))
@@ -228,9 +235,15 @@ private extension APIService {
             .eraseToAnyPublisher()
     }
     
-    internal func createRecord(visitDate: String, name: String, museum: String, note: String, image: String) -> AnyPublisher<Record, NetworkError> {
+    internal func createRecord(visitDate: String, name: String, museum: String, note: String, image: String?) -> AnyPublisher<Record, NetworkError> {
         return request(target: .createRecord(visitDate: visitDate, name: name, museum: museum, note: note, image: image), responseType: RecordDTO.self)
             .map { $0.toDomainEntity() }
+            .eraseToAnyPublisher()
+    }
+    
+    internal func deleteRecord(id: Int) -> AnyPublisher<Void, NetworkError> {
+        return request(target: .deleteRecord(id: id), responseType: EmptyResponse.self)
+            .map { _ in () }
             .eraseToAnyPublisher()
     }
 }

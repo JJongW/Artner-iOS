@@ -101,6 +101,10 @@ final class DIContainer {
     lazy var createRecordUseCase: CreateRecordUseCase = {
         return CreateRecordUseCaseImpl(recordRepository: recordRepository)
     }()
+    
+    lazy var deleteRecordUseCase: DeleteRecordUseCase = {
+        return DeleteRecordUseCaseImpl(recordRepository: recordRepository)
+    }()
 }
 
 // MARK: - ViewModel Factory
@@ -142,7 +146,7 @@ extension DIContainer {
     
     /// RecordViewModel 생성
     func makeRecordViewModel() -> RecordViewModel {
-        return RecordViewModel(getRecordsUseCase: getRecordsUseCase)
+        return RecordViewModel(getRecordsUseCase: getRecordsUseCase, deleteRecordUseCase: deleteRecordUseCase)
     }
     
     /// RecordInputViewModel 생성

@@ -14,5 +14,8 @@ protocol RecordRepository {
     func getRecords() -> AnyPublisher<RecordList, NetworkError>
     
     /// 전시기록 생성
-    func createRecord(visitDate: String, name: String, museum: String, note: String, image: String) -> AnyPublisher<Record, NetworkError>
+    func createRecord(visitDate: String, name: String, museum: String, note: String, image: String?) -> AnyPublisher<Record, NetworkError>
+    
+    /// 전시기록 삭제
+    func deleteRecord(id: Int) -> AnyPublisher<Void, NetworkError>
 }

@@ -18,14 +18,14 @@ struct RecordList {
 /// 개별 전시기록 Domain Entity
 struct Record {
     let id: Int
-    let title: String?
-    let content: String?
-    let exhibitionName: String
-    let artistName: String?
-    let artworkName: String?
+    let user: Int
+    let visitDate: String
+    let name: String
+    let museum: String
+    let note: String
+    let imageUrl: String?
     let createdAt: String
     let updatedAt: String
-    let images: [String]
     
     /// 생성 시간을 Date로 변환
     var createdAtDate: Date? {
@@ -59,18 +59,18 @@ struct Record {
         return formatter.string(from: date)
     }
     
-    /// 전시기록 요약 (내용이 길면 잘라서 표시)
+    /// 전시기록 요약 (노트가 길면 잘라서 표시)
     var contentSummary: String {
-        guard let content = content, !content.isEmpty else { return "내용 없음" }
-        if content.count > 100 {
-            return String(content.prefix(100)) + "..."
+        guard !note.isEmpty else { return "내용 없음" }
+        if note.count > 100 {
+            return String(note.prefix(100)) + "..."
         }
-        return content
+        return note
     }
     
-    /// 대표 이미지 URL (첫 번째 이미지)
+    /// 대표 이미지 URL
     var thumbnailImageURL: String? {
-        return images.first
+        return imageUrl
     }
 }
 
@@ -80,21 +80,21 @@ extension Record {
     func toRecordItemModel() -> RecordItemModel {
         return RecordItemModel(
             id: String(id),
-            exhibitionName: exhibitionName,
-            museumName: artistName ?? "미술관",
-            visitDate: createdAtFormatted,
+            exhibitionName: name,
+            museumName: museum,
+            visitDate: visitDate,
             selectedImage: nil, // TODO: 이미지 URL을 UIImage로 변환하는 로직 필요
             createdAt: createdAtDate ?? Date()
         )
     }
     
-    /// 전시기록 제목 (title이 없으면 exhibitionName 사용)
+    /// 전시기록 제목 (name 사용)
     var displayTitle: String {
-        return title ?? exhibitionName
+        return name
     }
     
-    /// 전시기록 내용 (content가 없으면 기본 메시지)
+    /// 전시기록 내용 (note 사용)
     var displayContent: String {
-        return content ?? "전시기록이 등록되었습니다."
+        return note.isEmpty ? "전시기록이 등록되었습니다." : note
     }
 }

@@ -43,7 +43,8 @@ enum APITarget {
     
     // MARK: - Record API
     case getRecords
-    case createRecord(visitDate: String, name: String, museum: String, note: String, image: String)
+    case createRecord(visitDate: String, name: String, museum: String, note: String, image: String?)
+    case deleteRecord(id: Int)
 }
 
 // MARK: - TargetType 구현
@@ -105,6 +106,8 @@ extension APITarget: TargetType {
             return "/records"
         case .createRecord:
             return "/records"
+        case .deleteRecord(let id):
+            return "/records/\(id)"
         }
     }
     
@@ -132,7 +135,8 @@ extension APITarget: TargetType {
         case .updateFolder:
             return .patch
             
-        case .deleteFolder:
+        case .deleteFolder,
+             .deleteRecord:
             return .delete
         }
     }
@@ -164,13 +168,18 @@ extension APITarget: TargetType {
             return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
             
         case .createRecord(let visitDate, let name, let museum, let note, let image):
-            let parameters = [
+            var parameters: [String: Any] = [
                 "visit_date": visitDate,
                 "name": name,
                 "museum": museum,
-                "note": note,
-                "image": image
+                "note": note
             ]
+            
+            // image가 nil이 아닌 경우에만 추가
+            if let image = image, !image.isEmpty {
+                parameters["image"] = image
+            }
+            
             return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
             
         case .updateFolder(_, let name, let description):
@@ -180,7 +189,8 @@ extension APITarget: TargetType {
             ]
             return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
             
-        case .deleteFolder:
+        case .deleteFolder,
+             .deleteRecord:
             return .requestPlain
         }
     }
