@@ -20,10 +20,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let window = UIWindow(windowScene: windowScene)
         self.window = window
 
-        let appCoordinator = AppCoordinator(window: window)
-        self.appCoordinator = appCoordinator
-
-        appCoordinator.start()
+        // Launch Screen을 먼저 표시
+        showLaunchScreen()
         
         // 토큰 상태 확인 (개발용)
         #if DEBUG
@@ -35,6 +33,22 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         DispatchQueue.main.async { [weak self] in
             self?.setupGlobalKeyboardSettings()
         }
+    }
+    
+    // MARK: - Navigation Methods
+    
+    /// Launch Screen 표시
+    private func showLaunchScreen() {
+        let launchViewController = LaunchViewController()
+        window?.rootViewController = launchViewController
+        window?.makeKeyAndVisible()
+    }
+    
+    /// 메인 화면으로 전환
+    func showMainScreen() {
+        let appCoordinator = AppCoordinator(window: window!)
+        self.appCoordinator = appCoordinator
+        appCoordinator.start()
     }
     
     // MARK: - Keyboard Setup
