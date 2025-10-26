@@ -25,7 +25,7 @@ final class SidebarViewController: UIViewController {
     private var cancellables = Set<AnyCancellable>()
     // 사이드바 닫기 delegate
     weak var delegate: SidebarViewControllerDelegate?
-    
+
     // MARK: - Initialization
     init(viewModel: SidebarViewModel) {
         self.viewModel = viewModel

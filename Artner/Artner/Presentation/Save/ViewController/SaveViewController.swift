@@ -3,9 +3,18 @@ import Combine
 
 final class SaveViewController: UIViewController {
     private let saveView = SaveView()
-    private let viewModel = SaveViewModel()
+    private let viewModel: SaveViewModel
     private var cancellables = Set<AnyCancellable>()
     var goToFeedHandler: (() -> Void)?
+    
+    init() {
+        self.viewModel = DIContainer.shared.makeSaveViewModel()
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     override func loadView() { self.view = saveView }
 

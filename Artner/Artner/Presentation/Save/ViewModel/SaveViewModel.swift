@@ -6,12 +6,29 @@ import Combine
 final class SaveViewModel: ObservableObject {
     @Published var folders: [SaveFolderModel] = []
     @Published var isEmpty: Bool = true
+    @Published var isLoading: Bool = true
     
     private var cancellables = Set<AnyCancellable>()
     
-    init() {
-        setupDummyData()
+    // MARK: - UseCase Dependencies
+    private let getFoldersUseCase: GetFoldersUseCase
+    private let createFolderUseCase: CreateFolderUseCase
+    private let updateFolderUseCase: UpdateFolderUseCase
+    private let deleteFolderUseCase: DeleteFolderUseCase
+    
+    init(
+        getFoldersUseCase: GetFoldersUseCase,
+        createFolderUseCase: CreateFolderUseCase,
+        updateFolderUseCase: UpdateFolderUseCase,
+        deleteFolderUseCase: DeleteFolderUseCase
+    ) {
+        self.getFoldersUseCase = getFoldersUseCase
+        self.createFolderUseCase = createFolderUseCase
+        self.updateFolderUseCase = updateFolderUseCase
+        self.deleteFolderUseCase = deleteFolderUseCase
+        
         bind()
+        loadFolders()
     }
     
     private func bind() {
@@ -20,31 +37,28 @@ final class SaveViewModel: ObservableObject {
             .assign(to: &$isEmpty)
     }
     
-    /// 더미 데이터 설정 (개발용)
-    private func setupDummyData() {
-        let now = Date()
-        let calendar = Calendar.current
+    // MARK: - API Methods
+    
+    /// 폴더 목록 로드
+    private func loadFolders() {
+        isLoading = true
         
-        folders = [
-            SaveFolderModel(
-                name: "짱 좋은 작품",
-                itemCount: 112,
-                createdDate: calendar.date(byAdding: .day, value: -5, to: now) ?? now,
-                items: []
-            ),
-            SaveFolderModel(
-                name: "내가 좋아하는\n작가",
-                itemCount: 45,
-                createdDate: calendar.date(byAdding: .day, value: -10, to: now) ?? now,
-                items: []
-            ),
-            SaveFolderModel(
-                name: "폴더 명이 길면\n이렇게 해주세요",
-                itemCount: 23,
-                createdDate: calendar.date(byAdding: .day, value: -15, to: now) ?? now,
-                items: []
+        getFoldersUseCase.execute()
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    self?.isLoading = false
+                    if case .failure(let error) = completion {
+                        print("❌ [SaveViewModel] 폴더 목록 로드 실패: \(error)")
+                        ToastManager.shared.showError("폴더를 불러오는데 실패했습니다.")
+                    }
+                },
+                receiveValue: { [weak self] folders in
+                    print("📁 [SaveViewModel] 폴더 목록 로드 완료: \(folders.count)개")
+                    self?.folders = folders.map { $0.toSaveFolderModel() }
+                }
             )
-        ]
+            .store(in: &cancellables)
     }
     
     // MARK: - Folder Management
@@ -52,27 +66,53 @@ final class SaveViewModel: ObservableObject {
     /// 새로운 폴더 생성
     /// - Parameter name: 폴더 이름
     func createFolder(name: String) {
-        let newFolder = SaveFolderModel(name: name)
-        folders.append(newFolder)
+        let currentTime = DateFormatter().string(from: Date())
+        let description = "\(currentTime)에 생성됨"
         
-        // 폴더 생성 완료 Toast 표시
-        ToastManager.shared.showSuccess("폴더가 추가되었습니다.")
-        
-        print("📁 [SaveViewModel] 새 폴더 생성: \(name)")
+        createFolderUseCase.execute(name: name, description: description)
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { completion in
+                    if case .failure(let error) = completion {
+                        print("❌ [SaveViewModel] 폴더 생성 실패: \(error)")
+                        ToastManager.shared.showError("폴더 생성에 실패했습니다.")
+                    }
+                },
+                receiveValue: { [weak self] folder in
+                    print("📁 [SaveViewModel] 새 폴더 생성 완료: \(folder.name)")
+                    self?.folders.append(folder.toSaveFolderModel())
+                    ToastManager.shared.showSuccess("폴더가 추가되었습니다.")
+                }
+            )
+            .store(in: &cancellables)
     }
     
     /// 폴더 삭제
     /// - Parameter folderId: 삭제할 폴더 ID
     func deleteFolder(folderId: String) {
-        // 삭제할 폴더 이름 저장 (Toast 표시용)
+        guard let folderIdInt = Int(folderId) else {
+            print("❌ [SaveViewModel] 잘못된 폴더 ID: \(folderId)")
+            return
+        }
+        
         let deletedFolderName = folders.first { $0.id == folderId }?.name ?? "폴더"
         
-        folders.removeAll { $0.id == folderId }
-        
-        // 폴더 삭제 완료 Toast 표시 (빨간색 아이콘)
-        ToastManager.shared.showDelete("'\(deletedFolderName)' 폴더가 삭제되었습니다.")
-        
-        print("🗑️ [SaveViewModel] 폴더 삭제: \(folderId)")
+        deleteFolderUseCase.execute(id: folderIdInt)
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { completion in
+                    if case .failure(let error) = completion {
+                        print("❌ [SaveViewModel] 폴더 삭제 실패: \(error)")
+                        ToastManager.shared.showError("폴더 삭제에 실패했습니다.")
+                    }
+                },
+                receiveValue: { [weak self] _ in
+                    print("🗑️ [SaveViewModel] 폴더 삭제 완료: \(folderId)")
+                    self?.folders.removeAll { $0.id == folderId }
+                    ToastManager.shared.showDelete("'\(deletedFolderName)' 폴더가 삭제되었습니다.")
+                }
+            )
+            .store(in: &cancellables)
     }
     
     /// 폴더 이름 변경
@@ -80,22 +120,32 @@ final class SaveViewModel: ObservableObject {
     ///   - folderId: 변경할 폴더 ID
     ///   - newName: 새로운 폴더 이름
     func renameFolder(folderId: String, newName: String) {
-        if let index = folders.firstIndex(where: { $0.id == folderId }) {
-            let folder = folders[index]
-            let updatedFolder = SaveFolderModel(
-                id: folder.id,
-                name: newName,
-                itemCount: folder.itemCount,
-                createdDate: folder.createdDate,
-                items: folder.items
-            )
-            folders[index] = updatedFolder
-            
-            // 폴더 이름 변경 완료 Toast 표시 (초록색 아이콘)
-            ToastManager.shared.showUpdate("폴더 이름이 '\(newName)'으로 변경되었습니다.")
-            
-            print("📝 [SaveViewModel] 폴더 이름 변경: \(newName)")
+        guard let folderIdInt = Int(folderId) else {
+            print("❌ [SaveViewModel] 잘못된 폴더 ID: \(folderId)")
+            return
         }
+        
+        let currentTime = DateFormatter().string(from: Date())
+        let description = "\(currentTime)에 수정됨"
+        
+        updateFolderUseCase.execute(id: folderIdInt, name: newName, description: description)
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { completion in
+                    if case .failure(let error) = completion {
+                        print("❌ [SaveViewModel] 폴더 이름 변경 실패: \(error)")
+                        ToastManager.shared.showError("폴더 이름 변경에 실패했습니다.")
+                    }
+                },
+                receiveValue: { [weak self] updatedFolder in
+                    print("📝 [SaveViewModel] 폴더 이름 변경 완료: \(newName)")
+                    if let index = self?.folders.firstIndex(where: { $0.id == folderId }) {
+                        self?.folders[index] = updatedFolder.toSaveFolderModel()
+                    }
+                    ToastManager.shared.showUpdate("폴더 이름이 '\(newName)'으로 변경되었습니다.")
+                }
+            )
+            .store(in: &cancellables)
     }
     
     // MARK: - Item Management

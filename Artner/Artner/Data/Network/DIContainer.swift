@@ -44,6 +44,11 @@ final class DIContainer {
         return AIDocentSettingsRepositoryImpl(apiService: apiService)
     }()
     
+    /// Folder Repository 인스턴스
+    lazy var folderRepository: FolderRepository = {
+        return FolderRepositoryImpl(apiService: apiService)
+    }()
+    
     // MARK: - UseCase Layer
     
     /// Feed UseCase 인스턴스
@@ -64,6 +69,23 @@ final class DIContainer {
     /// AI Docent Settings UseCase 인스턴스
     lazy var getAIDocentSettingsUseCase: GetAIDocentSettingsUseCase = {
         return GetAIDocentSettingsUseCaseImpl(aiDocentSettingsRepository: aiDocentSettingsRepository)
+    }()
+    
+    /// Folder UseCase 인스턴스들
+    lazy var getFoldersUseCase: GetFoldersUseCase = {
+        return GetFoldersUseCaseImpl(folderRepository: folderRepository)
+    }()
+    
+    lazy var createFolderUseCase: CreateFolderUseCase = {
+        return CreateFolderUseCaseImpl(folderRepository: folderRepository)
+    }()
+    
+    lazy var updateFolderUseCase: UpdateFolderUseCase = {
+        return UpdateFolderUseCaseImpl(folderRepository: folderRepository)
+    }()
+    
+    lazy var deleteFolderUseCase: DeleteFolderUseCase = {
+        return DeleteFolderUseCaseImpl(folderRepository: folderRepository)
     }()
 }
 
@@ -91,6 +113,16 @@ extension DIContainer {
         return SidebarViewModel(
             getDashboardSummaryUseCase: getDashboardSummaryUseCase,
             getAIDocentSettingsUseCase: getAIDocentSettingsUseCase
+        )
+    }
+    
+    /// SaveViewModel 생성
+    func makeSaveViewModel() -> SaveViewModel {
+        return SaveViewModel(
+            getFoldersUseCase: getFoldersUseCase,
+            createFolderUseCase: createFolderUseCase,
+            updateFolderUseCase: updateFolderUseCase,
+            deleteFolderUseCase: deleteFolderUseCase
         )
     }
 }

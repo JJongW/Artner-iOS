@@ -15,6 +15,12 @@ protocol APIServiceProtocol {
     func getFeedList() -> AnyPublisher<[FeedItemType], NetworkError>
     func getDashboardSummary() -> AnyPublisher<DashboardSummary, NetworkError>
     func getAIDocentSettings() -> AnyPublisher<AIDocentSettings, NetworkError>
+    
+    // MARK: - Folder API
+    func getFolders() -> AnyPublisher<[Folder], NetworkError>
+    func createFolder(name: String, description: String) -> AnyPublisher<Folder, NetworkError>
+    func updateFolder(id: Int, name: String, description: String) -> AnyPublisher<Folder, NetworkError>
+    func deleteFolder(id: Int) -> AnyPublisher<Void, NetworkError>
     // Docent 관련은 현재 Dummy 데이터 사용으로 제외
 }
 
@@ -185,7 +191,35 @@ private extension APIService {
             }
             .eraseToAnyPublisher()
     }
+    
+    // MARK: - Folder API 구현
+    internal func getFolders() -> AnyPublisher<[Folder], NetworkError> {
+        return request(target: .getFolders, responseType: [FolderDTO].self)
+            .map { $0.map { $0.toDomainEntity() } }
+            .eraseToAnyPublisher()
+    }
+    
+    internal func createFolder(name: String, description: String) -> AnyPublisher<Folder, NetworkError> {
+        return request(target: .createFolder(name: name, description: description), responseType: FolderDTO.self)
+            .map { $0.toDomainEntity() }
+            .eraseToAnyPublisher()
+    }
+    
+    internal func updateFolder(id: Int, name: String, description: String) -> AnyPublisher<Folder, NetworkError> {
+        return request(target: .updateFolder(id: id, name: name, description: description), responseType: FolderDTO.self)
+            .map { $0.toDomainEntity() }
+            .eraseToAnyPublisher()
+    }
+    
+    internal func deleteFolder(id: Int) -> AnyPublisher<Void, NetworkError> {
+        return request(target: .deleteFolder(id: id), responseType: EmptyResponse.self)
+            .map { _ in () }
+            .eraseToAnyPublisher()
+    }
 }
+
+// MARK: - Empty Response for DELETE operations
+struct EmptyResponse: Codable {}
 
 // MARK: - Network Logger 설정 완료
 // 간단한 verbose 로깅 사용

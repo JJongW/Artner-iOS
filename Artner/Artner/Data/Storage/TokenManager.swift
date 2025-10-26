@@ -68,6 +68,30 @@ final class TokenManager {
         return accessToken != nil && refreshToken != nil
     }
     
+    /// 토큰 상태 디버깅 (개발용)
+    func debugTokenStatus() {
+        #if DEBUG
+        print("🔐 [TokenManager] 토큰 상태 확인:")
+        print("   Access Token 존재: \(accessToken != nil)")
+        print("   Refresh Token 존재: \(refreshToken != nil)")
+        print("   유효한 토큰: \(hasValidTokens)")
+        
+        if let access = accessToken {
+            print("   Access Token: \(maskToken(access))")
+        }
+        
+        if let refresh = refreshToken {
+            print("   Refresh Token: \(maskToken(refresh))")
+        }
+        
+        // 환경변수 상태 확인
+        let envAccess = ProcessInfo.processInfo.environment["DEV_ACCESS_TOKEN"]
+        let envRefresh = ProcessInfo.processInfo.environment["DEV_REFRESH_TOKEN"]
+        print("   환경변수 DEV_ACCESS_TOKEN: \(envAccess != nil ? "설정됨" : "없음")")
+        print("   환경변수 DEV_REFRESH_TOKEN: \(envRefresh != nil ? "설정됨" : "없음")")
+        #endif
+    }
+    
     // MARK: - Private Methods
     
     /// 개발용 토큰 설정 (환경변수 또는 설정 파일에서 로드)

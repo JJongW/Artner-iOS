@@ -25,6 +25,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         appCoordinator.start()
         
+        // 토큰 상태 확인 (개발용)
+        #if DEBUG
+        // 임시로 테스트 토큰 설정 (환경변수 설정 전까지)
+        TokenDebugger.setTestTokens()
+        #endif
+        
         // RTI 에러 방지를 위한 전역 키보드 설정 (메인 스레드에서 실행)
         DispatchQueue.main.async { [weak self] in
             self?.setupGlobalKeyboardSettings()

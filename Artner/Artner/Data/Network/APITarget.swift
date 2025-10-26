@@ -34,6 +34,12 @@ enum APITarget {
     // MARK: - User API
     case getDashboardSummary
     case getAIDocentSettings
+    
+    // MARK: - Folder API
+    case getFolders
+    case createFolder(name: String, description: String)
+    case updateFolder(id: Int, name: String, description: String)
+    case deleteFolder(id: Int)
 }
 
 // MARK: - TargetType 구현
@@ -79,14 +85,43 @@ extension APITarget: TargetType {
             return "/users/dashboard_summary"
         case .getAIDocentSettings:
             return "/users/docent_settings"
+            
+        // Folder
+        case .getFolders:
+            return "/folders"
+        case .createFolder:
+            return "/folders"
+        case .updateFolder(let id, _, _):
+            return "/folders/\(id)"
+        case .deleteFolder(let id):
+            return "/folders/\(id)"
         }
     }
     
     /// HTTP 메서드
     var method: Moya.Method {
         switch self {
-        default:
+        case .getFolders,
+             .getFeedList,
+             .getFeedDetail,
+             .getExhibitionList,
+             .getExhibitionDetail,
+             .getArtworkList,
+             .getArtworkDetail,
+             .getArtistList,
+             .getArtistDetail,
+             .getDashboardSummary,
+             .getAIDocentSettings:
             return .get
+            
+        case .createFolder:
+            return .post
+            
+        case .updateFolder:
+            return .patch
+            
+        case .deleteFolder:
+            return .delete
         }
     }
     
@@ -98,13 +133,31 @@ extension APITarget: TargetType {
              .getArtworkList,
              .getArtistList,
              .getDashboardSummary,
-             .getAIDocentSettings:
+             .getAIDocentSettings,
+             .getFolders:
             return .requestPlain
             
         case .getFeedDetail,
              .getExhibitionDetail,
              .getArtworkDetail,
              .getArtistDetail:
+            return .requestPlain
+            
+        case .createFolder(let name, let description):
+            let parameters = [
+                "name": name,
+                "description": description
+            ]
+            return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
+            
+        case .updateFolder(_, let name, let description):
+            let parameters = [
+                "name": name,
+                "description": description
+            ]
+            return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
+            
+        case .deleteFolder:
             return .requestPlain
         }
     }
