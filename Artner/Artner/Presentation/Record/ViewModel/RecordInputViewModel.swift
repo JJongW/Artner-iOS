@@ -99,8 +99,8 @@ final class RecordInputViewModel: ObservableObject {
         
         isLoading = true
         
-        // 이미지를 Base64로 변환 (최적화된 압축)
-        let imageBase64 = inputModel.selectedImage?.jpegData(compressionQuality: 0.7)?.base64EncodedString() ?? ""
+        // 이미지를 Base64로 변환 (최적화된 압축) - 이미지가 없으면 nil 전달
+        let imageBase64 = inputModel.selectedImage?.jpegData(compressionQuality: 0.7)?.base64EncodedString()
         
         createRecordUseCase.execute(
             visitDate: inputModel.visitDate,

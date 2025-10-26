@@ -17,26 +17,22 @@ struct RecordListDTO: Codable {
 
 /// 개별 전시기록 DTO
 struct RecordDTO: Codable {
-    let id: Int
-    let title: String?
-    let content: String?
-    let exhibitionName: String
-    let artistName: String?
-    let artworkName: String?
-    let createdAt: String
-    let updatedAt: String
-    let images: [String]?
+    let id: Int?
+    let user: Int?
+    let visitDate: String
+    let name: String
+    let museum: String
+    let note: String
+    let imageUrl: String?
+    let createdAt: String?
+    let updatedAt: String?
     
     enum CodingKeys: String, CodingKey {
-        case id
-        case title
-        case content
-        case exhibitionName = "exhibition_name"
-        case artistName = "artist_name"
-        case artworkName = "artwork_name"
+        case id, user, name, museum, note
+        case visitDate = "visit_date"
+        case imageUrl = "image_url"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
-        case images
     }
 }
 
@@ -57,15 +53,15 @@ extension RecordDTO {
     /// Domain Entity로 변환
     func toDomainEntity() -> Record {
         return Record(
-            id: id,
-            title: title,
-            content: content,
-            exhibitionName: exhibitionName,
-            artistName: artistName,
-            artworkName: artworkName,
-            createdAt: createdAt,
-            updatedAt: updatedAt,
-            images: images ?? []
+            id: id ?? 0, // 기본값 0
+            user: user ?? 0, // 기본값 0
+            visitDate: visitDate,
+            name: name,
+            museum: museum,
+            note: note,
+            imageUrl: imageUrl,
+            createdAt: createdAt ?? "", // 기본값 빈 문자열
+            updatedAt: updatedAt ?? "" // 기본값 빈 문자열
         )
     }
 }
@@ -76,7 +72,7 @@ struct CreateRecordRequestDTO: Codable {
     let name: String
     let museum: String
     let note: String
-    let image: String
+    let image: String? // 선택사항으로 변경
     
     enum CodingKeys: String, CodingKey {
         case visitDate = "visit_date"

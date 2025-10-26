@@ -13,9 +13,11 @@ final class RecordViewModel: ObservableObject {
     
     // MARK: - UseCase Dependencies
     private let getRecordsUseCase: GetRecordsUseCase
+    private let deleteRecordUseCase: DeleteRecordUseCase
     
-    init(getRecordsUseCase: GetRecordsUseCase) {
+    init(getRecordsUseCase: GetRecordsUseCase, deleteRecordUseCase: DeleteRecordUseCase) {
         self.getRecordsUseCase = getRecordsUseCase
+        self.deleteRecordUseCase = deleteRecordUseCase
         bind()
         loadRecords()
         setupNotificationObservers()
@@ -90,12 +92,33 @@ final class RecordViewModel: ObservableObject {
     
     /// 전시 기록 삭제
     func deleteRecordItem(with id: String) {
+        guard let recordId = Int(id) else {
+            print("❌ [RecordViewModel] 잘못된 ID 형식: \(id)")
+            return
+        }
+        
         let deletedItemName = allItems.first { $0.id == id }?.exhibitionName ?? "전시기록"
-        allItems.removeAll { $0.id == id }
-        filterAndSort()
-        print("📝 [RecordViewModel] 전시 기록 삭제됨: \(id)")
-        // Toast 삭제 메시지 표시 (배경: #222222, 아이콘: #FC5959)
-        ToastManager.shared.showDelete("'\(deletedItemName)' 전시기록이 삭제되었습니다.")
+        
+        deleteRecordUseCase.execute(id: recordId)
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    if case .failure(let error) = completion {
+                        print("❌ [RecordViewModel] 전시기록 삭제 실패: \(error)")
+                        // Toast 에러 메시지 표시 (배경: #222222, 아이콘: #FC5959)
+                        ToastManager.shared.showError("전시기록 삭제에 실패했습니다.")
+                    }
+                },
+                receiveValue: { [weak self] _ in
+                    print("📝 [RecordViewModel] 전시기록 삭제 성공: \(id)")
+                    // UI에서 제거
+                    self?.allItems.removeAll { $0.id == id }
+                    self?.filterAndSort()
+                    // Toast 삭제 메시지 표시 (배경: #222222, 아이콘: #FC5959)
+                    ToastManager.shared.showDelete("'\(deletedItemName)' 전시기록이 삭제되었습니다.")
+                }
+            )
+            .store(in: &cancellables)
     }
     
     /// 빈 상태 확인
