@@ -7,8 +7,6 @@
 
 import UIKit
 
-/// 전역 Toast 관리를 위한 싱글톤 매니저
-/// Clean Architecture 원칙에 따라 Toast 표시 로직을 캡슐화
 final class ToastManager {
     
     // MARK: - Singleton
@@ -117,8 +115,8 @@ final class ToastManager {
         let configuration = ToastConfiguration(
             message: message,
             leftIcon: successIcon,
-            backgroundColor: UIColor(hex: "#222222"), // 어두운 배경
-            textColor: UIColor(hex: "#FFFFFF") // 흰색 글자
+            backgroundColor: UIColor(hex: "#222222"), 
+            textColor: UIColor(hex: "#FFFFFF")
         )
         show(configuration)
     }
@@ -131,8 +129,8 @@ final class ToastManager {
         let configuration = ToastConfiguration(
             message: message,
             leftIcon: deleteIcon,
-            backgroundColor: UIColor(hex: "#222222"), // 어두운 배경
-            textColor: UIColor(hex: "#FFFFFF") // 흰색 글자
+            backgroundColor: UIColor(hex: "#222222"),
+            textColor: UIColor(hex: "#FFFFFF")
         )
         show(configuration)
     }
@@ -145,8 +143,8 @@ final class ToastManager {
         let configuration = ToastConfiguration(
             message: message,
             leftIcon: updateIcon,
-            backgroundColor: UIColor(hex: "#222222"), // 어두운 배경
-            textColor: UIColor(hex: "#FFFFFF") // 흰색 글자
+            backgroundColor: UIColor(hex: "#222222"), 
+            textColor: UIColor(hex: "#FFFFFF")
         )
         show(configuration)
     }
@@ -166,7 +164,13 @@ final class ToastManager {
     /// 수정 Toast용 커스텀 아이콘 생성
     /// - Returns: 초록색 배경에 체크표시가 있는 이미지
     private func createUpdateIcon() -> UIImage? {
-        return createCustomIcon(backgroundColor: "#4CAF50") // Material Design 초록색
+        return createCustomIcon(backgroundColor: "#FF7c27")
+    }
+    
+    /// 에러 Toast용 커스텀 아이콘 생성
+    /// - Returns: 빨간색 배경에 체크표시가 있는 이미지
+    private func createErrorIcon() -> UIImage? {
+        return createCustomIcon(backgroundColor: "#FC5959")
     }
     
     /// 커스텀 아이콘 생성 헬퍼 메서드
@@ -205,12 +209,13 @@ final class ToastManager {
     /// 에러 Toast 표시 (경고 아이콘 포함)
     /// - Parameter message: 표시할 메시지
     func showError(_ message: String) {
-        let errorIcon = UIImage(systemName: "exclamationmark.circle.fill")
+        // 커스텀 에러 아이콘 생성 (빨간색 배경에 체크표시)
+        let errorIcon = createErrorIcon()
         let configuration = ToastConfiguration(
             message: message,
             leftIcon: errorIcon,
-            backgroundColor: UIColor(hex: "#D32F2F"),
-            textColor: AppColor.toastText
+            backgroundColor: UIColor(hex: "#222222"), // 어두운 배경
+            textColor: UIColor(hex: "#FFFFFF") // 흰색 글자
         )
         show(configuration)
     }
