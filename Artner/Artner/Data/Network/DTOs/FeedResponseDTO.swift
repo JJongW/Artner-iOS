@@ -23,20 +23,13 @@ struct CategoryDTO: Codable {
 struct ItemDTO: Codable {
     let id: Int
     let title: String
-    let description: String?
     let image: String?
-    let type: String
-    let likesCount: Int
-    let createdAt: String?
     let venue: String?
     let startDate: String?
     let endDate: String?
-    let status: String?
     
     enum CodingKeys: String, CodingKey {
-        case id, title, description, image, type, venue, status
-        case likesCount = "likes_count"
-        case createdAt = "created_at"
+        case id, title, image, venue
         case startDate = "start_date"
         case endDate = "end_date"
     }
@@ -55,7 +48,7 @@ extension FeedResponseDTO {
                 for item in category.items {
                     let exhibition = Exhibition(
                         id: item.id,
-                        type: item.type,
+                        type: "exhibition",
                         title: item.title,
                         items: [item.toExhibitionItems()] // 단일 아이템
                     )
@@ -67,7 +60,7 @@ extension FeedResponseDTO {
                 for item in category.items {
                     let artwork = Artwork(
                         id: item.id,
-                        type: item.type,
+                        type: "artwork",
                         title: item.title,
                         items: [item.toArtworkItems()] // 단일 아이템
                     )
@@ -79,7 +72,7 @@ extension FeedResponseDTO {
                 for item in category.items {
                     let artist = Artist(
                         id: item.id,
-                        type: item.type,
+                        type: "artist",
                         title: item.title,
                         items: [item.toArtistItems()] // 단일 아이템
                     )
@@ -101,21 +94,21 @@ extension ItemDTO {
         return ExhibitionItems(
             id: id,
             title: title,
-            description: description ?? "",
+            description: "", // 실제 API에는 description이 없음
             image: image ?? "",
-            type: type,
-            likesCount: likesCount,
+            type: "exhibition",
+            likesCount: 0, // 실제 API에는 likes_count가 없음
             venue: venue ?? "",
             startDate: startDate ?? "",
             endDate: endDate ?? "",
-            status: status ?? ""
+            status: "ongoing" // 기본값으로 설정
         )
     }
     
     /// Artwork Items 변환 (임시 매핑)
     func toArtworkItems() -> ArtworkItems {
         return ArtworkItems(
-            type: type,
+            type: "artwork",
             id: id,
             title: title,
             name: title, // 작가명이 따로 없으므로 title 사용
@@ -127,7 +120,7 @@ extension ItemDTO {
     func toArtistItems() -> ArtistItems {
         return ArtistItems(
             id: id,
-            type: type,
+            type: "artist",
             title: title,
             artistName: title, // 작가명이 따로 없으므로 title 사용
             createdYear: ""
@@ -144,17 +137,20 @@ extension ItemDTO {
       "title": "전시회",
       "items": [
         {
-          "id": 32,
-          "title": "주슬아 개인전: 크랙",
-          "description": "\n\n관람시간: 수~일요일 13:00~18:00\n관람료: 무료\n문의: 0507-1416-8691",
-          "image": "/media/exhibitions/images/exhibition_32.jpg",
-          "type": "exhibition",
-          "likes_count": 0,
-          "created_at": "2025-09-01T17:06:10.920316+09:00",
-          "venue": "서울 서대문구 홍제천로 158/1층",
-          "start_date": "2025-08-15",
-          "end_date": "2025-09-14",
-          "status": "ongoing"
+          "id": 8,
+          "title": "김소연 개인전: 순공간",
+          "image": "/media/exhibitions/images/exhibition_8.jpg",
+          "venue": "서울 마포구 합정동 91-27",
+          "start_date": "2025-08-29",
+          "end_date": "2025-09-14"
+        },
+        {
+          "id": 23,
+          "title": "《Velvet Hammers》",
+          "image": "/media/exhibitions/images/exhibition_23.jpg",
+          "venue": "서울 용산구 유엔빌리지길 11/B104호 (2층)",
+          "start_date": "2025-08-22",
+          "end_date": "2025-09-27"
         }
       ]
     },
