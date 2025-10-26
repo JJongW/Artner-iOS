@@ -17,13 +17,13 @@ struct RecordItemModel {
     let selectedImage: UIImage?
     let createdAt: Date
     
-    init(exhibitionName: String, museumName: String, visitDate: String, selectedImage: UIImage?) {
-        self.id = UUID().uuidString
+    init(id: String = UUID().uuidString, exhibitionName: String, museumName: String, visitDate: String, selectedImage: UIImage?, createdAt: Date = Date()) {
+        self.id = id
         self.exhibitionName = exhibitionName
         self.museumName = museumName
         self.visitDate = visitDate
         self.selectedImage = selectedImage
-        self.createdAt = Date()
+        self.createdAt = createdAt
     }
 }
 

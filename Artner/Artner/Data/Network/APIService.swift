@@ -21,6 +21,10 @@ protocol APIServiceProtocol {
     func createFolder(name: String, description: String) -> AnyPublisher<Folder, NetworkError>
     func updateFolder(id: Int, name: String, description: String) -> AnyPublisher<Folder, NetworkError>
     func deleteFolder(id: Int) -> AnyPublisher<Void, NetworkError>
+    
+    // MARK: - Record API
+    func getRecords() -> AnyPublisher<RecordList, NetworkError>
+    func createRecord(visitDate: String, name: String, museum: String, note: String, image: String) -> AnyPublisher<Record, NetworkError>
     // Docent 관련은 현재 Dummy 데이터 사용으로 제외
 }
 
@@ -214,6 +218,19 @@ private extension APIService {
     internal func deleteFolder(id: Int) -> AnyPublisher<Void, NetworkError> {
         return request(target: .deleteFolder(id: id), responseType: EmptyResponse.self)
             .map { _ in () }
+            .eraseToAnyPublisher()
+    }
+    
+    // MARK: - Record API 구현
+    internal func getRecords() -> AnyPublisher<RecordList, NetworkError> {
+        return request(target: .getRecords, responseType: RecordListDTO.self)
+            .map { $0.toDomainEntity() }
+            .eraseToAnyPublisher()
+    }
+    
+    internal func createRecord(visitDate: String, name: String, museum: String, note: String, image: String) -> AnyPublisher<Record, NetworkError> {
+        return request(target: .createRecord(visitDate: visitDate, name: name, museum: museum, note: note, image: image), responseType: RecordDTO.self)
+            .map { $0.toDomainEntity() }
             .eraseToAnyPublisher()
     }
 }

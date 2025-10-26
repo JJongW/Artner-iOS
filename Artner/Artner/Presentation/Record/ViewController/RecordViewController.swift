@@ -3,9 +3,18 @@ import Combine
 
 final class RecordViewController: UIViewController {
     private let recordView = RecordView()
-    private let viewModel = RecordViewModel.shared
+    private let viewModel: RecordViewModel
     private var cancellables = Set<AnyCancellable>()
     var goToRecordHandler: (() -> Void)?
+    
+    init() {
+        self.viewModel = DIContainer.shared.makeRecordViewModel()
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     override func loadView() { 
         self.view = recordView 

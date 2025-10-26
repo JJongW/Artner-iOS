@@ -49,6 +49,11 @@ final class DIContainer {
         return FolderRepositoryImpl(apiService: apiService)
     }()
     
+    /// Record Repository 인스턴스
+    lazy var recordRepository: RecordRepository = {
+        return RecordRepositoryImpl(apiService: apiService)
+    }()
+    
     // MARK: - UseCase Layer
     
     /// Feed UseCase 인스턴스
@@ -87,6 +92,15 @@ final class DIContainer {
     lazy var deleteFolderUseCase: DeleteFolderUseCase = {
         return DeleteFolderUseCaseImpl(folderRepository: folderRepository)
     }()
+    
+    /// Record UseCase 인스턴스
+    lazy var getRecordsUseCase: GetRecordsUseCase = {
+        return GetRecordsUseCaseImpl(recordRepository: recordRepository)
+    }()
+    
+    lazy var createRecordUseCase: CreateRecordUseCase = {
+        return CreateRecordUseCaseImpl(recordRepository: recordRepository)
+    }()
 }
 
 // MARK: - ViewModel Factory
@@ -124,6 +138,16 @@ extension DIContainer {
             updateFolderUseCase: updateFolderUseCase,
             deleteFolderUseCase: deleteFolderUseCase
         )
+    }
+    
+    /// RecordViewModel 생성
+    func makeRecordViewModel() -> RecordViewModel {
+        return RecordViewModel(getRecordsUseCase: getRecordsUseCase)
+    }
+    
+    /// RecordInputViewModel 생성
+    func makeRecordInputViewModel() -> RecordInputViewModel {
+        return RecordInputViewModel(createRecordUseCase: createRecordUseCase)
     }
 }
 

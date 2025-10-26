@@ -40,6 +40,10 @@ enum APITarget {
     case createFolder(name: String, description: String)
     case updateFolder(id: Int, name: String, description: String)
     case deleteFolder(id: Int)
+    
+    // MARK: - Record API
+    case getRecords
+    case createRecord(visitDate: String, name: String, museum: String, note: String, image: String)
 }
 
 // MARK: - TargetType 구현
@@ -95,6 +99,12 @@ extension APITarget: TargetType {
             return "/folders/\(id)"
         case .deleteFolder(let id):
             return "/folders/\(id)"
+            
+        // Record
+        case .getRecords:
+            return "/records"
+        case .createRecord:
+            return "/records"
         }
     }
     
@@ -111,10 +121,12 @@ extension APITarget: TargetType {
              .getArtistList,
              .getArtistDetail,
              .getDashboardSummary,
-             .getAIDocentSettings:
+             .getAIDocentSettings,
+             .getRecords:
             return .get
             
-        case .createFolder:
+        case .createFolder,
+             .createRecord:
             return .post
             
         case .updateFolder:
@@ -134,7 +146,8 @@ extension APITarget: TargetType {
              .getArtistList,
              .getDashboardSummary,
              .getAIDocentSettings,
-             .getFolders:
+             .getFolders,
+             .getRecords:
             return .requestPlain
             
         case .getFeedDetail,
@@ -147,6 +160,16 @@ extension APITarget: TargetType {
             let parameters = [
                 "name": name,
                 "description": description
+            ]
+            return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
+            
+        case .createRecord(let visitDate, let name, let museum, let note, let image):
+            let parameters = [
+                "visit_date": visitDate,
+                "name": name,
+                "museum": museum,
+                "note": note,
+                "image": image
             ]
             return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
             

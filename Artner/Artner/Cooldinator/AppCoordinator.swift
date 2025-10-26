@@ -139,8 +139,9 @@ final class AppCoordinator {
         let recordInputVC = RecordInputViewController()
         recordInputVC.onRecordSaved = { [weak self] recordItem in
             print("📝 [AppCoordinator] 전시 기록이 저장되었습니다: \(recordItem.exhibitionName)")
-            // RecordViewModel 싱글톤에 데이터 추가
-            RecordViewModel.shared.addRecordItem(recordItem)
+            // NotificationCenter를 통해 전시기록 목록 새로고침
+            // RecordInputViewController에서 이미 NotificationCenter로 알림을 보내므로
+            // 여기서는 추가 작업이 필요하지 않음
         }
         recordInputVC.onDismiss = { [weak self] in
             print("📝 [AppCoordinator] 전시 기록 입력 취소")

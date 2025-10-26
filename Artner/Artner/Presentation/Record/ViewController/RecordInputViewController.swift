@@ -3,11 +3,20 @@ import Combine
 
 final class RecordInputViewController: UIViewController {
     private let recordInputView = RecordInputView()
-    private let viewModel = RecordInputViewModel()
+    private let viewModel: RecordInputViewModel
     private var cancellables = Set<AnyCancellable>()
     
     var onRecordSaved: ((RecordItemModel) -> Void)?
     var onDismiss: (() -> Void)?
+    
+    init() {
+        self.viewModel = DIContainer.shared.makeRecordInputViewModel()
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     override func loadView() {
         self.view = recordInputView
@@ -115,18 +124,18 @@ final class RecordInputViewController: UIViewController {
     @objc private func didTapRecord() {
         guard viewModel.isRecordButtonEnabled else { return }
         
-        // RecordItemModel 생성
+        print("📝 [RecordInputViewController] 전시 기록 저장 시작")
+        
+        // API를 통해 실제 데이터 저장
+        viewModel.saveRecord()
+        
+        // RecordItemModel 생성 (콜백용)
         let recordItem = RecordItemModel(
             exhibitionName: viewModel.inputModel.exhibitionName,
             museumName: viewModel.inputModel.museumName,
             visitDate: viewModel.inputModel.visitDate,
             selectedImage: viewModel.inputModel.selectedImage
         )
-        
-        print("📝 [RecordInputViewController] 새로운 전시 기록 생성: \(recordItem.exhibitionName)")
-        
-        // 성공 Toast 표시
-        ToastManager.shared.showSuccess("전시 기록이 저장되었습니다.")
         
         // 화면 닫기 및 데이터 전달
         dismissViewController()
