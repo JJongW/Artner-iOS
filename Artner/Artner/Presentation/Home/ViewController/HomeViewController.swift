@@ -65,6 +65,47 @@ final class HomeViewController: BaseViewController<HomeViewModel, AppCoordinator
     @objc private func didTapCamera() {
         onCameraTapped?()
     }
+    
+    private func handleLikeTapped(for item: FeedItemType, at indexPath: IndexPath) {
+        print("❤️ 좋아요 버튼 탭됨: \(item)")
+        
+        // 좋아요 타입과 ID 추출
+        let (likeType, id) = extractLikeInfo(from: item)
+        
+        // 좋아요 API 호출
+        DIContainer.shared.toggleLikeUseCase.execute(type: likeType, id: id)
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    if case .failure(let error) = completion {
+                        print("❌ 좋아요 API 호출 실패: \(error)")
+                        // 실패 시 UI 상태를 원래대로 되돌림
+                        if let cell = self?.homeView.tableView.cellForRow(at: indexPath) as? DocentTableViewCell {
+                            cell.setLiked(!cell.currentLikeStatus)
+                        }
+                    }
+                },
+                receiveValue: { [weak self] isLiked in
+                    print("✅ 좋아요 상태 업데이트: \(isLiked)")
+                    // 성공 시 UI 상태 업데이트
+                    if let cell = self?.homeView.tableView.cellForRow(at: indexPath) as? DocentTableViewCell {
+                        cell.setLiked(isLiked)
+                    }
+                }
+            )
+            .store(in: &cancellables)
+    }
+    
+    private func extractLikeInfo(from item: FeedItemType) -> (LikeType, Int) {
+        switch item {
+        case .exhibition(let exhibition):
+            return (.exhibition, exhibition.id)
+        case .artwork(let artwork):
+            return (.artwork, artwork.id)
+        case .artist(let artist):
+            return (.artist, artist.id)
+        }
+    }
 
 }
 
@@ -93,7 +134,8 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
                 thumbnail: thumbnailURL,
                 title: title,
                 subtitle: subtitle,
-                period: period
+                period: period,
+                isLiked: false // TODO: 실제 좋아요 상태로 변경 필요
             )
         case .artwork(let artwork):
             let title = artwork.title
@@ -104,7 +146,8 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
                 thumbnail: nil,
                 title: title,
                 subtitle: subtitle,
-                period: period
+                period: period,
+                isLiked: false // TODO: 실제 좋아요 상태로 변경 필요
             )
         case .artist(let artist):
             let title = artist.items.first?.title ?? artist.title
@@ -115,8 +158,14 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
                 thumbnail: nil,
                 title: title,
                 subtitle: subtitle,
-                period: period
+                period: period,
+                isLiked: false // TODO: 실제 좋아요 상태로 변경 필요
             )
+        }
+        
+        // 좋아요 버튼 액션 설정
+        cell.onLikeTapped = { [weak self] in
+            self?.handleLikeTapped(for: item, at: indexPath)
         }
 
         return cell

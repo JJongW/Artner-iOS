@@ -45,6 +45,12 @@ enum APITarget {
     case getRecords
     case createRecord(visitDate: String, name: String, museum: String, note: String, image: String?)
     case deleteRecord(id: Int)
+    
+    // MARK: - Like API
+    case likeExhibition(id: Int)
+    case likeArtwork(id: Int)
+    case likeArtist(id: Int)
+    case getLikes
 }
 
 // MARK: - TargetType 구현
@@ -108,6 +114,16 @@ extension APITarget: TargetType {
             return "/records"
         case .deleteRecord(let id):
             return "/records/\(id)"
+            
+        // Like
+        case .likeExhibition(let id):
+            return "/exhibitions/\(id)/like"
+        case .likeArtwork(let id):
+            return "/artworks/\(id)/like"
+        case .likeArtist(let id):
+            return "/artists/\(id)/like"
+        case .getLikes:
+            return "/likes"
         }
     }
     
@@ -125,11 +141,15 @@ extension APITarget: TargetType {
              .getArtistDetail,
              .getDashboardSummary,
              .getAIDocentSettings,
-             .getRecords:
+             .getRecords,
+             .getLikes:
             return .get
             
         case .createFolder,
-             .createRecord:
+             .createRecord,
+             .likeExhibition,
+             .likeArtwork,
+             .likeArtist:
             return .post
             
         case .updateFolder:
@@ -151,7 +171,8 @@ extension APITarget: TargetType {
              .getDashboardSummary,
              .getAIDocentSettings,
              .getFolders,
-             .getRecords:
+             .getRecords,
+             .getLikes:
             return .requestPlain
             
         case .getFeedDetail,
@@ -181,6 +202,11 @@ extension APITarget: TargetType {
             }
             
             return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
+            
+        case .likeExhibition,
+             .likeArtwork,
+             .likeArtist:
+            return .requestPlain
             
         case .updateFolder(_, let name, let description):
             let parameters = [

@@ -3,9 +3,18 @@ import Combine
 
 final class LikeViewController: UIViewController {
     private let likeView = LikeView()
-    private let viewModel = LikeViewModel()
+    private let viewModel: LikeViewModel
     private var cancellables = Set<AnyCancellable>()
     var goToFeedHandler: (() -> Void)?
+    
+    init(viewModel: LikeViewModel) {
+        self.viewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     override func loadView() { self.view = likeView }
     
@@ -32,7 +41,9 @@ final class LikeViewController: UIViewController {
     private func setupTableView() {
         likeView.tableView.dataSource = self
         likeView.tableView.delegate = self
-        likeView.tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        likeView.tableView.register(DocentTableViewCell.self, forCellReuseIdentifier: "DocentCell")
+        likeView.tableView.estimatedRowHeight = 112
+        likeView.tableView.rowHeight = UITableView.automaticDimension
     }
     
     private func bindViewModel() {
@@ -73,7 +84,7 @@ final class LikeViewController: UIViewController {
     }
     
     // MARK: - Button State Management
-    private func updateButtonStates(selectedCategory: LikeItemType?) {
+    private func updateButtonStates(selectedCategory: LikeType?) {
         // 모든 카테고리 버튼을 기본 상태로 초기화
         let categoryButtons = [likeView.allButton, likeView.exhibitionButton, likeView.artistButton, likeView.artworkButton]
         categoryButtons.forEach { button in
@@ -123,10 +134,22 @@ final class LikeViewController: UIViewController {
     }
     
     @objc private func didTapSearch() {}
-    @objc private func didTapAll() { viewModel.selectCategory(nil) }
-    @objc private func didTapExhibition() { viewModel.selectCategory(.exhibition) }
-    @objc private func didTapArtist() { viewModel.selectCategory(.artist) }
-    @objc private func didTapArtwork() { viewModel.selectCategory(.artwork) }
+    @objc private func didTapAll() { 
+        viewModel.selectCategory(nil)
+        updateButtonStates(selectedCategory: nil)
+    }
+    @objc private func didTapExhibition() { 
+        viewModel.selectCategory(.exhibition)
+        updateButtonStates(selectedCategory: .exhibition)
+    }
+    @objc private func didTapArtist() { 
+        viewModel.selectCategory(.artist)
+        updateButtonStates(selectedCategory: .artist)
+    }
+    @objc private func didTapArtwork() { 
+        viewModel.selectCategory(.artwork)
+        updateButtonStates(selectedCategory: .artwork)
+    }
     @objc private func didTapSort() { 
         viewModel.toggleSort()
         updateSortButtonAppearance()
@@ -155,15 +178,86 @@ extension LikeViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return viewModel.items.count
     }
+    
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let item = viewModel.items[indexPath.row]
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        cell.backgroundColor = .clear
-        cell.textLabel?.textColor = .white
-        cell.textLabel?.text = item.title
+        
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "DocentCell", for: indexPath) as? DocentTableViewCell else {
+            return UITableViewCell()
+        }
+        
+        // LikeItem을 DocentTableViewCell에 맞는 형태로 변환
+        let thumbnailURL = item.imageURL
+        let title = item.title
+        let subtitle = getSubtitle(for: item)
+        let period = getPeriod(for: item)
+        
+        cell.configure(
+            thumbnail: thumbnailURL,
+            title: title,
+            subtitle: subtitle,
+            period: period,
+            isLiked: true // 좋아요 페이지이므로 항상 true
+        )
+        
+        // 좋아요 버튼 액션 설정
+        cell.onLikeTapped = { [weak self] in
+            self?.handleLikeTapped(for: item, at: indexPath)
+        }
+        
         return cell
     }
+    
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
+        // TODO: 상세 화면으로 이동
+    }
+    
+    // MARK: - Helper Methods
+    private func getSubtitle(for item: LikeItem) -> String {
+        switch item.type {
+        case .exhibition:
+            return item.displayVenue.isEmpty ? "전시" : item.displayVenue
+        case .artwork:
+            return "작품"
+        case .artist:
+            return "작가"
+        }
+    }
+    
+    private func getPeriod(for item: LikeItem) -> String {
+        switch item.type {
+        case .exhibition:
+            return item.displayPeriod.isEmpty ? item.displayDate : item.displayPeriod
+        case .artwork, .artist:
+            return item.displayDate
+        }
+    }
+    
+    private func handleLikeTapped(for item: LikeItem, at indexPath: IndexPath) {
+        print("❤️ 좋아요 페이지에서 좋아요 버튼 탭됨: \(item.title)")
+        
+        // 좋아요 취소 API 호출
+        DIContainer.shared.toggleLikeUseCase.execute(type: item.type, id: item.id)
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    if case .failure(let error) = completion {
+                        print("❌ 좋아요 취소 API 호출 실패: \(error)")
+                        // 실패 시 UI 상태를 원래대로 되돌림
+                        if let cell = self?.likeView.tableView.cellForRow(at: indexPath) as? DocentTableViewCell {
+                            cell.setLiked(true) // 다시 좋아요 상태로 되돌림
+                        }
+                    }
+                },
+                receiveValue: { [weak self] isLiked in
+                    print("✅ 좋아요 상태 업데이트: \(isLiked)")
+                    if !isLiked {
+                        // 좋아요가 취소된 경우 목록에서 제거하고 새로고침
+                        self?.viewModel.removeItem(at: indexPath.row)
+                    }
+                }
+            )
+            .store(in: &cancellables)
     }
 } 

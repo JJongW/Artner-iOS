@@ -26,6 +26,12 @@ protocol APIServiceProtocol {
     func getRecords() -> AnyPublisher<RecordList, NetworkError>
     func createRecord(visitDate: String, name: String, museum: String, note: String, image: String?) -> AnyPublisher<Record, NetworkError>
     func deleteRecord(id: Int) -> AnyPublisher<Void, NetworkError>
+    
+    // MARK: - Like API
+    func getLikes() -> AnyPublisher<LikeList, NetworkError>
+    func likeExhibition(id: Int) -> AnyPublisher<Bool, NetworkError>
+    func likeArtwork(id: Int) -> AnyPublisher<Bool, NetworkError>
+    func likeArtist(id: Int) -> AnyPublisher<Bool, NetworkError>
     // Docent 관련은 현재 Dummy 데이터 사용으로 제외
 }
 
@@ -244,6 +250,31 @@ private extension APIService {
     internal func deleteRecord(id: Int) -> AnyPublisher<Void, NetworkError> {
         return request(target: .deleteRecord(id: id), responseType: EmptyResponse.self)
             .map { _ in () }
+            .eraseToAnyPublisher()
+    }
+    
+    // MARK: - Like API 구현
+    internal func getLikes() -> AnyPublisher<LikeList, NetworkError> {
+        return request(target: .getLikes, responseType: LikeListResponseDTO.self)
+            .map { $0.toDomainEntity() }
+            .eraseToAnyPublisher()
+    }
+    
+    internal func likeExhibition(id: Int) -> AnyPublisher<Bool, NetworkError> {
+        return request(target: .likeExhibition(id: id), responseType: LikeToggleResponseDTO.self)
+            .map { $0.isLiked }
+            .eraseToAnyPublisher()
+    }
+    
+    internal func likeArtwork(id: Int) -> AnyPublisher<Bool, NetworkError> {
+        return request(target: .likeArtwork(id: id), responseType: LikeToggleResponseDTO.self)
+            .map { $0.isLiked }
+            .eraseToAnyPublisher()
+    }
+    
+    internal func likeArtist(id: Int) -> AnyPublisher<Bool, NetworkError> {
+        return request(target: .likeArtist(id: id), responseType: LikeToggleResponseDTO.self)
+            .map { $0.isLiked }
             .eraseToAnyPublisher()
     }
 }

@@ -54,6 +54,11 @@ final class DIContainer {
         return RecordRepositoryImpl(apiService: apiService)
     }()
     
+    /// Like Repository 인스턴스
+    lazy var likeRepository: LikeRepository = {
+        return LikeRepositoryImpl(apiService: apiService)
+    }()
+    
     // MARK: - UseCase Layer
     
     /// Feed UseCase 인스턴스
@@ -105,6 +110,15 @@ final class DIContainer {
     lazy var deleteRecordUseCase: DeleteRecordUseCase = {
         return DeleteRecordUseCaseImpl(recordRepository: recordRepository)
     }()
+    
+    /// Like UseCase 인스턴스
+    lazy var getLikesUseCase: GetLikesUseCase = {
+        return GetLikesUseCaseImpl(likeRepository: likeRepository)
+    }()
+    
+    lazy var toggleLikeUseCase: ToggleLikeUseCase = {
+        return ToggleLikeUseCaseImpl(likeRepository: likeRepository)
+    }()
 }
 
 // MARK: - ViewModel Factory
@@ -152,6 +166,11 @@ extension DIContainer {
     /// RecordInputViewModel 생성
     func makeRecordInputViewModel() -> RecordInputViewModel {
         return RecordInputViewModel(createRecordUseCase: createRecordUseCase)
+    }
+    
+    /// LikeViewModel 생성
+    func makeLikeViewModel() -> LikeViewModel {
+        return LikeViewModel(getLikesUseCase: getLikesUseCase)
     }
 }
 

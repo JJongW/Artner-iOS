@@ -113,7 +113,8 @@ final class AppCoordinator {
 
     // MARK: - 좋아요/저장/밑줄/전시기록 화면 이동
     func showLike() {
-        let likeVC = LikeViewController()
+        let likeViewModel = DIContainer.shared.makeLikeViewModel()
+        let likeVC = LikeViewController(viewModel: likeViewModel)
         likeVC.goToFeedHandler = { [weak self] in self?.popToHome() }
         navigationController.pushViewController(likeVC, animated: true)
     }
