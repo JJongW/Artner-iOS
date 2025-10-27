@@ -6,64 +6,58 @@
 //
 
 import UIKit
-import SnapKit
 
 /// 앱 시작 화면을 담당하는 ViewController
 final class LaunchViewController: UIViewController {
     
     // MARK: - UI Components
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.text = "artner"
-        label.font = UIFont.poppinsMedium(size: 52)
-        label.textColor = UIColor(hex: "#FFDB98")
-        label.textAlignment = .center
-        return label
-    }()
+    private let launchView = LaunchView()
     
     // MARK: - Lifecycle
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        setupUI()
-        setupLayout()
-        setupActions()
-        checkFontLoading()
+    override func loadView() {
+        self.view = launchView
     }
     
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        // 2초 후 메인 화면으로 전환
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            self.transitionToMainScreen()
-        }
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        setupActions()
+        checkFontLoading()
+        startLaunchSequence()
     }
     
     // MARK: - Setup Methods
-    private func setupUI() {
-        view.backgroundColor = UIColor(hex: "#000000")
-        view.addSubview(titleLabel)
-    }
-    
-    private func setupLayout() {
-        titleLabel.snp.makeConstraints {
-            $0.centerX.equalToSuperview()
-            $0.top.equalToSuperview().offset(312)
-        }
-    }
-    
     private func setupActions() {
-        // 필요시 탭 제스처 추가 가능
+        // 카카오 로그인 버튼 콜백 연결
+        launchView.onKakaoLoginTapped = { [weak self] in
+            self?.handleKakaoLogin()
+        }
     }
     
     private func checkFontLoading() {
         // Poppins 폰트가 제대로 로드되었는지 확인
         if let poppinsFont = UIFont(name: "Poppins-Medium", size: 52) {
             print("✅ Poppins-Medium 폰트 로드 성공: \(poppinsFont.fontName)")
-            titleLabel.font = poppinsFont
         } else {
             print("❌ Poppins-Medium 폰트 로드 실패, 시스템 폰트 사용")
-            titleLabel.font = UIFont.systemFont(ofSize: 52, weight: .medium)
         }
+    }
+    
+    private func startLaunchSequence() {
+        // 로딩 시작
+        launchView.startLoading()
+        
+        // 2초 후 로그인 버튼 표시
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.launchView.showLoginButton()
+        }
+    }
+    
+    // MARK: - Actions
+    private func handleKakaoLogin() {
+        print("🔐 카카오 로그인 버튼 탭됨")
+        // TODO: 카카오 로그인 구현
+        // 임시로 메인 화면으로 전환
+        transitionToMainScreen()
     }
     
     // MARK: - Navigation
