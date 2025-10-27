@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import KakaoSDKCommon
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -14,6 +15,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        
+        // 카카오 SDK 초기화
+        KakaoSDK.initSDK(appKey: "e8087b2773b619c318dd23b3afedc906")
+        print("✅ 카카오 SDK 초기화 완료")
         
         // Scene-based lifecycle 사용 시 SceneDelegate에서 window 및 coordinator 관리
         // 중복 초기화 방지를 위해 AppDelegate에서는 초기화하지 않음

@@ -16,7 +16,7 @@ final class FeedRepositoryImpl: FeedRepository {
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Initialization
-    init(apiService: APIServiceProtocol = APIService()) {
+    init(apiService: APIServiceProtocol = APIService.shared) {
         self.apiService = apiService
     }
     

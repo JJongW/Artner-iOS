@@ -51,6 +51,9 @@ enum APITarget {
     case likeArtwork(id: Int)
     case likeArtist(id: Int)
     case getLikes
+    
+    // MARK: - Auth API
+    case kakaoLogin(accessToken: String)
 }
 
 // MARK: - TargetType 구현
@@ -124,6 +127,10 @@ extension APITarget: TargetType {
             return "/artists/\(id)/like"
         case .getLikes:
             return "/likes"
+            
+        // Auth
+        case .kakaoLogin:
+            return "/kakao"
         }
     }
     
@@ -149,7 +156,8 @@ extension APITarget: TargetType {
              .createRecord,
              .likeExhibition,
              .likeArtwork,
-             .likeArtist:
+             .likeArtist,
+             .kakaoLogin:
             return .post
             
         case .updateFolder:
@@ -218,6 +226,12 @@ extension APITarget: TargetType {
         case .deleteFolder,
              .deleteRecord:
             return .requestPlain
+            
+        case .kakaoLogin(let accessToken):
+            let parameters = [
+                "access_token": accessToken
+            ]
+            return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
         }
     }
     

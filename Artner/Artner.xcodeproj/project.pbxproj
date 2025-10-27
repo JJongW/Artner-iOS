@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		C3432F8D2E769EB1006E739B /* Moya in Frameworks */ = {isa = PBXBuildFile; productRef = C3432F8C2E769EB1006E739B /* Moya */; };
+		C34330142EAFA377006E739B /* KakaoSDK in Frameworks */ = {isa = PBXBuildFile; productRef = C34330132EAFA377006E739B /* KakaoSDK */; };
 		C3E07E892DA11F0600BB0D0A /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = C3E07E882DA11F0600BB0D0A /* SnapKit */; };
 /* End PBXBuildFile section */
 
@@ -46,6 +47,7 @@
 			files = (
 				C3432F8D2E769EB1006E739B /* Moya in Frameworks */,
 				C3E07E892DA11F0600BB0D0A /* SnapKit in Frameworks */,
+				C34330142EAFA377006E739B /* KakaoSDK in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,6 +92,7 @@
 			packageProductDependencies = (
 				C3E07E882DA11F0600BB0D0A /* SnapKit */,
 				C3432F8C2E769EB1006E739B /* Moya */,
+				C34330132EAFA377006E739B /* KakaoSDK */,
 			);
 			productName = Artner;
 			productReference = C3E07E4B2DA1140200BB0D0A /* Artner.app */;
@@ -122,6 +125,7 @@
 			packageReferences = (
 				C3E07E872DA11F0600BB0D0A /* XCRemoteSwiftPackageReference "SnapKit" */,
 				C3432F8B2E769E81006E739B /* XCRemoteSwiftPackageReference "Moya" */,
+				C34330122EAFA377006E739B /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C3E07E4C2DA1140200BB0D0A /* Products */;
@@ -363,6 +367,14 @@
 				minimumVersion = 15.0.3;
 			};
 		};
+		C34330122EAFA377006E739B /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kakao/kakao-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.25.0;
+			};
+		};
 		C3E07E872DA11F0600BB0D0A /* XCRemoteSwiftPackageReference "SnapKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SnapKit/SnapKit";
@@ -378,6 +390,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C3432F8B2E769E81006E739B /* XCRemoteSwiftPackageReference "Moya" */;
 			productName = Moya;
+		};
+		C34330132EAFA377006E739B /* KakaoSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C34330122EAFA377006E739B /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDK;
 		};
 		C3E07E882DA11F0600BB0D0A /* SnapKit */ = {
 			isa = XCSwiftPackageProductDependency;

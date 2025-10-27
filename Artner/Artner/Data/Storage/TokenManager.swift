@@ -13,7 +13,7 @@ final class TokenManager {
     
     // MARK: - Singleton
     static let shared = TokenManager()
-    
+
     // MARK: - Constants
     private enum Keys {
         static let accessToken = "access_token"
@@ -22,12 +22,6 @@ final class TokenManager {
     
     // MARK: - Private Properties
     private let userDefaults = UserDefaults.standard
-    
-    // MARK: - Initialization
-    private init() {
-        // 개발용 하드코딩된 토큰 설정 (실제 로그인 구현 전까지)
-        setupDevelopmentTokens()
-    }
     
     // MARK: - Public Methods
     
@@ -93,28 +87,6 @@ final class TokenManager {
     }
     
     // MARK: - Private Methods
-    
-    /// 개발용 토큰 설정 (환경변수 또는 설정 파일에서 로드)
-    private func setupDevelopmentTokens() {
-        // 실제 로그인 구현 전까지 환경변수에서 토큰 로드
-        // 보안을 위해 하드코딩된 토큰 제거
-        
-        #if DEBUG
-        // 개발 환경에서만 환경변수에서 토큰 로드
-        if let accessToken = ProcessInfo.processInfo.environment["DEV_ACCESS_TOKEN"],
-           let refreshToken = ProcessInfo.processInfo.environment["DEV_REFRESH_TOKEN"] {
-            
-            // 토큰이 없을 때만 설정 (기존 토큰 보존)
-            if !hasValidTokens {
-                saveTokens(access: accessToken, refresh: refreshToken)
-            }
-        } else {
-            print("⚠️ 개발용 토큰이 설정되지 않았습니다.")
-            print("   환경변수 DEV_ACCESS_TOKEN, DEV_REFRESH_TOKEN을 설정해주세요.")
-        }
-        #endif
-    }
-    
     /// 토큰 마스킹 처리 (보안을 위해)
     private func maskToken(_ token: String) -> String {
         guard token.count > 20 else { return "***" }

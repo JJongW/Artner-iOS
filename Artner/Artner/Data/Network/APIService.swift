@@ -33,17 +33,27 @@ protocol APIServiceProtocol {
     func likeArtwork(id: Int) -> AnyPublisher<Bool, NetworkError>
     func likeArtist(id: Int) -> AnyPublisher<Bool, NetworkError>
     // Docent 관련은 현재 Dummy 데이터 사용으로 제외
+    
+    // MARK: - Generic Request (범용 API 요청)
+    /// Completion Handler 기반 네트워크 요청
+    /// - Parameters:
+    ///   - target: API 타겟
+    ///   - completion: 결과 콜백
+    func request<T: Codable>(_ target: APITarget, completion: @escaping (Result<T, Error>) -> Void)
 }
 
 /// Moya를 활용한 API 서비스 구현체
 final class APIService: APIServiceProtocol {
+    
+    // MARK: - Singleton
+    static let shared = APIService()
     
     // MARK: - Properties
     private let provider: MoyaProvider<APITarget>
     private let decoder: JSONDecoder
     
     // MARK: - Initialization
-    init() {
+    private init() {
         // Moya Provider 설정
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = 30.0    // 30초 타임아웃
@@ -276,6 +286,73 @@ private extension APIService {
         return request(target: .likeArtist(id: id), responseType: LikeToggleResponseDTO.self)
             .map { $0.isLiked }
             .eraseToAnyPublisher()
+    }
+    
+}
+
+// MARK: - Completion Handler 방식 (UIKit 호환)
+extension APIService {
+    
+    /// Completion Handler 기반 네트워크 요청
+    /// UIKit ViewController에서 사용하기 위한 메서드
+    func request<T: Codable>(
+        _ target: APITarget,
+        completion: @escaping (Result<T, Error>) -> Void
+    ) {
+        provider.request(target) { [weak self] result in
+            guard let self = self else {
+                completion(.failure(NetworkError.unknownError))
+                return
+            }
+            
+            switch result {
+            case .success(let response):
+                // 응답 상태 코드 출력
+                print("📊 Status Code: \(response.statusCode)")
+                
+                // 응답 데이터 크기 출력
+                print("📦 Response Data Size: \(response.data.count) bytes")
+                
+                // 응답 JSON 전체 출력 (디코딩 전)
+                if let jsonString = String(data: response.data, encoding: .utf8) {
+                    print("📝 Raw Response JSON:")
+                    print(jsonString)
+                }
+                
+                // HTTP 상태 코드 검증
+                guard 200...299 ~= response.statusCode else {
+                    completion(.failure(NetworkError.serverError(response.statusCode)))
+                    return
+                }
+                
+                // 데이터 존재 확인
+                guard !response.data.isEmpty else {
+                    print("⚠️ Response data is empty")
+                    completion(.failure(NetworkError.noData))
+                    return
+                }
+                
+                // JSON 디코딩
+                do {
+                    let decodedResponse = try self.decoder.decode(T.self, from: response.data)
+                    print("✅ Decoding 성공!")
+                    DispatchQueue.main.async {
+                        completion(.success(decodedResponse))
+                    }
+                } catch {
+                    print("🚨 JSON Decoding Error: \(error)")
+                    DispatchQueue.main.async {
+                        completion(.failure(NetworkError.decodingError))
+                    }
+                }
+                
+            case .failure(let moyaError):
+                print("❌ 네트워크 에러: \(moyaError.localizedDescription)")
+                DispatchQueue.main.async {
+                    completion(.failure(moyaError.toNetworkError()))
+                }
+            }
+        }
     }
 }
 

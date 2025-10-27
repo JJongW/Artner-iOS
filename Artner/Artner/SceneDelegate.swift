@@ -7,6 +7,7 @@
 
 // SceneDelegate.swift
 import UIKit
+import KakaoSDKAuth
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -22,12 +23,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         // Launch Screen을 먼저 표시
         showLaunchScreen()
-        
-        // 토큰 상태 확인 (개발용)
-        #if DEBUG
-        // 임시로 테스트 토큰 설정 (환경변수 설정 전까지)
-        TokenDebugger.setTestTokens()
-        #endif
         
         // RTI 에러 방지를 위한 전역 키보드 설정 (메인 스레드에서 실행)
         DispatchQueue.main.async { [weak self] in
@@ -49,6 +44,18 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let appCoordinator = AppCoordinator(window: window!)
         self.appCoordinator = appCoordinator
         appCoordinator.start()
+    }
+    
+    // MARK: - URL Handling
+    
+    /// 카카오 로그인 URL 처리
+    /// 카카오톡에서 앱으로 돌아올 때 호출됨
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        if let url = URLContexts.first?.url {
+            if (AuthApi.isKakaoTalkLoginUrl(url)) {
+                _ = AuthController.handleOpenUrl(url: url)
+            }
+        }
     }
     
     // MARK: - Keyboard Setup

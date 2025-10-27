@@ -18,9 +18,9 @@ final class DIContainer {
     // MARK: - Network Layer
     
     /// API 서비스 인스턴스 (싱글톤)
-    lazy var apiService: APIServiceProtocol = {
-        return APIService()
-    }()
+    var apiService: APIServiceProtocol {
+        return APIService.shared
+    }
     
     // MARK: - Repository Layer
     
@@ -57,6 +57,11 @@ final class DIContainer {
     /// Like Repository 인스턴스
     lazy var likeRepository: LikeRepository = {
         return LikeRepositoryImpl(apiService: apiService)
+    }()
+    
+    /// Auth Repository 인스턴스
+    lazy var authRepository: AuthRepository = {
+        return AuthRepositoryImpl(apiService: apiService)
     }()
     
     // MARK: - UseCase Layer
@@ -119,10 +124,20 @@ final class DIContainer {
     lazy var toggleLikeUseCase: ToggleLikeUseCase = {
         return ToggleLikeUseCaseImpl(likeRepository: likeRepository)
     }()
+    
+    /// Kakao Login UseCase 인스턴스
+    lazy var kakaoLoginUseCase: KakaoLoginUseCase = {
+        return KakaoLoginUseCaseImpl(authRepository: authRepository)
+    }()
 }
 
 // MARK: - ViewModel Factory
 extension DIContainer {
+    
+    /// LaunchViewModel 생성
+    func makeLaunchViewModel() -> LaunchViewModel {
+        return LaunchViewModel(kakaoLoginUseCase: kakaoLoginUseCase)
+    }
     
     /// HomeViewModel 생성
     func makeHomeViewModel() -> HomeViewModel {

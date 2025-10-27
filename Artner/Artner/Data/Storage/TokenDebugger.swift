@@ -65,26 +65,4 @@ final class TokenDebugger {
         print("===========================================")
         print("🔍 [TokenDebugger] 토큰 상태 확인 완료")
     }
-    
-    /// 수동으로 토큰 설정 (테스트용)
-    static func setTestTokens() {
-        print("🧪 [TokenDebugger] 테스트 토큰 설정 중...")
-        
-        let testAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzYyMDUzNzQ4LCJpYXQiOjE3NjE0NDg5NDgsImp0aSI6IjhlNjljOTRmNGMwZTQ2ZDFiZjI3YTZmMGE3MmM2OThkIiwidXNlcl9pZCI6MX0.9D6C0AixKfvkZocwJ2-b0l2j_8G_6SlWybaQb4R5l7Q"
-        
-        let testRefreshToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc2NDA0MDk0OCwiaWF0IjoxNzYxNDQ4OTQ4LCJqdGkiOiIyODNmNjYyYzM3ODI0YWQ1OTk2MjQ3N2IxNWJmYTYwOSIsInVzZXJfaWQiOjF9.Bc5m7nVzsjRtgLwby7VRf-2CwNhHvNMlSmQNMgmPORY"
-        
-        TokenManager.shared.saveTokens(access: testAccessToken, refresh: testRefreshToken)
-        
-        print("✅ 테스트 토큰 설정 완료")
-        checkTokenStatus()
-    }
-    
-    /// 토큰 삭제 (테스트용)
-    static func clearTokens() {
-        print("🗑️ [TokenDebugger] 토큰 삭제 중...")
-        TokenManager.shared.clearTokens()
-        print("✅ 토큰 삭제 완료")
-        checkTokenStatus()
-    }
 }
