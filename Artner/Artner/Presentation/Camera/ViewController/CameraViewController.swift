@@ -51,7 +51,12 @@ final class CameraViewController: UIViewController {
             self?.didTapClose()
         }
         
-        // 카메라 촬영 버튼
+        // 검색창 탭 콜백 연결
+        cameraView.onSearchTapped = { [weak self] in
+            self?.didTapSearch()
+        }
+        
+        // 촬영 버튼
         cameraView.captureButton.addTarget(self, action: #selector(didTapCapture), for: .touchUpInside)
         
         // 카메라 전환 버튼 (전면/후면)
@@ -138,8 +143,9 @@ final class CameraViewController: UIViewController {
         previewLayer?.videoGravity = .resizeAspectFill
         
         // 카메라 프리뷰를 cameraView의 previewContainer에 추가
+        // ㄱ자 테두리가 가려지지 않도록 맨 아래 레이어(index 0)에 추가
         if let previewLayer = previewLayer {
-            cameraView.previewContainer.layer.addSublayer(previewLayer)
+            cameraView.previewContainer.layer.insertSublayer(previewLayer, at: 0)
         }
     }
     
@@ -147,6 +153,14 @@ final class CameraViewController: UIViewController {
         super.viewDidLayoutSubviews()
         // 프리뷰 레이어 크기를 previewContainer에 맞춤
         previewLayer?.frame = cameraView.previewContainer.bounds
+        
+        // 스캔 영역 오버레이 업데이트
+        cameraView.updateScanOverlay()
+        
+        // 디버깅: previewContainer와 previewLayer 크기 확인
+        print("📐 [CameraVC] previewContainer.bounds: \(cameraView.previewContainer.bounds)")
+        print("📐 [CameraVC] previewLayer.frame: \(previewLayer?.frame ?? .zero)")
+        print("📐 [CameraVC] captureSession.isRunning: \(captureSession?.isRunning ?? false)")
     }
     
     private func startCamera() {
@@ -165,6 +179,14 @@ final class CameraViewController: UIViewController {
     @objc private func didTapClose() {
         dismiss(animated: true) {
             // 카메라를 닫을 때는 Home으로 돌아가기 (아무것도 하지 않음)
+        }
+    }
+    
+    private func didTapSearch() {
+        print("🔍 검색창 탭 - Entry 화면으로 이동")
+        // 카메라를 닫고 Entry로 이동 (이미지 없이)
+        dismiss(animated: true) { [weak self] in
+            self?.coordinator.navigateToEntryFromCamera(with: nil)
         }
     }
     
@@ -249,4 +271,7 @@ extension CameraViewController: UIImagePickerControllerDelegate, UINavigationCon
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         picker.dismiss(animated: true)
     }
-} 
+}
+
+// MARK: - UITextFieldDelegate
+// 검색창은 탭하면 검색 화면으로 이동하므로 UITextFieldDelegate는 필요 없음 
