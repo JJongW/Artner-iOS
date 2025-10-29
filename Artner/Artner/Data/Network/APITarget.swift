@@ -55,6 +55,9 @@ enum APITarget {
     // MARK: - Auth API
     case kakaoLogin(accessToken: String)
     case logout(refreshToken: String)
+    
+    // MARK: - Docent API
+    case realtimeDocent(inputText: String?, inputImage: Data?)
 }
 
 // MARK: - TargetType 구현
@@ -134,6 +137,10 @@ extension APITarget: TargetType {
             return "/kakao"
         case .logout:
             return "/logout"
+            
+        // Docent
+        case .realtimeDocent:
+            return "/realtime-docent"
         }
     }
     
@@ -161,7 +168,8 @@ extension APITarget: TargetType {
              .likeArtwork,
              .likeArtist,
              .kakaoLogin,
-             .logout:
+             .logout,
+             .realtimeDocent:
             return .post
             
         case .updateFolder:
@@ -242,6 +250,26 @@ extension APITarget: TargetType {
                 "refresh_token": refreshToken
             ]
             return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
+            
+        case .realtimeDocent(let inputText, let inputImage):
+            var multipartData: [MultipartFormData] = []
+            
+            // input_text 추가 (옵셔널)
+            if let text = inputText, let textData = text.data(using: .utf8) {
+                multipartData.append(MultipartFormData(provider: .data(textData), name: "input_text"))
+            }
+            
+            // input_image_file 추가 (옵셔널)
+            if let imageData = inputImage {
+                multipartData.append(MultipartFormData(
+                    provider: .data(imageData),
+                    name: "input_image_file",
+                    fileName: "image.jpg",
+                    mimeType: "image/jpeg"
+                ))
+            }
+            
+            return .uploadMultipart(multipartData)
         }
     }
     

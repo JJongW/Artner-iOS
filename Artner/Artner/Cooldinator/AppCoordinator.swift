@@ -64,19 +64,24 @@ final class AppCoordinator {
         cameraVC.modalPresentationStyle = .fullScreen
         navigationController.present(cameraVC, animated: true)
     }
+    
+    /// 카메라를 닫고 Entry 화면으로 이동
+    func dismissCameraAndShowEntry(docent: Docent) {
+        // CameraViewController가 present된 상태라면 먼저 dismiss
+        if navigationController.presentedViewController != nil {
+            navigationController.dismiss(animated: true) { [weak self] in
+                // dismiss 완료 후 Entry 화면으로 이동
+                self?.showEntry(docent: docent)
+            }
+        } else {
+            // 이미 dismiss된 경우 바로 Entry로 이동
+            showEntry(docent: docent)
+        }
+    }
 
     func navigateToEntryFromCamera(with capturedImage: UIImage? = nil) {
-        // 카메라에서 촬영한 이미지를 기반으로 Entry로 진입
-        // 실제로는 이미지 인식 API를 호출해서 작품 정보를 가져와야 함
-        
-        // 현재는 더미 도슨트 데이터 활용 (Clean Architecture: UseCase를 통해 접근)
+        // 더미 도슨트 데이터
         let docents = container.playDocentUseCase.fetchDocents()
-        if let first = docents.first, !first.paragraphs.isEmpty {
-            showEntry(docent: first)
-            return
-        }
-        
-        // 폴백: 촬영된 이미지를 기반으로 한 샘플 생성
         let fallback = Docent(
             id: 999,
             title: "카메라로 스캔한 작품",
@@ -95,7 +100,19 @@ final class AppCoordinator {
                 )
             ]
         )
-        showEntry(docent: fallback)
+        
+        let docent = docents.first ?? fallback
+        
+        // CameraViewController가 present되어 있으면 먼저 dismiss
+        // (이 메서드는 검색창 탭 등에서 호출됨)
+        // dismissCameraAndShowEntry와 동일한 로직 적용
+        if navigationController.presentedViewController != nil {
+            navigationController.dismiss(animated: true) { [weak self] in
+                self?.showEntry(docent: docent)
+            }
+        } else {
+            showEntry(docent: docent)
+        }
     }
 
     func showSidebar(from presentingVC: UIViewController) {
