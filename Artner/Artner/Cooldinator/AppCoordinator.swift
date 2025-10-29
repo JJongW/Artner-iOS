@@ -20,6 +20,18 @@ final class AppCoordinator {
     init(window: UIWindow) {
         self.window = window
         self.navigationController = UINavigationController()
+        
+        // 강제 로그아웃 노티피케이션 구독
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleForceLogout),
+            name: NSNotification.Name("ForceLogout"),
+            object: nil
+        )
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     func start() {
@@ -232,6 +244,20 @@ extension AppCoordinator: SidebarViewControllerDelegate {
         )
         alert.addAction(UIAlertAction(title: "확인", style: .default))
         navigationController.present(alert, animated: true)
+    }
+    
+    /// 강제 로그아웃 처리 (토큰 만료 시)
+    @objc private func handleForceLogout() {
+        print("🚨 강제 로그아웃 - 토큰 만료")
+        
+        // 사이드 메뉴가 있으면 닫기
+        if let sideMenu = sideMenu {
+            sideMenu.dismissMenu(completion: { [weak self] in
+                self?.navigateToLaunch()
+            })
+        } else {
+            navigateToLaunch()
+        }
     }
     
     private func navigateToLaunch() {

@@ -55,6 +55,7 @@ enum APITarget {
     // MARK: - Auth API
     case kakaoLogin(accessToken: String)
     case logout(refreshToken: String)
+    case refreshToken(refreshToken: String)
     
     // MARK: - Docent API
     case realtimeDocent(inputText: String?, inputImage: Data?)
@@ -137,6 +138,8 @@ extension APITarget: TargetType {
             return "/kakao"
         case .logout:
             return "/logout"
+        case .refreshToken:
+            return "/token/refresh"
             
         // Docent
         case .realtimeDocent:
@@ -169,6 +172,7 @@ extension APITarget: TargetType {
              .likeArtist,
              .kakaoLogin,
              .logout,
+             .refreshToken,
              .realtimeDocent:
             return .post
             
@@ -248,6 +252,12 @@ extension APITarget: TargetType {
         case .logout(let refreshToken):
             let parameters = [
                 "refresh_token": refreshToken
+            ]
+            return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
+            
+        case .refreshToken(let refreshToken):
+            let parameters = [
+                "refresh": refreshToken
             ]
             return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
             
