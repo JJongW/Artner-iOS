@@ -11,6 +11,7 @@ final class HomeViewController: BaseViewController<HomeViewModel, AppCoordinator
 
     private let homeView = HomeView()
     private var cancellables = Set<AnyCancellable>()
+    private let refreshControl = UIRefreshControl()
 
     var onCameraTapped: (() -> Void)?
     var onShowSidebar: (() -> Void)?
@@ -30,6 +31,23 @@ final class HomeViewController: BaseViewController<HomeViewModel, AppCoordinator
         homeView.tableView.delegate = self
         homeView.tableView.estimatedRowHeight = 112
         homeView.tableView.rowHeight = UITableView.automaticDimension
+        
+        // Pull-to-Refresh 설정
+        refreshControl.tintColor = .white
+        refreshControl.addTarget(self, action: #selector(handleRefresh), for: .valueChanged)
+        homeView.tableView.refreshControl = refreshControl
+        
+        // 좋아요 상태 변경 알림 구독
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleLikeStatusChanged),
+            name: NSNotification.Name("LikeStatusChanged"),
+            object: nil
+        )
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     override func setupBinding() {
@@ -39,19 +57,39 @@ final class HomeViewController: BaseViewController<HomeViewModel, AppCoordinator
     }
 
     private func bindData() {
+        // 좋아요 목록 먼저 로드
+        viewModel.loadLikes()
+        
+        // Feed 로드
         viewModel.loadFeed()
 
         viewModel.$feedItems
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.homeView.tableView.reloadData()
+                
+                // Pull-to-Refresh 종료
+                if self?.refreshControl.isRefreshing == true {
+                    self?.refreshControl.endRefreshing()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // 좋아요 목록이 업데이트되면 테이블뷰 리로드
+        viewModel.$likedItemIds
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.homeView.tableView.reloadData()
             }
             .store(in: &cancellables)
 
+        // 사용자 이름 가져오기
+        let userName = TokenManager.shared.userName ?? "사용자"
+        
         homeView.configureBanner(
             image: UIImage(named: "banner2"),
             title: "새로운 작품을 만나볼까요?",
-            subtitle: "앤젤리너스 커피님을 위해 준비했어요!"
+            subtitle: "\(userName)님을 위해 준비했어요!"
         )
     }
 
@@ -64,6 +102,34 @@ final class HomeViewController: BaseViewController<HomeViewModel, AppCoordinator
 
     @objc private func didTapCamera() {
         onCameraTapped?()
+    }
+    
+    @objc private func handleRefresh() {
+        print("🔄 홈 화면 새로고침 시작")
+        
+        // 좋아요 목록과 피드 데이터 다시 로드
+        viewModel.loadLikes()
+        viewModel.loadFeed()
+    }
+    
+    @objc private func handleLikeStatusChanged(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let id = userInfo["id"] as? Int,
+              let isLiked = userInfo["isLiked"] as? Bool else {
+            return
+        }
+        
+        print("📢 좋아요 상태 변경 알림 수신: id=\(id), isLiked=\(isLiked)")
+        
+        // ViewModel의 좋아요 목록 업데이트
+        if isLiked {
+            viewModel.likedItemIds.insert(id)
+        } else {
+            viewModel.likedItemIds.remove(id)
+        }
+        
+        // UI 업데이트
+        homeView.tableView.reloadData()
     }
     
     private func handleLikeTapped(for item: FeedItemType, at indexPath: IndexPath) {
@@ -79,16 +145,31 @@ final class HomeViewController: BaseViewController<HomeViewModel, AppCoordinator
                 receiveCompletion: { [weak self] completion in
                     if case .failure(let error) = completion {
                         print("❌ 좋아요 API 호출 실패: \(error)")
-                        // 실패 시 UI 상태를 원래대로 되돌림
-                        if let cell = self?.homeView.tableView.cellForRow(at: indexPath) as? DocentTableViewCell {
-                            cell.setLiked(!cell.currentLikeStatus)
-                        }
+                        // 실패 시 에러 토스트 표시
+                        ToastManager.shared.showError("좋아요 처리에 실패했습니다")
                     }
                 },
                 receiveValue: { [weak self] isLiked in
                     print("✅ 좋아요 상태 업데이트: \(isLiked)")
-                    // 성공 시 UI 상태 업데이트
-                    if let cell = self?.homeView.tableView.cellForRow(at: indexPath) as? DocentTableViewCell {
+                    
+                    guard let self = self else { return }
+                    
+                    // ViewModel의 좋아요 목록 업데이트
+                    if isLiked {
+                        self.viewModel.likedItemIds.insert(id)
+                    } else {
+                        self.viewModel.likedItemIds.remove(id)
+                    }
+                    
+                    // 좋아요 상태 변경을 다른 화면에 알림
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("LikeStatusChanged"),
+                        object: nil,
+                        userInfo: ["id": id, "isLiked": isLiked]
+                    )
+                    
+                    // UI 상태를 서버의 최종 상태로 업데이트
+                    if let cell = self.homeView.tableView.cellForRow(at: indexPath) as? DocentTableViewCell {
                         cell.setLiked(isLiked)
                     }
                 }
@@ -123,6 +204,10 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
             return UITableViewCell()
         }
 
+        // 실제 좋아요 상태 확인
+        let (_, itemId) = extractLikeInfo(from: item)
+        let isLiked = viewModel.isLiked(id: itemId)
+        
         switch item {
         case .exhibition(let exhibition):
             let thumbnailURL = exhibition.items.first?.image.isEmpty == false ? URL(string: "https://artner.shop/"+"\(exhibition.items[0].image)") : nil
@@ -135,7 +220,7 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
                 title: title,
                 subtitle: subtitle,
                 period: period,
-                isLiked: false // TODO: 실제 좋아요 상태로 변경 필요
+                isLiked: isLiked
             )
         case .artwork(let artwork):
             let title = artwork.title
@@ -147,7 +232,7 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
                 title: title,
                 subtitle: subtitle,
                 period: period,
-                isLiked: false // TODO: 실제 좋아요 상태로 변경 필요
+                isLiked: isLiked
             )
         case .artist(let artist):
             let title = artist.items.first?.title ?? artist.title
@@ -159,7 +244,7 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
                 title: title,
                 subtitle: subtitle,
                 period: period,
-                isLiked: false // TODO: 실제 좋아요 상태로 변경 필요
+                isLiked: isLiked
             )
         }
         

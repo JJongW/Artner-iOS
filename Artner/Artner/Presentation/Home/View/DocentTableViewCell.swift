@@ -14,11 +14,6 @@ final class DocentTableViewCell: UITableViewCell {
     // MARK: - Properties
     private var isLiked: Bool = false
     var onLikeTapped: (() -> Void)?
-    
-    // 현재 좋아요 상태를 외부에서 확인할 수 있도록 하는 computed property
-    var currentLikeStatus: Bool {
-        return isLiked
-    }
 
     // MARK: - Init
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
@@ -105,8 +100,8 @@ final class DocentTableViewCell: UITableViewCell {
 
     // MARK: - Actions
     @objc private func likeButtonTapped() {
-        isLiked.toggle()
-        updateLikeButtonAppearance()
+        // 즉시 토글하지 않고 API 응답을 기다림
+        // (서버의 최종 상태를 setLiked로 받아서 처리)
         onLikeTapped?()
     }
     

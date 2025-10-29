@@ -141,7 +141,7 @@ extension DIContainer {
     
     /// HomeViewModel 생성
     func makeHomeViewModel() -> HomeViewModel {
-        return HomeViewModel(fetchFeedUseCase: fetchFeedUseCase)
+        return HomeViewModel(fetchFeedUseCase: fetchFeedUseCase, getLikesUseCase: getLikesUseCase)
     }
     
     /// DocentListViewModel 생성

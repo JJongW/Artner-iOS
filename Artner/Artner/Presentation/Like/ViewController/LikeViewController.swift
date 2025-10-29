@@ -252,6 +252,14 @@ extension LikeViewController: UITableViewDataSource, UITableViewDelegate {
                 },
                 receiveValue: { [weak self] isLiked in
                     print("✅ 좋아요 상태 업데이트: \(isLiked)")
+                    
+                    // 좋아요 상태 변경을 다른 화면에 알림
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("LikeStatusChanged"),
+                        object: nil,
+                        userInfo: ["id": item.id, "isLiked": isLiked]
+                    )
+                    
                     if !isLiked {
                         // 좋아요가 취소된 경우 목록에서 제거하고 새로고침
                         self?.viewModel.removeItem(at: indexPath.row)
