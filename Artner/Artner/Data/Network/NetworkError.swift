@@ -13,6 +13,7 @@ enum NetworkError: Error, LocalizedError {
     case noInternetConnection
     case timeout
     case serverError(Int)
+    case unauthorized
     case decodingError
     case unknownError
     case invalidURL
@@ -27,6 +28,8 @@ enum NetworkError: Error, LocalizedError {
             return "요청 시간이 초과되었습니다. 다시 시도해주세요."
         case .serverError(let code):
             return "서버 오류가 발생했습니다. (코드: \(code))"
+        case .unauthorized:
+            return "인증이 만료되었습니다. 다시 로그인해주세요."
         case .decodingError:
             return "데이터 처리 중 오류가 발생했습니다."
         case .unknownError:
