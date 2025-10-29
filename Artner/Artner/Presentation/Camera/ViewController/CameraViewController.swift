@@ -82,19 +82,15 @@ final class CameraViewController: UIViewController {
     // MARK: - Camera Permission & Setup
     private func checkCameraPermission() {
         let status = AVCaptureDevice.authorizationStatus(for: .video)
-        print("🔐 [checkCameraPermission] 권한 상태: \(status.rawValue)")
         
         switch status {
         case .authorized:
-            print("✅ [checkCameraPermission] 권한 허용됨 - setupCamera 시작")
             // 카메라 설정은 백그라운드 스레드에서 실행
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 self?.setupCamera()
             }
         case .notDetermined:
-            print("⏳ [checkCameraPermission] 권한 미결정 - 권한 요청")
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
-                print("🔐 [checkCameraPermission] 권한 요청 결과: \(granted)")
                 if granted {
                     // 카메라 설정은 백그라운드 스레드에서 실행
                     DispatchQueue.global(qos: .userInitiated).async {
@@ -107,10 +103,8 @@ final class CameraViewController: UIViewController {
                 }
             }
         case .denied, .restricted:
-            print("❌ [checkCameraPermission] 권한 거부됨")
             showPermissionDeniedAlert()
         @unknown default:
-            print("❓ [checkCameraPermission] 알 수 없는 권한 상태")
             showPermissionDeniedAlert()
         }
     }
@@ -136,75 +130,62 @@ final class CameraViewController: UIViewController {
     }
     
     private func setupCamera() {
-        print("🎥 [setupCamera] 시작")
-        
         guard let captureDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: currentCameraPosition) else {
-            print("❌ [setupCamera] 카메라를 찾을 수 없습니다.")
+            print("❌ 카메라를 찾을 수 없습니다.")
             return
         }
         
-        print("✅ [setupCamera] 카메라 디바이스 찾음: \(captureDevice)")
-        
         do {
-            captureSession = AVCaptureSession()
-            captureSession?.sessionPreset = .photo
-            print("✅ [setupCamera] captureSession 생성")
+            let session = AVCaptureSession()
+            
+            // 세션 구성 시작
+            session.beginConfiguration()
+            
+            // 프리뷰용으로는 .high가 충분하고 더 빠름
+            session.sessionPreset = .high
             
             let input = try AVCaptureDeviceInput(device: captureDevice)
-            
-            if captureSession?.canAddInput(input) == true {
-                captureSession?.addInput(input)
-                print("✅ [setupCamera] input 추가")
+            if session.canAddInput(input) {
+                session.addInput(input)
             }
             
-            photoOutput = AVCapturePhotoOutput()
-            if captureSession?.canAddOutput(photoOutput!) == true {
-                captureSession?.addOutput(photoOutput!)
-                print("✅ [setupCamera] photoOutput 추가")
+            let output = AVCapturePhotoOutput()
+            // 고화질 사진 설정
+            output.isHighResolutionCaptureEnabled = true
+            
+            if session.canAddOutput(output) {
+                session.addOutput(output)
             }
             
-            // UI 업데이트는 메인 스레드에서 실행하고, 완료 후 카메라 시작
+            // 세션 구성 완료 (한 번에 적용)
+            session.commitConfiguration()
+            
+            self.captureSession = session
+            self.photoOutput = output
+            
+            // previewLayer 설정과 세션 시작을 동시에
             DispatchQueue.main.async { [weak self] in
                 self?.setupPreviewLayer()
-                
-                // previewLayer 설정 완료 후 카메라 세션 시작
-                DispatchQueue.global(qos: .background).async {
-                    print("🚀 [setupCamera] captureSession.startRunning() 호출")
-                    self?.captureSession?.startRunning()
-                    print("✅ [setupCamera] captureSession.startRunning() 완료")
-                }
             }
             
+            // 세션 시작 (백그라운드에서 즉시)
+            session.startRunning()
+            
         } catch {
-            print("❌ [setupCamera] 카메라 설정 중 오류 발생: \(error)")
+            print("❌ 카메라 설정 중 오류 발생: \(error)")
         }
     }
     
     private func setupPreviewLayer() {
-        print("🖼️ [setupPreviewLayer] 시작")
-        
-        guard let captureSession = captureSession else {
-            print("❌ [setupPreviewLayer] captureSession이 없음")
-            return
-        }
-        
-        print("✅ [setupPreviewLayer] captureSession 존재, isRunning: \(captureSession.isRunning)")
+        guard let captureSession = captureSession else { return }
         
         previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
         previewLayer?.videoGravity = .resizeAspectFill
         
-        print("✅ [setupPreviewLayer] AVCaptureVideoPreviewLayer 생성")
-        
         // 카메라 프리뷰를 cameraView의 previewContainer에 추가
-        // ㄱ자 테두리가 가려지지 않도록 맨 아래 레이어(index 0)에 추가
         if let previewLayer = previewLayer {
-            // previewLayer의 frame을 previewContainer의 bounds로 설정
             previewLayer.frame = cameraView.previewContainer.bounds
-            
             cameraView.previewContainer.layer.insertSublayer(previewLayer, at: 0)
-            print("✅ [setupPreviewLayer] previewLayer를 previewContainer에 추가")
-            print("   - previewContainer.bounds: \(cameraView.previewContainer.bounds)")
-            print("   - previewLayer.frame: \(previewLayer.frame)")
         }
     }
     
@@ -212,10 +193,7 @@ final class CameraViewController: UIViewController {
         super.viewDidLayoutSubviews()
         
         // 프리뷰 레이어 크기를 previewContainer에 맞춤
-        if let previewLayer = previewLayer {
-            previewLayer.frame = cameraView.previewContainer.bounds
-            print("📐 [viewDidLayoutSubviews] previewLayer.frame 업데이트: \(previewLayer.frame)")
-        }
+        previewLayer?.frame = cameraView.previewContainer.bounds
         
         // 스캔 영역 오버레이 업데이트
         cameraView.updateScanOverlay()
@@ -245,7 +223,6 @@ final class CameraViewController: UIViewController {
     }
     
     private func didTapSearch() {
-        print("🔍 검색창 탭 - Entry 화면으로 이동")
         // Coordinator가 dismiss와 화면 전환을 처리
         coordinator.navigateToEntryFromCamera(with: nil)
     }
@@ -258,8 +235,6 @@ final class CameraViewController: UIViewController {
     }
     
     @objc private func didTapFlipCamera() {
-        print("🔄 [didTapFlipCamera] 카메라 전환 시작")
-        
         // 전면/후면 카메라 전환
         currentCameraPosition = (currentCameraPosition == .back) ? .front : .back
         
@@ -275,14 +250,12 @@ final class CameraViewController: UIViewController {
             captureSession.inputs.forEach { input in
                 if let videoInput = input as? AVCaptureDeviceInput {
                     captureSession.removeInput(videoInput)
-                    print("✅ [didTapFlipCamera] 기존 입력 제거")
                 }
             }
             
             // 새로운 카메라로 설정
             guard let newCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: self.currentCameraPosition) else {
                 captureSession.commitConfiguration()
-                print("❌ [didTapFlipCamera] 새 카메라를 찾을 수 없음")
                 return
             }
             
@@ -290,15 +263,13 @@ final class CameraViewController: UIViewController {
                 let newInput = try AVCaptureDeviceInput(device: newCamera)
                 if captureSession.canAddInput(newInput) {
                     captureSession.addInput(newInput)
-                    print("✅ [didTapFlipCamera] 새 입력 추가: \(self.currentCameraPosition == .back ? "후면" : "전면")")
                 }
             } catch {
-                print("❌ [didTapFlipCamera] 카메라 전환 중 오류: \(error)")
+                print("❌ 카메라 전환 중 오류: \(error)")
             }
             
             // 세션 구성 완료
             captureSession.commitConfiguration()
-            print("✅ [didTapFlipCamera] 카메라 전환 완료")
         }
     }
     
@@ -320,21 +291,12 @@ extension CameraViewController: AVCapturePhotoCaptureDelegate {
         }
         
         guard let imageData = photo.fileDataRepresentation(),
-              let image = UIImage(data: imageData) else {
-            print("이미지 데이터를 변환할 수 없습니다.")
+              let image = UIImage(data: imageData),
+              let jpegData = image.jpegData(compressionQuality: 0.8) else {
             return
         }
         
-        // 촬영된 이미지 처리 - API 호출
-        print("📸 사진이 촬영되었습니다.")
-        
-        // 이미지를 JPEG Data로 변환
-        guard let jpegData = image.jpegData(compressionQuality: 0.8) else {
-            print("❌ 이미지 데이터 변환 실패")
-            return
-        }
-        
-        // dismiss 전에 API 호출 (에러 Alert를 띄울 수 있도록)
+        // API 호출
         uploadImageToRealtimeDocent(imageData: jpegData)
     }
 }
@@ -342,17 +304,8 @@ extension CameraViewController: AVCapturePhotoCaptureDelegate {
 // MARK: - UIImagePickerControllerDelegate, UINavigationControllerDelegate
 extension CameraViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-        if let selectedImage = info[.originalImage] as? UIImage {
-            // 선택된 이미지 처리 - API 호출
-            print("🖼️ 갤러리에서 이미지를 선택했습니다.")
-            
-            // 이미지를 JPEG Data로 변환
-            guard let imageData = selectedImage.jpegData(compressionQuality: 0.8) else {
-                print("❌ 이미지 데이터 변환 실패")
-                picker.dismiss(animated: true)
-                return
-            }
-            
+        if let selectedImage = info[.originalImage] as? UIImage,
+           let imageData = selectedImage.jpegData(compressionQuality: 0.8) {
             // picker를 먼저 dismiss하고, 완료 후 API 호출
             picker.dismiss(animated: true) { [weak self] in
                 self?.uploadImageToRealtimeDocent(imageData: imageData)
@@ -372,31 +325,14 @@ extension CameraViewController {
     
     /// 실시간 도슨트 API 호출 (이미지 업로드)
     private func uploadImageToRealtimeDocent(imageData: Data) {
-        print("🚀 실시간 도슨트 API 호출 시작")
-        print("   - 이미지 크기: \(imageData.count) bytes")
-        
-        // 로딩 인디케이터 표시 (옵션)
-        // showLoadingIndicator()
-        
         // APIService를 통해 API 호출
         APIService.shared.request(
             APITarget.realtimeDocent(inputText: nil, inputImage: imageData)
         ) { [weak self] (result: Result<RealtimeDocentResponseDTO, Error>) in
-            // 로딩 인디케이터 숨김
-            // self?.hideLoadingIndicator()
-            
             switch result {
             case .success(let response):
-                print("✅ 실시간 도슨트 API 성공")
-                print("   - Item Type: \(response.itemType)")
-                print("   - Item Name: \(response.itemName)")
-                print("   - Audio Job ID: \(response.audioJobId)")
-                print("   - Text Length: \(response.text.count) characters")
-                print("   - Text Preview: \(String(response.text.prefix(100)))...")
-                
                 // 응답 데이터를 Docent 모델로 변환
                 guard let docent = self?.convertToDocent(from: response) else {
-                    print("⚠️ Docent 변환 실패")
                     self?.showAPIError()
                     return
                 }
@@ -404,14 +340,11 @@ extension CameraViewController {
                 // 성공 토스트 표시
                 ToastManager.shared.showSuccess("\(response.itemName) 정보를 가져왔습니다")
                 
-                // Coordinator를 통해 화면 전환 (dismiss + Entry 화면 이동)
+                // Coordinator를 통해 화면 전환
                 self?.coordinator.dismissCameraAndShowEntry(docent: docent)
                 
             case .failure(let error):
-                print("❌ 실시간 도슨트 API 실패")
-                print("   - Error: \(error.localizedDescription)")
-                
-                // 에러 처리 (CameraViewController는 dismiss하지 않음)
+                print("❌ 실시간 도슨트 API 실패: \(error.localizedDescription)")
                 self?.showAPIError()
             }
         }
