@@ -17,18 +17,15 @@ final class EntryView: BaseView {
     let customNavigationBar = CustomNavigationBar()
     let blurredImageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(named: "ic_bot")
+        imageView.image = UIImage(named: "Artner_img")
         imageView.contentMode = .scaleAspectFit
-        imageView.tintColor = .white
         return imageView
     }()
-    let blurEffectView = UIVisualEffectView(effect: UIBlurEffect(style: .light))
     let greetingLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.boldSystemFont(ofSize: 18)
         label.textColor = .white
         label.numberOfLines = 1
-        label.text = "안녕하세요, 앤젤리너스 커피님!"
         label.setContentHuggingPriority(.required, for: .vertical)
         label.setContentCompressionResistancePriority(.required, for: .vertical)
         return label
@@ -38,7 +35,6 @@ final class EntryView: BaseView {
         label.font = UIFont.systemFont(ofSize: 18)
         label.textColor = .white
         label.numberOfLines = 0
-        label.text = "작가의 이름이나 작품 명, 제작년도 등을\n자세히 적으면 더 구체적으로 설명해 드릴게요."
         return label
     }()
     let suggestionLabel: UILabel = {
@@ -48,11 +44,19 @@ final class EntryView: BaseView {
         label.textColor = .white.withAlphaComponent(0.5)
         return label
     }()
+    let suggestionScrollView: UIScrollView = {
+        let scrollView = UIScrollView()
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.contentInset = UIEdgeInsets(top: 0, left: 20, bottom: 0, right: 20)
+        return scrollView
+    }()
+    
     let suggestionStack: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .horizontal
         stackView.spacing = 12
-        stackView.distribution = .fillEqually
+        stackView.distribution = .fill
         return stackView
     }()
     private var _textField: UITextField?
@@ -140,16 +144,17 @@ final class EntryView: BaseView {
         scrollView.keyboardDismissMode = .interactive
         scrollView.alwaysBounceVertical = true
 
-        [customNavigationBar, blurredImageView, greetingLabel, descriptionLabel, suggestionLabel, suggestionStack, textField, searchButton].forEach {
+        [customNavigationBar, blurredImageView, greetingLabel, descriptionLabel, suggestionLabel, suggestionScrollView, textField, searchButton].forEach {
             contentView.addSubview($0)
         }
+        
+        suggestionScrollView.addSubview(suggestionStack)
         
         // bottomFadeView를 스크롤뷰에 추가 (컨텐츠 위에 오버레이)
         addSubview(bottomFadeView)
 
         blurredImageView.contentMode = .scaleAspectFit
         blurredImageView.clipsToBounds = true
-        blurredImageView.addSubview(blurEffectView)
 
         ["🖼️\n작품 표현\n방식에 대해", "🎨\n인상주의에\n대해", "🎨\n레오나르도 다빈치"].forEach { title in
             let button = UIButton()
@@ -173,7 +178,14 @@ final class EntryView: BaseView {
             button.titleLabel?.textAlignment = .center
             button.backgroundColor = UIColor.white.withAlphaComponent(0.1)
             button.layer.cornerRadius = 12
+            button.contentEdgeInsets = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
+            
             suggestionStack.addArrangedSubview(button)
+            
+            // 각 버튼의 너비를 122로 고정
+            button.snp.makeConstraints {
+                $0.width.equalTo(122)
+            }
         }
 
         customNavigationBar.onBackButtonTapped = { [weak self] in
@@ -188,6 +200,49 @@ final class EntryView: BaseView {
         searchButton.backgroundColor = .clear
 
         setupFadeLayer()
+        setupLabels()
+    }
+    
+    // MARK: - Public Methods
+    
+    /// 사용자 이름 업데이트
+    func updateUserName(_ name: String) {
+        let greetingText = "안녕하세요, \(name)님!"
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineHeightMultiple = 1.64 // 164% line height
+        
+        let attributedString = NSAttributedString(
+            string: greetingText,
+            attributes: [
+                .font: UIFont.boldSystemFont(ofSize: 18),
+                .foregroundColor: UIColor.white,
+                .paragraphStyle: paragraphStyle
+            ]
+        )
+        
+        greetingLabel.attributedText = attributedString
+    }
+    
+    /// 초기 라벨 설정
+    private func setupLabels() {
+        // greeting label 기본 텍스트 (사용자 이름은 나중에 업데이트)
+        updateUserName("앤젤리너스 커피")
+        
+        // description label line height 164% 적용
+        let descriptionText = "작가의 이름이나 작품 명, 제작년도 등을\n자세히 적으면 더 구체적으로 설명해 드릴게요."
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineHeightMultiple = 1.64 // 164% line height
+        
+        let attributedString = NSAttributedString(
+            string: descriptionText,
+            attributes: [
+                .font: UIFont.systemFont(ofSize: 18),
+                .foregroundColor: UIColor.white,
+                .paragraphStyle: paragraphStyle
+            ]
+        )
+        
+        descriptionLabel.attributedText = attributedString
     }
 
     override func setupLayout() {
@@ -212,15 +267,11 @@ final class EntryView: BaseView {
         blurredImageView.snp.makeConstraints {
             $0.top.equalTo(customNavigationBar.snp.bottom).offset(20)
             $0.centerX.equalToSuperview()
-            $0.width.height.equalTo(120).priority(.high) // 우선순위를 high로 설정하여 압축 가능
-        }
-
-        blurEffectView.snp.makeConstraints {
-            $0.edges.equalToSuperview()
+            $0.width.height.equalTo(155)
         }
 
         greetingLabel.snp.makeConstraints {
-            greetingTopConstraint = $0.top.equalTo(blurredImageView.snp.bottom).offset(32).constraint
+            greetingTopConstraint = $0.top.equalTo(blurredImageView.snp.bottom).offset(10).constraint
             $0.leading.trailing.equalToSuperview().inset(20)
         }
 
@@ -235,15 +286,20 @@ final class EntryView: BaseView {
             $0.leading.equalTo(greetingLabel)
         }
 
-        suggestionStack.snp.makeConstraints {
+        suggestionScrollView.snp.makeConstraints {
             $0.top.equalTo(suggestionLabel.snp.bottom).offset(12)
             $0.height.equalTo(105).priority(.high) // 우선순위를 high로 설정하여 압축 가능
             $0.height.greaterThanOrEqualTo(80) // 최소 80 높이는 보장
-            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.leading.trailing.equalToSuperview()
+        }
+        
+        suggestionStack.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+            $0.height.equalToSuperview()
         }
 
         textField.snp.makeConstraints {
-            $0.top.greaterThanOrEqualTo(suggestionStack.snp.bottom).offset(26) // 최소 26 간격 유지
+            $0.top.equalTo(suggestionScrollView.snp.bottom).offset(26).priority(.high) // 26 간격 유지 (우선순위 high)
             $0.leading.trailing.equalToSuperview().inset(20)
             $0.height.equalTo(52) // 높이를 조금 더 여유있게 조정
             // 안전 영역을 고려하여 화면 하단에서 46px 위에 배치 (우선순위 설정)

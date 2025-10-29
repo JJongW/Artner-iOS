@@ -22,7 +22,15 @@ final class EntryViewController: BaseViewController<EntryViewModel, AppCoordinat
         setupActions()
         setupKeyboardNotification()
         setupTapGestureToDismissKeyboard()
-        setupTextFieldSettings() // RTI 에러 방지를 위한 안전한 설정
+        setupTextFieldSettings()
+        setupUserInfo()
+    }
+    
+    /// 사용자 정보 설정
+    private func setupUserInfo() {
+        if let userName = TokenManager.shared.userName, !userName.isEmpty {
+            entryView.updateUserName(userName)
+        }
     }
 
     private func setupActions() {
@@ -61,19 +69,101 @@ final class EntryViewController: BaseViewController<EntryViewModel, AppCoordinat
         // 검색 버튼 비활성화하여 중복 클릭 방지
         entryView.searchButton.isEnabled = false
         
-        // 키보드를 먼저 내리고 UI 업데이트 완료 후 navigation 수행
+        // 키보드를 먼저 내리기
         entryView.textField.resignFirstResponder()
         
-        // 키보드 애니메이션이 완전히 끝나고 시스템이 안정화된 후 navigation 수행
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+        // API 호출
+        searchWithText(keyword: keyword)
+    }
+    
+    /// 텍스트로 실시간 도슨트 API 호출
+    private func searchWithText(keyword: String) {
+        // APIService를 통해 API 호출
+        APIService.shared.request(
+            APITarget.realtimeDocent(inputText: keyword, inputImage: nil)
+        ) { [weak self] (result: Result<RealtimeDocentResponseDTO, Error>) in
             guard let self = self else { return }
             
-            // Navigation 전에 한 번 더 Main Thread 안전성 확보
+            // 검색 버튼 다시 활성화
             DispatchQueue.main.async {
-                self.coordinator.showChat(docent: self.viewModel.docent, keyword: keyword)
-                // 검색 버튼 다시 활성화
                 self.entryView.searchButton.isEnabled = true
             }
+            
+            switch result {
+            case .success(let response):
+                // 응답 데이터를 Docent 모델로 변환
+                guard let docent = self.convertToDocent(from: response) else {
+                    self.showErrorAlert(message: "검색 결과를 처리하는 데 실패했습니다.")
+                    return
+                }
+                
+                // 성공 토스트 표시
+                ToastManager.shared.showSuccess("\(response.itemName) 정보를 가져왔습니다")
+                
+                // Chat 화면으로 이동
+                DispatchQueue.main.async {
+                    self.coordinator.showChat(docent: docent, keyword: keyword)
+                }
+                
+            case .failure(let error):
+                print("❌ 검색 API 실패: \(error.localizedDescription)")
+                self.showErrorAlert(message: "검색에 실패했습니다.\n다시 시도해주세요.")
+            }
+        }
+    }
+    
+    /// RealtimeDocentResponseDTO를 Docent 모델로 변환
+    private func convertToDocent(from response: RealtimeDocentResponseDTO) -> Docent? {
+        // 텍스트를 문장 단위로 분리 (마침표 기준)
+        let sentences = response.text.components(separatedBy: ". ")
+            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .map { sentence -> String in
+                let trimmed = sentence.trimmingCharacters(in: .whitespacesAndNewlines)
+                return trimmed.hasSuffix(".") ? trimmed : trimmed + "."
+            }
+        
+        // DocentScript 배열 생성 (각 문장에 시간 할당)
+        let avgTimePerSentence: TimeInterval = 5.0 // 문장당 평균 5초
+        var currentTime: TimeInterval = 0.0
+        
+        let docentScripts = sentences.map { sentence -> DocentScript in
+            let script = DocentScript(startTime: currentTime, text: sentence)
+            currentTime += avgTimePerSentence
+            return script
+        }
+        
+        // DocentParagraph 생성 (전체 텍스트를 하나의 문단으로)
+        let paragraph = DocentParagraph(
+            id: "p-\(response.audioJobId)",
+            startTime: 0.0,
+            endTime: currentTime,
+            sentences: docentScripts
+        )
+        
+        // Docent 생성
+        let docent = Docent(
+            id: response.audioJobId.hashValue, // audioJobId를 ID로 변환
+            title: response.itemName,
+            artist: response.itemType == "artist" ? response.itemName : "알 수 없음",
+            description: String(response.text.prefix(200)) + "...", // 앞부분 200자만
+            imageURL: "", // 이미지 URL은 아직 제공되지 않음
+            audioURL: nil, // 오디오 URL은 나중에 audioJobId로 조회
+            paragraphs: [paragraph]
+        )
+        
+        return docent
+    }
+    
+    /// 에러 알림 표시
+    private func showErrorAlert(message: String) {
+        DispatchQueue.main.async { [weak self] in
+            let alert = UIAlertController(
+                title: "오류",
+                message: message,
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "확인", style: .default))
+            self?.present(alert, animated: true)
         }
     }
 
@@ -93,7 +183,10 @@ final class EntryViewController: BaseViewController<EntryViewModel, AppCoordinat
 
         let convertedFrame = view.convert(keyboardFrameEnd, from: nil)
         let keyboardHeight = view.bounds.height - convertedFrame.origin.y
-        let bottomOffset: CGFloat = keyboardHeight > 0 ? keyboardHeight + 16 : 46 // 안전 영역 고려하여 46으로 조정
+        
+        // Safe Area Bottom Inset을 고려하여 정확히 16pt 간격 유지
+        let safeAreaBottom = view.safeAreaInsets.bottom
+        let bottomOffset: CGFloat = keyboardHeight > 0 ? keyboardHeight - safeAreaBottom + 16 : 46
 
         entryView.textFieldBottomConstraint?.update(inset: bottomOffset)
         entryView.updateSuggestionSpacing(shrink: keyboardHeight > 0)
@@ -111,13 +204,13 @@ final class EntryViewController: BaseViewController<EntryViewModel, AppCoordinat
     }
 
     private func updateBlurredImageView(shrink: Bool) {
-        let size: CGFloat = shrink ? 24 : 120
-        let leadingOffset: CGFloat = shrink ? 20 : (view.bounds.width - size) / 2
+        let size: CGFloat = shrink ? 24 : 155
+        let leadingOffset: CGFloat = 20
 
         // 모든 제약조건을 다시 생성하여 SnapKit 에러 방지
         entryView.blurredImageView.snp.remakeConstraints {
             $0.top.equalTo(entryView.customNavigationBar.snp.bottom).offset(20)
-            $0.width.height.equalTo(size).priority(.high)
+            $0.width.height.equalTo(size)
             
             if shrink {
                 // 키보드 올라올 때는 leading으로 이동
@@ -147,8 +240,7 @@ final class EntryViewController: BaseViewController<EntryViewModel, AppCoordinat
         // 텍스트필드가 이미 초기화된 후 한번 더 안전하게 설정
         let textField = entryView.textField
         
-        // RTI 에러 방지를 위한 키보드 설정 재확인
-        textField.keyboardType = .asciiCapable
+        textField.keyboardType = .default
         textField.autocorrectionType = .no
         textField.spellCheckingType = .no
         textField.smartDashesType = .no

@@ -138,12 +138,14 @@ final class AuthRepositoryImpl: AuthRepository {
                     print("   - User ID: \(response.user.id)")
                     print("   - Username: \(response.user.username)")
                     print("   - Nickname: \(response.user.nickname)")
+                    print("   - Display Name: \(response.user.displayName)")
                     print("   - Is New User: \(response.isNewUser)")
                     
-                    // 백엔드에서 받은 토큰을 Keychain에 저장
-                    TokenManager.shared.saveTokens(
+                    // 백엔드에서 받은 토큰과 사용자 이름을 저장
+                    TokenManager.shared.saveTokensWithUserName(
                         access: response.accessToken,
-                        refresh: response.refreshToken
+                        refresh: response.refreshToken,
+                        userName: response.user.displayName
                     )
                     
                     // DTO를 Domain Entity로 변환

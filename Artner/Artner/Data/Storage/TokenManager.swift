@@ -19,6 +19,7 @@ final class TokenManager {
     private enum Keys {
         static let accessToken = "access_token"
         static let refreshToken = "refresh_token"
+        static let userName = "user_name"
     }
     
     // MARK: - Private Properties
@@ -43,6 +44,11 @@ final class TokenManager {
         return keychainManager.refreshToken
     }
     
+    /// 사용자 이름 가져오기
+    var userName: String? {
+        return userDefaults.string(forKey: Keys.userName)
+    }
+    
     /// 토큰 저장
     func saveTokens(access: String, refresh: String) {
         let accessSaved = keychainManager.saveAccessToken(access)
@@ -55,9 +61,20 @@ final class TokenManager {
         #endif
     }
     
+    /// 토큰과 사용자 이름 저장
+    func saveTokensWithUserName(access: String, refresh: String, userName: String) {
+        saveTokens(access: access, refresh: refresh)
+        userDefaults.set(userName, forKey: Keys.userName)
+        
+        #if DEBUG
+        print("👤 사용자 이름 저장: \(userName)")
+        #endif
+    }
+    
     /// 토큰 삭제 (로그아웃 시)
     func clearTokens() {
         keychainManager.clearAllTokens()
+        userDefaults.removeObject(forKey: Keys.userName)
         
         // 혹시 남아있을 수 있는 UserDefaults 토큰도 삭제
         userDefaults.removeObject(forKey: Keys.accessToken)
