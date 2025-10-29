@@ -15,27 +15,7 @@ final class TokenDebugger {
         print("🔍 [TokenDebugger] 토큰 상태 확인 시작")
         print("====================================")
 
-        // 1. 환경변수 확인
-        print("📋 환경변수 상태:")
-        let envAccess = ProcessInfo.processInfo.environment["DEV_ACCESS_TOKEN"]
-        let envRefresh = ProcessInfo.processInfo.environment["DEV_REFRESH_TOKEN"]
-        
-        print("   DEV_ACCESS_TOKEN: \(envAccess != nil ? "✅ 설정됨" : "❌ 없음")")
-        print("   DEV_REFRESH_TOKEN: \(envRefresh != nil ? "✅ 설정됨" : "❌ 없음")")
-        
-        if let access = envAccess {
-            print("   Access Token 길이: \(access.count) 문자")
-            print("   Access Token 시작: \(String(access.prefix(20)))...")
-        }
-        
-        if let refresh = envRefresh {
-            print("   Refresh Token 길이: \(refresh.count) 문자")
-            print("   Refresh Token 시작: \(String(refresh.prefix(20)))...")
-        }
-        
-        print("")
-        
-        // 2. UserDefaults 확인
+        // 1. UserDefaults 확인 (마이그레이션 확인용)
         print("💾 UserDefaults 상태:")
         let userDefaults = UserDefaults.standard
         let savedAccess = userDefaults.string(forKey: "access_token")
@@ -54,8 +34,8 @@ final class TokenDebugger {
         
         print("")
         
-        // 3. TokenManager 상태 확인
-        print("🔐 TokenManager 상태:")
+        // 2. TokenManager 상태 확인 (Keychain)
+        print("🔐 TokenManager 상태 (Keychain):")
         let tokenManager = TokenManager.shared
         print("   hasValidTokens: \(tokenManager.hasValidTokens)")
         print("   accessToken != nil: \(tokenManager.accessToken != nil)")

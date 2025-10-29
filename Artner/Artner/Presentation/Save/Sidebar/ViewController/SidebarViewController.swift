@@ -17,6 +17,7 @@ protocol SidebarViewControllerDelegate: AnyObject {
     func sidebarDidRequestShowSave() // 저장 이동 요청
     func sidebarDidRequestShowUnderline() // 밑줄 이동 요청
     func sidebarDidRequestShowRecord() // 전시기록 이동 요청
+    func sidebarDidRequestLogout() // 로그아웃 요청
 }
 
 final class SidebarViewController: UIViewController {
@@ -173,10 +174,12 @@ final class SidebarViewController: UIViewController {
         withdrawButton.setTitle("회원 탈퇴", for: .normal)
         withdrawButton.setTitleColor(UIColor(red: 0.62, green: 0.61, blue: 0.61, alpha: 1.0), for: .normal) // #9e9c9c
         withdrawButton.titleLabel?.font = UIFont.systemFont(ofSize: 14)
+        withdrawButton.addTarget(self, action: #selector(didTapWithdraw), for: .touchUpInside)
         
         logoutButton.setTitle("로그아웃", for: .normal)
         logoutButton.setTitleColor(UIColor(red: 0.62, green: 0.61, blue: 0.61, alpha: 1.0), for: .normal) // #9e9c9c
         logoutButton.titleLabel?.font = UIFont.systemFont(ofSize: 14)
+        logoutButton.addTarget(self, action: #selector(didTapLogout), for: .touchUpInside)
         
         verticalDivider.backgroundColor = UIColor(red: 0.62, green: 0.61, blue: 0.61, alpha: 1.0) // #9e9c9c
         
@@ -322,6 +325,37 @@ final class SidebarViewController: UIViewController {
         // 기존: dismiss(animated: true)
         // 변경: delegate를 통해 닫기 요청 전달 (실제 닫기는 컨테이너가 담당)
         delegate?.sidebarDidRequestClose()
+    }
+    
+    @objc private func didTapLogout() {
+        print("🚪 로그아웃 버튼 클릭")
+        
+        // 확인 alert 표시
+        let alert = UIAlertController(
+            title: "로그아웃",
+            message: "로그아웃 하시겠습니까?",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+        alert.addAction(UIAlertAction(title: "로그아웃", style: .destructive) { [weak self] _ in
+            self?.delegate?.sidebarDidRequestLogout()
+        })
+        
+        present(alert, animated: true)
+    }
+    
+    @objc private func didTapWithdraw() {
+        print("⚠️ 회원 탈퇴 버튼 클릭")
+        // TODO: 회원 탈퇴 기능 구현
+        
+        let alert = UIAlertController(
+            title: "회원 탈퇴",
+            message: "회원 탈퇴 기능은 준비 중입니다.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "확인", style: .default))
+        present(alert, animated: true)
     }
     
     // MARK: - Skeleton UI Setup

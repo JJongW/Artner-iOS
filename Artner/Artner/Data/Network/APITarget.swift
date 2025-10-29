@@ -54,6 +54,7 @@ enum APITarget {
     
     // MARK: - Auth API
     case kakaoLogin(accessToken: String)
+    case logout(refreshToken: String)
 }
 
 // MARK: - TargetType 구현
@@ -131,6 +132,8 @@ extension APITarget: TargetType {
         // Auth
         case .kakaoLogin:
             return "/kakao"
+        case .logout:
+            return "/logout"
         }
     }
     
@@ -157,7 +160,8 @@ extension APITarget: TargetType {
              .likeExhibition,
              .likeArtwork,
              .likeArtist,
-             .kakaoLogin:
+             .kakaoLogin,
+             .logout:
             return .post
             
         case .updateFolder:
@@ -230,6 +234,12 @@ extension APITarget: TargetType {
         case .kakaoLogin(let accessToken):
             let parameters = [
                 "access_token": accessToken
+            ]
+            return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
+            
+        case .logout(let refreshToken):
+            let parameters = [
+                "refresh_token": refreshToken
             ]
             return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
         }

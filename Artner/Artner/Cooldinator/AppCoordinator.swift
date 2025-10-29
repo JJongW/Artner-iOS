@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Combine
 
 final class AppCoordinator {
     private let window: UIWindow
@@ -171,5 +172,55 @@ extension AppCoordinator: SidebarViewControllerDelegate {
     }
     func sidebarDidRequestShowRecord() {
         sideMenu?.dismissMenu(completion: { [weak self] in self?.showRecord() })
+    }
+    
+    func sidebarDidRequestLogout() {
+        print("🚪 AppCoordinator: 로그아웃 처리 시작")
+        
+        // 로그아웃 UseCase 실행
+        let logoutUseCase = LogoutUseCaseImpl()
+        var cancellable: AnyCancellable?
+        
+        cancellable = logoutUseCase.execute()
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    if case .failure(let error) = completion {
+                        print("❌ AppCoordinator: 로그아웃 실패 - \(error.localizedDescription)")
+                        self?.showLogoutError()
+                    }
+                    cancellable?.cancel()
+                },
+                receiveValue: { [weak self] _ in
+                    print("✅ AppCoordinator: 로그아웃 성공 - 로그인 화면으로 이동")
+                    
+                    // 로그아웃 성공 토스트 표시
+                    ToastManager.shared.showSuccess("로그아웃되었습니다")
+                    
+                    // 사이드바 닫고 로그인 화면으로 이동 (토스트가 보이도록 약간 지연)
+                    self?.sideMenu?.dismissMenu(completion: {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            self?.navigateToLaunch()
+                        }
+                    })
+                }
+            )
+    }
+    
+    private func showLogoutError() {
+        let alert = UIAlertController(
+            title: "로그아웃 실패",
+            message: "로그아웃 중 오류가 발생했습니다.\n다시 시도해주세요.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "확인", style: .default))
+        navigationController.present(alert, animated: true)
+    }
+    
+    private func navigateToLaunch() {
+        // 모든 화면을 제거하고 LaunchViewController로 돌아가기
+        let launchViewModel = LaunchViewModel()
+        let launchVC = LaunchViewController(viewModel: launchViewModel)
+        navigationController.setViewControllers([launchVC], animated: true)
     }
 }

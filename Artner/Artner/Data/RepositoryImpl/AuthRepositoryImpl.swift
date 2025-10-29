@@ -164,5 +164,41 @@ final class AuthRepositoryImpl: AuthRepository {
         }
         .eraseToAnyPublisher()
     }
+    
+    /// 로그아웃 수행
+    func logout() -> AnyPublisher<Void, Error> {
+        return Future<Void, Error> { promise in
+            print("🚪 로그아웃 시작")
+            
+            // TokenManager에서 refresh token 가져오기
+            guard let refreshToken = TokenManager.shared.refreshToken else {
+                print("❌ Refresh Token이 없습니다.")
+                // Refresh Token이 없어도 로컬 토큰은 삭제
+                TokenManager.shared.clearTokens()
+                promise(.success(()))
+                return
+            }
+            
+            // 백엔드에 로그아웃 요청
+            self.apiService.request(APITarget.logout(refreshToken: refreshToken)) { (result: Result<LogoutResponseDTO, Error>) in
+                switch result {
+                case .success(let response):
+                    print("✅ 백엔드 로그아웃 성공")
+                    print("   - Message: \(response.message)")
+                    print("   - Success: \(response.success)")
+                    
+                    // 로컬 토큰 삭제
+                    TokenManager.shared.clearTokens()
+                    promise(.success(()))
+                    
+                case .failure(let error):
+                    print("❌ 백엔드 로그아웃 실패: \(error.localizedDescription)")
+                    // 실패해도 로컬 토큰은 삭제
+                    TokenManager.shared.clearTokens()
+                    promise(.success(())) // 로컬 토큰 삭제는 성공으로 처리
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
 }
-

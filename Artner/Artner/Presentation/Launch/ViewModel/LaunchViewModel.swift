@@ -65,13 +65,19 @@ final class LaunchViewModel {
     func checkAutoLogin() {
         print("🔍 ViewModel: 자동 로그인 체크 시작")
         
+        // 디버깅: 토큰 상태 확인
+        TokenManager.shared.debugTokenStatus()
+        
         // TokenManager에서 accessToken 확인
         if let accessToken = TokenManager.shared.accessToken, !accessToken.isEmpty {
-            print("✅ ViewModel: 저장된 토큰 발견 - 자동 로그인 처리")
+            print("✅ ViewModel: 저장된 토큰 발견")
+            print("   토큰 길이: \(accessToken.count) 문자")
+            print("   토큰 시작: \(String(accessToken.prefix(20)))...")
             
-            // 실제로는 백엔드에 토큰 유효성 검증 API를 호출해야 하지만,
-            // 지금은 토큰이 있으면 바로 메인 화면으로 이동
+            // ⚠️ 경고: 현재는 토큰 유효성 검증을 하지 않음
+            // 실제로는 백엔드에 토큰 유효성 검증 API를 호출해야 함
             // TODO: 토큰 유효성 검증 API 추가
+            print("⚠️ 경고: 토큰 유효성 검증 없이 자동 로그인 처리")
             
             // 임시 UserInfo 생성 (실제로는 백엔드에서 사용자 정보 가져와야 함)
             let userInfo = UserInfo(

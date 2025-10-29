@@ -9,6 +9,7 @@ import Foundation
 
 /// 토큰 관리 매니저
 /// Clean Architecture: Data Layer에서 토큰 저장/관리 담당
+/// Keychain을 사용하여 안전하게 토큰 저장
 final class TokenManager {
     
     // MARK: - Singleton
@@ -21,40 +22,90 @@ final class TokenManager {
     }
     
     // MARK: - Private Properties
+    private let keychainManager = KeychainTokenManager.shared
     private let userDefaults = UserDefaults.standard
+    
+    // MARK: - Initializer
+    private init() {
+        // 기존 UserDefaults에 저장된 토큰을 Keychain으로 마이그레이션
+        migrateTokensToKeychain()
+    }
     
     // MARK: - Public Methods
     
     /// 액세스 토큰 가져오기
     var accessToken: String? {
-        return userDefaults.string(forKey: Keys.accessToken)
+        return keychainManager.accessToken
     }
     
     /// 리프레시 토큰 가져오기
     var refreshToken: String? {
-        return userDefaults.string(forKey: Keys.refreshToken)
+        return keychainManager.refreshToken
     }
     
     /// 토큰 저장
     func saveTokens(access: String, refresh: String) {
-        userDefaults.set(access, forKey: Keys.accessToken)
-        userDefaults.set(refresh, forKey: Keys.refreshToken)
+        let accessSaved = keychainManager.saveAccessToken(access)
+        let refreshSaved = keychainManager.saveRefreshToken(refresh)
         
         #if DEBUG
-        print("🔐 토큰 저장 완료")
-        print("   Access Token: \(maskToken(access))")
-        print("   Refresh Token: \(maskToken(refresh))")
+        print("🔐 토큰 Keychain 저장 완료")
+        print("   Access Token 저장: \(accessSaved ? "✅" : "❌") - \(maskToken(access))")
+        print("   Refresh Token 저장: \(refreshSaved ? "✅" : "❌") - \(maskToken(refresh))")
         #endif
     }
     
     /// 토큰 삭제 (로그아웃 시)
     func clearTokens() {
+        keychainManager.clearAllTokens()
+        
+        // 혹시 남아있을 수 있는 UserDefaults 토큰도 삭제
         userDefaults.removeObject(forKey: Keys.accessToken)
         userDefaults.removeObject(forKey: Keys.refreshToken)
         
         #if DEBUG
-        print("🔐 토큰 삭제 완료")
+        print("🔐 토큰 삭제 완료 (Keychain + UserDefaults)")
         #endif
+    }
+    
+    // MARK: - Private Methods
+    
+    /// UserDefaults에 저장된 토큰을 Keychain으로 마이그레이션
+    private func migrateTokensToKeychain() {
+        // 이미 Keychain에 토큰이 있으면 마이그레이션 불필요
+        if keychainManager.accessToken != nil {
+            #if DEBUG
+            print("🔐 Keychain에 토큰이 이미 존재합니다. 마이그레이션 건너뜀.")
+            #endif
+            return
+        }
+        
+        // UserDefaults에서 토큰 가져오기
+        guard let oldAccess = userDefaults.string(forKey: Keys.accessToken),
+              let oldRefresh = userDefaults.string(forKey: Keys.refreshToken) else {
+            #if DEBUG
+            print("🔐 마이그레이션할 토큰이 없습니다.")
+            #endif
+            return
+        }
+        
+        // Keychain에 저장
+        let accessSaved = keychainManager.saveAccessToken(oldAccess)
+        let refreshSaved = keychainManager.saveRefreshToken(oldRefresh)
+        
+        if accessSaved && refreshSaved {
+            // 마이그레이션 성공 시 UserDefaults에서 삭제
+            userDefaults.removeObject(forKey: Keys.accessToken)
+            userDefaults.removeObject(forKey: Keys.refreshToken)
+            
+            #if DEBUG
+            print("🔐 ✅ 토큰 마이그레이션 완료: UserDefaults → Keychain")
+            #endif
+        } else {
+            #if DEBUG
+            print("🔐 ❌ 토큰 마이그레이션 실패")
+            #endif
+        }
     }
     
     /// 토큰 존재 여부 확인
@@ -77,12 +128,6 @@ final class TokenManager {
         if let refresh = refreshToken {
             print("   Refresh Token: \(maskToken(refresh))")
         }
-        
-        // 환경변수 상태 확인
-        let envAccess = ProcessInfo.processInfo.environment["DEV_ACCESS_TOKEN"]
-        let envRefresh = ProcessInfo.processInfo.environment["DEV_REFRESH_TOKEN"]
-        print("   환경변수 DEV_ACCESS_TOKEN: \(envAccess != nil ? "설정됨" : "없음")")
-        print("   환경변수 DEV_REFRESH_TOKEN: \(envRefresh != nil ? "설정됨" : "없음")")
         #endif
     }
     

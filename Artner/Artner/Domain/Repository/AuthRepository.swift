@@ -15,5 +15,9 @@ protocol AuthRepository {
     /// 카카오 로그인 수행
     /// - Returns: 로그인 결과 (UserInfo와 토큰 정보)
     func loginWithKakao() -> AnyPublisher<UserInfo, Error>
+    
+    /// 로그아웃 수행
+    /// - Returns: 로그아웃 결과
+    func logout() -> AnyPublisher<Void, Error>
 }
 
