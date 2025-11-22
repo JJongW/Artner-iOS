@@ -200,10 +200,10 @@ extension SaveViewController: UICollectionViewDataSource {
 extension SaveViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if indexPath.item < viewModel.folders.count {
-            // 폴더 선택 시 상세 화면으로 이동
             let folder = viewModel.folders[indexPath.item]
             print("📁 [SaveViewController] 폴더 선택: \(folder.name)")
-            // TODO: 폴더 상세 화면으로 이동
+            let detailVC = SaveFolderDetailViewController(folder: folder)
+            navigationController?.pushViewController(detailVC, animated: true)
         }
     }
 }

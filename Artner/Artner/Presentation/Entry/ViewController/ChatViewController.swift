@@ -173,6 +173,11 @@ final class ChatViewController: BaseViewController<ChatViewModel, AppCoordinator
         chatView.onBackButtonTapped = { [weak self] in
             self?.coordinator.popViewController(animated: true)
         }
+        // 우측 햄버거(사이드바) 버튼 액션 연결
+        chatView.didTapMenuButton = { [weak self] in
+            guard let self = self else { return }
+            self.coordinator.showSidebar(from: self)
+        }
     }
 
     @objc private func didTapListen() {

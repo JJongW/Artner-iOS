@@ -21,7 +21,7 @@ final class RecordRepositoryImpl: RecordRepository {
         return apiService.getRecords()
     }
     
-    func createRecord(visitDate: String, name: String, museum: String, note: String, image: String?) -> AnyPublisher<Record, NetworkError> {
+    func createRecord(visitDate: String, name: String, museum: String, note: String?, image: String?) -> AnyPublisher<Record, NetworkError> {
         return apiService.createRecord(visitDate: visitDate, name: name, museum: museum, note: note, image: image)
     }
     

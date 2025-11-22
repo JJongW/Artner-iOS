@@ -71,8 +71,8 @@ struct CreateRecordRequestDTO: Codable {
     let visitDate: String
     let name: String
     let museum: String
-    let note: String
-    let image: String? // 선택사항으로 변경
+    let note: String? // 선택사항으로 변경
+    let image: String? // 선택사항
     
     enum CodingKeys: String, CodingKey {
         case visitDate = "visit_date"

@@ -32,4 +32,8 @@ final class FolderRepositoryImpl: FolderRepository {
     func deleteFolder(id: Int) -> AnyPublisher<Void, NetworkError> {
         return apiService.deleteFolder(id: id)
     }
+    
+    func getFolderDetail(id: Int) -> AnyPublisher<FolderDetailDTO, NetworkError> {
+        return apiService.getFolderDetail(id: id)
+    }
 }

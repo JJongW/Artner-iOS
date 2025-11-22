@@ -220,6 +220,20 @@ final class ToastManager {
         show(configuration)
     }
     
+    /// 로딩 Toast 표시 (아이콘 없이 텍스트만)
+    /// API 응답이 올 때까지 계속 표시되며, 수동으로 hideCurrentToast()를 호출해야 함
+    /// - Parameter message: 표시할 메시지 (예: "도슨트 생성 중")
+    func showLoading(_ message: String) {
+        let configuration = ToastConfiguration(
+            message: message,
+            leftIcon: nil, // 아이콘 없음
+            backgroundColor: UIColor(hex: "#222222"),
+            textColor: UIColor(hex: "#FFFFFF"),
+            duration: 300.0 // 5분 (충분히 긴 시간, 실제로는 수동으로 숨김)
+        )
+        show(configuration)
+    }
+    
     /// 저장 완료 Toast 표시 (저장 아이콘과 확인 버튼 포함)
     /// - Parameters:
     ///   - message: 표시할 메시지

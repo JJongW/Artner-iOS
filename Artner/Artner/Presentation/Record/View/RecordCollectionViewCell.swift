@@ -196,8 +196,8 @@ final class RecordCollectionViewCell: UICollectionViewCell {
         if let image = recordItem.selectedImage {
             exhibitionImageView.image = image
         } else {
-            // 기본 이미지 또는 플레이스홀더
-            exhibitionImageView.image = UIImage(systemName: "photo")?.withTintColor(.white.withAlphaComponent(0.3))
+            // 기본 이미지 또는 플레이스홀더 - 프로젝트 에셋의 no_image 사용
+            exhibitionImageView.image = UIImage(named: "no_image")
         }
     }
     

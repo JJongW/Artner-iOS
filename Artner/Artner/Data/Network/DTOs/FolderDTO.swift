@@ -26,6 +26,42 @@ struct FolderDTO: Codable {
     }
 }
 
+/// 폴더 상세 아이템 DTO
+struct FolderItemDTO: Codable {
+    let id: Int
+    let name: String
+    let artistName: String?
+    let savedAt: String?
+    let thumbnail: String?
+    let script: String?
+    let audioJobId: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case artistName = "artist_name"
+        case savedAt = "created_at" // API 응답 키에 맞춤
+        case thumbnail
+        case script
+        case audioJobId = "audio_job_id"
+    }
+}
+
+/// 폴더 상세 응답 DTO
+struct FolderDetailDTO: Codable {
+    let id: Int
+    let name: String
+    let items: [FolderItemDTO]
+    let itemsCount: Int?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case items = "docents" // API의 docents를 items로 매핑
+        case itemsCount = "docents_count"
+    }
+}
+
 /// 폴더 생성 요청 DTO
 struct CreateFolderRequestDTO: Codable {
     let name: String

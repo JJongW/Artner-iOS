@@ -21,4 +21,7 @@ protocol FolderRepository {
     
     /// 폴더 삭제
     func deleteFolder(id: Int) -> AnyPublisher<Void, NetworkError>
+    
+    /// 폴더 상세(아이템 목록) 조회
+    func getFolderDetail(id: Int) -> AnyPublisher<FolderDetailDTO, NetworkError>
 }

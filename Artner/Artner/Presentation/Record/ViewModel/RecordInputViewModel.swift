@@ -106,7 +106,7 @@ final class RecordInputViewModel: ObservableObject {
             visitDate: inputModel.visitDate,
             name: inputModel.exhibitionName,
             museum: inputModel.museumName,
-            note: "", // TODO: 노트 필드 추가 시 사용
+            note: nil, // note는 선택사항이므로 nil 전송
             image: imageBase64
         )
         .receive(on: DispatchQueue.main)

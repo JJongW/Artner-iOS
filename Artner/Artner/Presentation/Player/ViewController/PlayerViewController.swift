@@ -5,10 +5,12 @@
 //  Created by 신종원 on 4/5/25.
 //
 import UIKit
+import AVFoundation
 
 final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordinator> {
 
     private let playerView = PlayerView()
+    private var isSavedCurrent: Bool = false
 
     override func loadView() {
         self.view = playerView
@@ -16,64 +18,13 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
 
     override func setupUI() {
         super.setupUI()
-        setupSwipeGesture()
+        configureAudioSession()
         setupViewModelBinding()
         setupPlayerData()
     }
     
-    private func setupSwipeGesture() {
-        // 좌→우 스와이프 제스처 추가
-        let swipeGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePanGesture(_:)))
-        view.addGestureRecognizer(swipeGesture)
-        
-        print("👆 스와이프 제스처 설정 완료 - 좌→우 스와이프로 뒤로가기")
-    }
-    
-    @objc private func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
-        let translation = gesture.translation(in: view)
-        let velocity = gesture.velocity(in: view)
-        
-        switch gesture.state {
-        case .began:
-            print("👆 스와이프 시작")
-            
-        case .changed:
-            // 좌→우 스와이프만 허용 (x > 0이고 수평 움직임이 수직보다 클 때)
-            if translation.x > 0 && abs(translation.x) > abs(translation.y) {
-                // 스와이프 진행에 따른 시각적 피드백 (선택사항)
-                let progress = min(translation.x / view.frame.width, 1.0)
-                view.alpha = 1.0 - (progress * 0.3) // 살짝 투명해지는 효과
-            }
-            
-        case .ended, .cancelled:
-            // 충분한 거리나 속도로 스와이프했을 때 뒤로가기
-            let shouldDismiss = translation.x > 100 || velocity.x > 800
-            
-            if shouldDismiss {
-                print("👆 스와이프 완료 - 뒤로가기 실행")
-                dismissPlayer()
-            } else {
-                // 원래 상태로 복원
-                UIView.animate(withDuration: 0.3) {
-                    self.view.alpha = 1.0
-                    self.view.transform = .identity
-                }
-            }
-            
-        default:
-            break
-        }
-    }
-    
     private func dismissPlayer() {
-        // 뒤로가기 애니메이션
-        UIView.animate(withDuration: 0.3, animations: {
-            self.view.transform = CGAffineTransform(translationX: self.view.frame.width, y: 0)
-            self.view.alpha = 0.7
-        }) { _ in
-            // 네비게이션으로 뒤로가기
-            self.navigationController?.popViewController(animated: false)
-        }
+        navigationController?.popViewController(animated: true)
     }
 
     override func setupBinding() {
@@ -144,13 +95,85 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
         
         print("🎮 PlayerViewController setupPlayerControlActions 완료")
     }
+
+    // MARK: - Audio Session
+    private func configureAudioSession() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            // playback 카테고리에서는 defaultToSpeaker 옵션을 사용하지 않음
+            try session.setCategory(.playback, mode: .default, options: [])
+            try session.setActive(true, options: [])
+        } catch {
+            print("⚠️ AVAudioSession 설정 실패: \(error.localizedDescription)")
+        }
+    }
     
     // MARK: - Action Handlers
     
     private func handleSaveAction() {
         print("💾 저장 버튼 클릭")
-        // TODO: 현재 문단이나 전체 도슨트를 저장하는 로직 구현
-        showSaveConfirmation()
+        // 이미 저장된 상태면 저장 취소로 동작
+        if isSavedCurrent {
+            let docentData = viewModel.getDocent()
+            // 저장된 폴더 ID 필요
+            guard let folderId = getSavedFolderIdCached(title: docentData.title, artist: docentData.artist) else {
+                ToastManager.shared.showError("저장된 폴더 정보를 찾을 수 없어요")
+                return
+            }
+            // 서버 토글: 동일 endpoint에 POST로 처리하도록 요청
+            // 폴더 정보가 필요 없는 토글 시나리오로 간주하여 폴더ID는 0 전달
+            let itemType = (docentData.artist.isEmpty ? "artwork" : "artist")
+            let name = docentData.artist.isEmpty ? docentData.title : docentData.artist
+            let payload = BookmarkDocentRequestDTO(
+                folderId: folderId,
+                itemType: itemType,
+                name: name,
+                lifePeriod: "",
+                artistName: docentData.artist,
+                script: "",
+                notes: "",
+                thumbnail: ""
+            )
+            APIService.shared.request(APITarget.bookmarkDocent(payload: payload)) { (result: Result<BookmarkResponseDTO, Error>) in
+                switch result {
+                case .success:
+                    self.setDocentSavedCached(title: docentData.title, artist: docentData.artist, saved: false)
+                    self.setSavedFolderIdCached(title: docentData.title, artist: docentData.artist, folderId: nil)
+                    self.isSavedCurrent = false
+                    DispatchQueue.main.async {
+                        self.playerView.setSaved(false)
+                        ToastManager.shared.showDelete("저장이 해제되었습니다")
+                    }
+                case .failure:
+                    DispatchQueue.main.async { ToastManager.shared.showError("저장 해제에 실패했습니다") }
+                }
+            }
+            return
+        }
+        // 1) 폴더 목록 가져오기
+        let useCase = DIContainer.shared.getFoldersUseCase
+        var cancellable: Any?
+        cancellable = useCase.execute()
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { completion in
+                    if case .failure = completion { ToastManager.shared.showError("폴더 목록을 불러오지 못했어요") }
+                    // 메모리 정리 (Combine 없이 단순 타입이라 Any로 보관)
+                    cancellable = nil
+                },
+                receiveValue: { [weak self] folders in
+                    guard let self = self else { return }
+                    // 2) 폴더 선택 모달 표시
+                    let modal = SelectFolderModalView(folders: folders)
+                    modal.onCancelTapped = { modal.removeFromSuperview() }
+                    modal.onConfirmTapped = { [weak self] folder in
+                        modal.removeFromSuperview()
+                        self?.bookmarkDocent(to: folder)
+                    }
+                    self.view.addSubview(modal)
+                    modal.snp.makeConstraints { $0.edges.equalToSuperview() }
+                }
+            )
     }
     
     private func handlePlayAction() {
@@ -177,6 +200,42 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
             print("💾 [Toast] 저장된 도슨트 보기 버튼 클릭됨")
             // TODO: Coordinator를 통해 Save 화면으로 이동
             // self?.coordinator.showSave()
+        }
+    }
+
+    /// 선택된 폴더로 도슨트를 북마크 저장
+    private func bookmarkDocent(to folder: Folder) {
+        // 로딩 토스트
+        ToastManager.shared.showLoading("저장 중")
+        
+        // request body 구성
+        let docentInfo = viewModel.getDocent()
+        let scriptText: String = viewModel.getParagraphs().map { $0.sentences.map { $0.text }.joined(separator: " ") }.joined(separator: " ")
+        let payload = BookmarkDocentRequestDTO(
+            folderId: folder.id,
+            itemType: "artist", // 요구 사양대로 고정
+            name: docentInfo.title,
+            lifePeriod: "",
+            artistName: docentInfo.artist,
+            script: scriptText,
+            notes: "",
+            thumbnail: "" // 추후 실제 썸네일 URL 연결 가능
+        )
+        
+        APIService.shared.request(APITarget.bookmarkDocent(payload: payload)) { (result: Result<BookmarkResponseDTO, Error>) in
+            // 로딩 토스트 닫기
+            ToastManager.shared.hideCurrentToast()
+            switch result {
+            case .success:
+                ToastManager.shared.showSuccess("저장되었습니다")
+                // 저장 버튼 색 변경 및 캐시 반영
+                self.playerView.setSaved(true)
+                self.setDocentSavedCached(title: docentInfo.title, artist: docentInfo.artist, saved: true)
+                self.setSavedFolderIdCached(title: docentInfo.title, artist: docentInfo.artist, folderId: folder.id)
+                self.isSavedCurrent = true
+            case .failure:
+                ToastManager.shared.showError("저장에 실패했습니다")
+            }
         }
     }
 
@@ -223,6 +282,11 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
         }
         
         print("🔗 [Controller] 하이라이트 바인딩 설정 완료")
+        
+        // 상단 뒤로가기 버튼 액션 연결
+        playerView.onBackButtonTapped = { [weak self] in
+            self?.dismissPlayer()
+        }
     }
     
     private func setupPlayerData() {
@@ -230,5 +294,55 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
         let docentData = viewModel.getDocent()
         // ArtnerPrimaryBar에 타이틀/아티스트 설정
         playerView.artnerPrimaryBar.setTitle(docentData.title, subtitle: docentData.artist)
+        // 저장 상태 초기 반영 (캐시 기반)
+        let saved = isDocentSavedCached(title: docentData.title, artist: docentData.artist)
+        isSavedCurrent = saved
+        playerView.setSaved(saved)
+        // 서버 기준 저장 상태 확인 (우선 캐시 표시 후 동기화)
+        let itemType = (docentData.artist.isEmpty ? "artwork" : "artist")
+        let name = docentData.artist.isEmpty ? docentData.title : docentData.artist
+        APIService.shared.request(APITarget.docentStatus(itemType: itemType, name: name)) { (result: Result<DocentStatusResponseDTO, Error>) in
+            switch result {
+            case .success(let res):
+                DispatchQueue.main.async {
+                    self.isSavedCurrent = res.saved
+                    self.playerView.setSaved(res.saved)
+                    self.setDocentSavedCached(title: docentData.title, artist: docentData.artist, saved: res.saved)
+                }
+            case .failure:
+                break
+            }
+        }
+    }
+
+    // MARK: - Saved State Cache
+    private func savedCacheKey(title: String, artist: String) -> String {
+        return "SavedDocent_\(title)_\(artist)"
+    }
+    private func isDocentSavedCached(title: String, artist: String) -> Bool {
+        let key = savedCacheKey(title: title, artist: artist)
+        return UserDefaults.standard.bool(forKey: key)
+    }
+    private func setDocentSavedCached(title: String, artist: String, saved: Bool) {
+        let key = savedCacheKey(title: title, artist: artist)
+        UserDefaults.standard.set(saved, forKey: key)
+    }
+    private func savedFolderIdKey(title: String, artist: String) -> String {
+        return "SavedDocentFolder_\(title)_\(artist)"
+    }
+    private func getSavedFolderIdCached(title: String, artist: String) -> Int? {
+        let key = savedFolderIdKey(title: title, artist: artist)
+        let value = UserDefaults.standard.object(forKey: key)
+        return value as? Int
+    }
+    private func setSavedFolderIdCached(title: String, artist: String, folderId: Int?) {
+        let key = savedFolderIdKey(title: title, artist: artist)
+        if let id = folderId {
+            UserDefaults.standard.set(id, forKey: key)
+        } else {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
     }
 }
+// MARK: - UIGestureRecognizerDelegate
+// UIGestureRecognizerDelegate 제거 (스와이프 뒤로가기 폐지)

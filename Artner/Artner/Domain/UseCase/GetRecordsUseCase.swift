@@ -15,7 +15,14 @@ protocol GetRecordsUseCase {
 
 /// 전시기록 생성 UseCase 프로토콜
 protocol CreateRecordUseCase {
-    func execute(visitDate: String, name: String, museum: String, note: String, image: String?) -> AnyPublisher<Record, NetworkError>
+    /// 전시기록 생성
+    /// - Parameters:
+    ///   - visitDate: 방문 날짜 (YYYY-MM-DD 형식, 필수)
+    ///   - name: 전시 이름 (필수)
+    ///   - museum: 미술관 이름 (필수)
+    ///   - note: 메모 (선택사항)
+    ///   - image: Base64 인코딩된 이미지 (선택사항)
+    func execute(visitDate: String, name: String, museum: String, note: String?, image: String?) -> AnyPublisher<Record, NetworkError>
 }
 
 /// 전시기록 삭제 UseCase 프로토콜
@@ -46,7 +53,7 @@ final class CreateRecordUseCaseImpl: CreateRecordUseCase {
         self.recordRepository = recordRepository
     }
     
-    func execute(visitDate: String, name: String, museum: String, note: String, image: String?) -> AnyPublisher<Record, NetworkError> {
+    func execute(visitDate: String, name: String, museum: String, note: String?, image: String?) -> AnyPublisher<Record, NetworkError> {
         return recordRepository.createRecord(visitDate: visitDate, name: name, museum: museum, note: note, image: image)
     }
 }

@@ -324,30 +324,124 @@ extension CameraViewController: UIImagePickerControllerDelegate, UINavigationCon
 extension CameraViewController {
     
     /// 실시간 도슨트 API 호출 (이미지 업로드)
+    /// 카메라 촬영 또는 갤러리에서 이미지 선택 시 호출됨
+    /// API 응답이 올 때까지 "도슨트 생성 중" 로딩 토스트를 표시
     private func uploadImageToRealtimeDocent(imageData: Data) {
+        // 로딩 토스트 표시 (아이콘 없이 텍스트만)
+        DispatchQueue.main.async {
+            ToastManager.shared.showLoading("도슨트 생성 중")
+        }
+        
         // APIService를 통해 API 호출
         APIService.shared.request(
             APITarget.realtimeDocent(inputText: nil, inputImage: imageData)
         ) { [weak self] (result: Result<RealtimeDocentResponseDTO, Error>) in
+            // 로딩 토스트 숨김
+            DispatchQueue.main.async {
+                ToastManager.shared.hideCurrentToast()
+            }
+            
             switch result {
             case .success(let response):
                 // 응답 데이터를 Docent 모델로 변환
-                guard let docent = self?.convertToDocent(from: response) else {
+                guard let self = self, let baseDocent = self.convertToDocent(from: response) else {
                     self?.showAPIError()
                     return
                 }
-                
-                // 성공 토스트 표시
-                ToastManager.shared.showSuccess("\(response.itemName) 정보를 가져왔습니다")
-                
-                // Coordinator를 통해 화면 전환
-                self?.coordinator.dismissCameraAndShowEntry(docent: docent)
+
+                // 오디오 상태 Polling 시작
+                self.pollAudioStatus(jobId: response.audioJobId, baseDocent: baseDocent)
                 
             case .failure(let error):
                 print("❌ 실시간 도슨트 API 실패: \(error.localizedDescription)")
                 self?.showAPIError()
             }
         }
+    }
+
+    /// 오디오 상태를 주기적으로 조회하여 완료 시 Player로 이동
+    private func pollAudioStatus(jobId: String, baseDocent: Docent) {
+        // 최대 60초, 1.5초 간격으로 조회
+        let maxAttempts = 40
+        var attempt = 0
+        
+        func requestStatus() {
+            APIService.shared.request(APITarget.audioStatus(jobId: jobId)) { [weak self] (result: Result<AudioStatusDTO, Error>) in
+                guard let self = self else { return }
+                switch result {
+                case .success(let statusDTO):
+                    if statusDTO.status == "completed", let audioUrl = statusDTO.audioUrl {
+                        // 로딩 토스트는 상위에서 이미 숨김 처리됨
+                        let docentForPlay = self.buildDocentForPlay(from: baseDocent, status: statusDTO)
+                        // 성공 토스트 표시 후 Player로 이동
+                        DispatchQueue.main.async {
+                            ToastManager.shared.showSuccess("도슨트가 준비되었습니다")
+                        }
+                        self.coordinator.dismissCameraAndShowPlayer(docent: docentForPlay)
+                    } else if statusDTO.status == "failed" {
+                        self.showAPIError()
+                    } else {
+                        attempt += 1
+                        if attempt < maxAttempts {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                requestStatus()
+                            }
+                        } else {
+                            self.showAPIError()
+                        }
+                    }
+                case .failure:
+                    attempt += 1
+                    if attempt < maxAttempts {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            requestStatus()
+                        }
+                    } else {
+                        self.showAPIError()
+                    }
+                }
+            }
+        }
+        requestStatus()
+    }
+
+    /// AudioStatusDTO의 타임스탬프를 사용하여 Player용 Docent 구성
+    private func buildDocentForPlay(from base: Docent, status: AudioStatusDTO) -> Docent {
+        let duration = status.duration ?? 0
+        // timestamp를 문단으로 변환: 각 문장을 하나의 문단으로 매핑
+        let paragraphs: [DocentParagraph]
+        if let stamps = status.timestamps, !stamps.isEmpty {
+            var result: [DocentParagraph] = []
+            for (index, stamp) in stamps.enumerated() {
+                let startSec = Double(stamp.time) / 1000.0
+                let endSec: Double = {
+                    if index + 1 < stamps.count { return Double(stamps[index+1].time) / 1000.0 }
+                    return duration
+                }()
+                let script = DocentScript(startTime: startSec, text: stamp.value)
+                let paragraph = DocentParagraph(
+                    id: "p-\(base.id)-\(index)",
+                    startTime: startSec,
+                    endTime: max(endSec, startSec + 0.5),
+                    sentences: [script]
+                )
+                result.append(paragraph)
+            }
+            paragraphs = result
+        } else {
+            // 타임스탬프가 없는 경우 기존 문단 사용
+            paragraphs = base.paragraphs
+        }
+        
+        return Docent(
+            id: base.id,
+            title: base.title,
+            artist: base.artist,
+            description: base.description,
+            imageURL: base.imageURL,
+            audioURL: status.audioUrl.flatMap { URL(string: $0) }, 
+            paragraphs: paragraphs
+        )
     }
     
     /// RealtimeDocentResponseDTO를 Docent 모델로 변환

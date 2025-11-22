@@ -235,21 +235,34 @@ final class PlayerViewModel {
     }
 
     private func prepareAudio() {
-        // 실제 오디오 파일을 찾아보고, 없으면 시뮬레이션 모드로 설정
-        guard let url = Bundle.main.url(forResource: "dummy", withExtension: "mp3") else {
-            print("⚠️ 오디오 파일을 찾을 수 없어 시뮬레이션 모드로 실행합니다.")
-            isUsingSimulation = true
-            return
+        // 우선 Docent의 오디오 URL이 있으면 그걸 사용
+        if let audioURL = docent.audioURL {
+            do {
+                audioPlayer = try AVAudioPlayer(contentsOf: audioURL)
+                audioPlayer?.prepareToPlay()
+                isUsingSimulation = false
+                print("✅ 스트림 오디오 로딩 성공 (AVAudioPlayer)")
+                return
+            } catch {
+                print("⚠️ 스트림 오디오 초기화 실패: \(error.localizedDescription) -> 애니메이션 시뮬레이션으로 전환")
+                // 오디오 재생이 불가하면 애니메이션 모드로 전환
+                audioPlayer = nil
+                isUsingSimulation = true
+                return
+            }
         }
-
-        do {
-            audioPlayer = try AVAudioPlayer(contentsOf: url)
-            audioPlayer?.prepareToPlay()
-            print("✅ 오디오 파일 로딩 성공")
-        } catch {
-            print("⚠️ 오디오 플레이어 초기화 실패, 시뮬레이션 모드로 전환: \(error.localizedDescription)")
-            isUsingSimulation = true
+        // 없으면 더미로 시뮬레이션
+        if let url = Bundle.main.url(forResource: "dummy", withExtension: "mp3") {
+            do {
+                audioPlayer = try AVAudioPlayer(contentsOf: url)
+                audioPlayer?.prepareToPlay()
+                isUsingSimulation = false
+                print("✅ 더미 오디오 로딩 성공")
+                return
+            } catch { }
         }
+        print("⚠️ 오디오 파일을 찾을 수 없어 시뮬레이션 모드로 실행합니다.")
+        isUsingSimulation = true
     }
 
     func togglePlayPause() {
@@ -262,6 +275,10 @@ final class PlayerViewModel {
         if isPlaying {
             pausePlayback()
         } else {
+            // 오디오 로딩이 안된 경우 재시도
+            if audioPlayer == nil && !isUsingSimulation {
+                prepareAudio()
+            }
             startPlayback()
         }
         

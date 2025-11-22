@@ -101,7 +101,9 @@ final class PlayerControlsView: UIView {
     }
     
     private func setupSaveButton() {
-        saveButton.setImage(UIImage(named: "ic_save"), for: .normal)
+        // 템플릿 렌더링 강제 적용하여 tintColor가 항상 반영되도록 처리
+        let icon = UIImage(named: "ic_save")?.withRenderingMode(.alwaysTemplate)
+        saveButton.setImage(icon, for: .normal)
         saveButton.tintColor = AppColor.textPrimary
         saveButton.imageView?.contentMode = .scaleAspectFit
         containerView.addSubview(saveButton)
@@ -197,13 +199,13 @@ final class PlayerControlsView: UIView {
                 self.saveButton.isHidden = false
                 self.playButton.isHidden = false
                 self.replayButton.isHidden = false
-                self.saveButton.alpha = 0.0
+                self.saveButton.alpha = 1.0
                 self.playButton.alpha = 0.0
                 self.replayButton.alpha = 0.0
             case .playing:
                 self.saveButton.isHidden = false
                 self.pauseButton.isHidden = false
-                self.saveButton.alpha = 0.0
+                self.saveButton.alpha = 1.0
                 self.pauseButton.alpha = 0.0
             }
             
@@ -282,10 +284,24 @@ final class PlayerControlsView: UIView {
     }
     
     func setEnabled(_ enabled: Bool) {
-        [saveButton, playButton, pauseButton, replayButton].forEach {
+        // 저장 버튼은 항상 동작 가능하도록 유지 (요구사항)
+        saveButton.isEnabled = true
+        saveButton.alpha = 1.0
+        // 나머지 컨트롤만 토글
+        [playButton, pauseButton, replayButton].forEach {
             $0.isEnabled = enabled
             $0.alpha = enabled ? 1.0 : 0.5
         }
+    }
+    
+    /// 저장 상태에 따라 저장 버튼 색을 변경
+    /// - Parameter saved: true면 #FF7C27, false면 기본 색상
+    func setSaved(_ saved: Bool) {
+        // 아이콘 스왑 + 색상 변경
+        let imageName = saved ? "ic_save_filled" : "ic_save"
+        let icon = UIImage(named: imageName)?.withRenderingMode(.alwaysTemplate)
+        saveButton.setImage(icon, for: .normal)
+        saveButton.tintColor = saved ? UIColor(hex: "#FF7C27") : AppColor.textPrimary
     }
     
     // MARK: - Touch Debugging

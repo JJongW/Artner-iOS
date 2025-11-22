@@ -749,4 +749,30 @@ final class SidebarView: UIView {
             return 30
         }
     }
+    
+    /// 내부 컨텐츠 요소들의 alpha를 설정 (애니메이션용)
+    /// - Parameter alpha: 설정할 alpha 값 (0.0 ~ 1.0)
+    func setContentAlpha(_ alpha: CGFloat) {
+        // 닫기 버튼은 항상 보이도록 (alpha 조정 안 함)
+        // closeButton.alpha = alpha
+        
+        // 주요 컨텐츠 요소들
+        nameLabel.alpha = alpha
+        statContainerView.alpha = alpha
+        recentDocentButton.alpha = alpha
+        recentDocentArrow.alpha = alpha
+        recentDocentSeparator.alpha = alpha
+        aiDocentTitleLabel.alpha = alpha
+        aiDocentContainer.alpha = alpha
+        easyModeTitleLabel.alpha = alpha
+        easyModeDescLabel.alpha = alpha
+        easyModeSwitch.alpha = alpha
+        easyModeSeparator.alpha = alpha
+        viewerTitleLabel.alpha = alpha
+        resetButton.alpha = alpha
+        fontSizeSlider.alpha = alpha
+        lineSpacingSlider.alpha = alpha
+        bottomMenuStackView.alpha = alpha
+        bottomMenuSeparator.alpha = alpha
+    }
 } 

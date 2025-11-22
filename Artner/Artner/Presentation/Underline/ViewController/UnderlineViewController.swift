@@ -3,9 +3,16 @@ import Combine
 
 final class UnderlineViewController: UIViewController {
     private let underlineView = UnderlineView()
-    private let viewModel = UnderlineViewModel()
+    private let viewModel: UnderlineViewModel
     private var cancellables = Set<AnyCancellable>()
     var goToFeedHandler: (() -> Void)?
+    
+    init(viewModel: UnderlineViewModel) {
+        self.viewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     override func loadView() { self.view = underlineView }
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -116,10 +123,10 @@ final class UnderlineViewController: UIViewController {
     
     @objc private func didTapBack() { navigationController?.popViewController(animated: true) }
     @objc private func didTapSearch() {}
-    @objc private func didTapAll() { viewModel.selectCategory(nil) }
-    @objc private func didTapExhibition() { viewModel.selectCategory(.exhibition) }
-    @objc private func didTapArtist() { viewModel.selectCategory(.artist) }
-    @objc private func didTapArtwork() { viewModel.selectCategory(.artwork) }
+    @objc private func didTapAll() { viewModel.selectCategory(nil); viewModel.fetchHighlights(filter: "all") }
+    @objc private func didTapExhibition() { viewModel.selectCategory(.exhibition); viewModel.fetchHighlights(filter: "artwork", itemType: "artwork") }
+    @objc private func didTapArtist() { viewModel.selectCategory(.artist); viewModel.fetchHighlights(filter: "artist", itemType: "artist") }
+    @objc private func didTapArtwork() { viewModel.selectCategory(.artwork); viewModel.fetchHighlights(filter: "artwork", itemType: "artwork") }
     @objc private func didTapSort() { viewModel.toggleSort() }
     @objc private func didTapGoFeed() { goToFeedHandler?() }
 }

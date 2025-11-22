@@ -37,13 +37,14 @@ enum APITarget {
     
     // MARK: - Folder API
     case getFolders
+    case getFolderDetail(id: Int)
     case createFolder(name: String, description: String)
     case updateFolder(id: Int, name: String, description: String)
     case deleteFolder(id: Int)
     
     // MARK: - Record API
     case getRecords
-    case createRecord(visitDate: String, name: String, museum: String, note: String, image: String?)
+    case createRecord(visitDate: String, name: String, museum: String, note: String?, image: String?)
     case deleteRecord(id: Int)
     
     // MARK: - Like API
@@ -52,6 +53,9 @@ enum APITarget {
     case likeArtist(id: Int)
     case getLikes
     
+    // MARK: - Highlights API
+    case getHighlights(filter: String?, itemName: String?, itemType: String?, ordering: String?, page: Int?, search: String?)
+    
     // MARK: - Auth API
     case kakaoLogin(accessToken: String)
     case logout(refreshToken: String)
@@ -59,6 +63,10 @@ enum APITarget {
     
     // MARK: - Docent API
     case realtimeDocent(inputText: String?, inputImage: Data?)
+    case audioStatus(jobId: String)
+    case bookmarkDocent(payload: BookmarkDocentRequestDTO)
+    case streamAudio(jobId: String)
+    case docentStatus(itemType: String, name: String)
 }
 
 // MARK: - TargetType 구현
@@ -108,6 +116,8 @@ extension APITarget: TargetType {
         // Folder
         case .getFolders:
             return "/folders"
+        case .getFolderDetail(let id):
+            return "/folders/\(id)"
         case .createFolder:
             return "/folders"
         case .updateFolder(let id, _, _):
@@ -132,6 +142,10 @@ extension APITarget: TargetType {
             return "/artists/\(id)/like"
         case .getLikes:
             return "/likes"
+        
+        // Highlights
+        case .getHighlights:
+            return "/highlights"
             
         // Auth
         case .kakaoLogin:
@@ -144,6 +158,14 @@ extension APITarget: TargetType {
         // Docent
         case .realtimeDocent:
             return "/realtime-docent"
+        case .audioStatus(let jobId):
+            return "/audio-status/\(jobId)"
+        case .bookmarkDocent:
+            return "/docents/bookmark"
+        case .streamAudio(let jobId):
+            return "/stream-audio/\(jobId)"
+        case .docentStatus:
+            return "/docents/status"
         }
     }
     
@@ -161,8 +183,12 @@ extension APITarget: TargetType {
              .getArtistDetail,
              .getDashboardSummary,
              .getAIDocentSettings,
+             .getFolderDetail,
              .getRecords,
-             .getLikes:
+             .getLikes,
+             .audioStatus,
+             .getHighlights,
+             .streamAudio:
             return .get
             
         case .createFolder,
@@ -173,7 +199,9 @@ extension APITarget: TargetType {
              .kakaoLogin,
              .logout,
              .refreshToken,
-             .realtimeDocent:
+             .realtimeDocent,
+             .bookmarkDocent,
+             .docentStatus:
             return .post
             
         case .updateFolder:
@@ -195,9 +223,20 @@ extension APITarget: TargetType {
              .getDashboardSummary,
              .getAIDocentSettings,
              .getFolders,
+             .getFolderDetail,
              .getRecords,
-             .getLikes:
+             .getLikes,
+             .audioStatus:
             return .requestPlain
+        case .getHighlights(let filter, let itemName, let itemType, let ordering, let page, let search):
+            var params: [String: Any] = [:]
+            if let filter = filter, !filter.isEmpty { params["filter"] = filter }
+            if let itemName = itemName, !itemName.isEmpty { params["item_name"] = itemName }
+            if let itemType = itemType, !itemType.isEmpty { params["item_type"] = itemType }
+            if let ordering = ordering, !ordering.isEmpty { params["ordering"] = ordering }
+            if let page = page { params["page"] = page }
+            if let search = search, !search.isEmpty { params["search"] = search }
+            return .requestParameters(parameters: params, encoding: URLEncoding.queryString)
             
         case .getFeedDetail,
              .getExhibitionDetail,
@@ -216,11 +255,15 @@ extension APITarget: TargetType {
             var parameters: [String: Any] = [
                 "visit_date": visitDate,
                 "name": name,
-                "museum": museum,
-                "note": note
+                "museum": museum
             ]
             
-            // image가 nil이 아닌 경우에만 추가
+            // note가 nil이 아니고 빈 문자열이 아닌 경우에만 추가
+            if let note = note, !note.isEmpty {
+                parameters["note"] = note
+            }
+            
+            // image가 nil이 아니고 빈 문자열이 아닌 경우에만 추가
             if let image = image, !image.isEmpty {
                 parameters["image"] = image
             }
@@ -280,6 +323,29 @@ extension APITarget: TargetType {
             }
             
             return .uploadMultipart(multipartData)
+        case .audioStatus:
+            return .requestPlain
+        case .bookmarkDocent(let payload):
+            // JSONEncoding으로 보냄
+            let parameters: [String: Any] = [
+                "folder_id": payload.folderId,
+                "item_type": payload.itemType,
+                "name": payload.name,
+                "life_period": payload.lifePeriod,
+                "artist_name": payload.artistName,
+                "script": payload.script,
+                "notes": payload.notes,
+                "thumbnail": payload.thumbnail
+            ]
+            return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
+        case .streamAudio(jobId: let jobId):
+            return .requestPlain
+        case .docentStatus(let itemType, let name):
+            let parameters: [String: Any] = [
+                "item_type": itemType,
+                "name": name
+            ]
+            return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
         }
     }
     

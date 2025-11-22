@@ -12,7 +12,8 @@ final class PlayerView: BaseView {
 
     // MARK: - UI Components
 
-    // 제목 영역 (SafeArea 위부터 시작)
+    // 상단 네비게이션 바 + 제목 영역
+    let navigationBar = CustomNavigationBar()
     let artnerPrimaryBar = ArtnerPrimaryBar()
     
     // 상단 radial 그라데이션 (SafeArea부터 ArtnerPrimaryBar + 42px까지)
@@ -66,6 +67,10 @@ final class PlayerView: BaseView {
             updateTextSelectionEnabled(!isPlaying)
         }
     }
+    
+    // 네비게이션 바 상단 슬라이드 관련
+    private let navHideHeight: CGFloat = 56
+    private var navigationBarTopConstraint: Constraint?
 
     // MARK: - Setup
 
@@ -85,6 +90,7 @@ final class PlayerView: BaseView {
     
     private func setupHierarchy() {
         // 기본 컨텐츠들을 추가
+        addSubview(navigationBar)
         addSubview(artnerPrimaryBar)
         addSubview(fadeoutGradientView)
         addSubview(lyricsContainerView)
@@ -102,6 +108,15 @@ final class PlayerView: BaseView {
         
         timeStackView.addArrangedSubview(currentTimeLabel)
         timeStackView.addArrangedSubview(totalTimeLabel)
+        
+        // 네비게이션 바 설정
+        navigationBar.backgroundColor = AppColor.background
+        navigationBar.setTitle("artner")
+        navigationBar.titleLabel.font = UIFont.poppinsMedium(size: 16)
+        navigationBar.titleLabel.textColor = UIColor(hex: "#D0AE86")
+        navigationBar.backButton.tintColor = AppColor.textPrimary
+        navigationBar.rightButton.tintColor = AppColor.textPrimary
+        navigationBar.onBackButtonTapped = { [weak self] in self?.didTapBack() }
     }
     
     private func setupTableView() {
@@ -184,14 +199,21 @@ final class PlayerView: BaseView {
     override func setupLayout() {
         super.setupLayout()
         
-        // 제목 바 (SafeArea 내에서 시작, 여백 추가)
-        artnerPrimaryBar.snp.makeConstraints {
-            $0.top.equalTo(safeAreaLayoutGuide.snp.top).offset(10)
-            $0.leading.trailing.equalToSuperview()
-            $0.height.equalTo(60)  // 42 → 60으로 증가
+        // 상단 네비게이션 바 (SafeArea 최상단)
+        navigationBar.snp.makeConstraints {
+            self.navigationBarTopConstraint = $0.top.equalTo(safeAreaLayoutGuide).constraint
+            $0.leading.trailing.equalTo(safeAreaLayoutGuide)
+            $0.height.equalTo(56)
         }
         
-        // 페이드아웃 그라데이션 (상태바 포함 화면 맨 위부터 제목바까지)
+        // 제목 바 (네비게이션 바 아래로 분리 배치)
+        artnerPrimaryBar.snp.makeConstraints {
+            $0.top.equalTo(navigationBar.snp.bottom)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(60)
+        }
+        
+        // 페이드아웃 그라데이션 (상단에서 제목바까지)
         fadeoutGradientView.snp.makeConstraints {
             $0.top.equalToSuperview()
             $0.leading.trailing.equalToSuperview()
@@ -279,6 +301,14 @@ final class PlayerView: BaseView {
         self.paragraphs = paragraphs
         lyricsTableView.reloadData() // 테이블 뷰를 새로고침하여 문단 데이터를 반영
     }
+
+    // MARK: - Actions
+    @objc private func didTapBack() {
+        onBackButtonTapped?()
+    }
+
+    // MARK: - Callback
+    var onBackButtonTapped: (() -> Void)?
     
     /// 로딩 상태 표시
     func showLoadingState() {
@@ -308,6 +338,11 @@ final class PlayerView: BaseView {
         UIView.animate(withDuration: 0.3) {
             self.playerControls.setEnabled(true)
         }
+    }
+    
+    /// 저장 상태 UI 반영 (저장 버튼 색상)
+    func setSaved(_ saved: Bool) {
+        playerControls.setSaved(saved)
     }
     
     /// 문단 하이라이트
@@ -484,5 +519,17 @@ extension PlayerView: UITableViewDelegate {
         let estimatedHeight = CGFloat(estimatedLineCount) * 25 + 40  // 줄 높이 25px + 여백 40px
         
         return max(80, estimatedHeight)
+    }
+    
+        // 스크롤에 따른 최상단 네비게이션 바 상단으로 밀어 올리기
+        func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let offsetY = max(0, scrollView.contentOffset.y)
+        let hide = min(offsetY, navHideHeight)
+        navigationBarTopConstraint?.update(offset: -hide)
+        // 살짝 시각적 자연스러움 위해 alpha도 같이 처리(옵션)
+        let alpha = max(0, 1 - (hide / navHideHeight))
+        navigationBar.alpha = alpha
+        navigationBar.isUserInteractionEnabled = alpha > 0.05
+        layoutIfNeeded()
     }
 }

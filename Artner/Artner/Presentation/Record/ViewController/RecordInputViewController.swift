@@ -9,6 +9,47 @@ final class RecordInputViewController: UIViewController {
     var onRecordSaved: ((RecordItemModel) -> Void)?
     var onDismiss: (() -> Void)?
     
+    // MARK: - Date Picker
+    // 날짜 선택을 위한 UIDatePicker (년/월/일 선택)
+    private let datePicker: UIDatePicker = {
+        let picker = UIDatePicker()
+        picker.datePickerMode = .date
+        picker.preferredDatePickerStyle = .wheels
+        picker.locale = Locale(identifier: "ko_KR")
+        
+        // iOS 13.4 이상: 다크 모드 스타일 설정
+        if #available(iOS 13.4, *) {
+            picker.overrideUserInterfaceStyle = .dark
+        }
+        
+        // 최대 날짜는 오늘, 최소 날짜는 과거 10년
+        picker.maximumDate = Date()
+        let calendar = Calendar.current
+        if let minDate = calendar.date(byAdding: .year, value: -10, to: Date()) {
+            picker.minimumDate = minDate
+        }
+        
+        return picker
+    }()
+    
+    // Date Picker의 툴바 (완료/취소 버튼)
+    private lazy var datePickerToolbar: UIToolbar = {
+        let toolbar = UIToolbar()
+        toolbar.sizeToFit()
+        toolbar.barStyle = .black // 다크 스타일
+        toolbar.isTranslucent = false
+        toolbar.barTintColor = UIColor(hex: "#222222") // 배경색 #222222
+        toolbar.tintColor = UIColor(hex: "#FF7C27") // 버튼 색상
+        
+        let flexSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let doneButton = UIBarButtonItem(title: "완료", style: .done, target: self, action: #selector(datePickerDoneButtonTapped))
+        let cancelButton = UIBarButtonItem(title: "취소", style: .plain, target: self, action: #selector(datePickerCancelButtonTapped))
+        
+        toolbar.setItems([cancelButton, flexSpace, doneButton], animated: false)
+        
+        return toolbar
+    }()
+    
     init() {
         self.viewModel = DIContainer.shared.makeRecordInputViewModel()
         super.init(nibName: nil, bundle: nil)
@@ -54,6 +95,14 @@ final class RecordInputViewController: UIViewController {
         recordInputView.exhibitionNameTextField.addTarget(self, action: #selector(exhibitionNameChanged), for: .editingChanged)
         recordInputView.museumNameTextField.addTarget(self, action: #selector(museumNameChanged), for: .editingChanged)
         recordInputView.visitDateTextField.addTarget(self, action: #selector(visitDateChanged), for: .editingChanged)
+        
+        // 날짜 입력 필드에 UIDatePicker 설정
+        // DatePicker를 inputView로 설정하여 키보드 대신 날짜 선택기 표시
+        recordInputView.visitDateTextField.inputView = datePicker
+        recordInputView.visitDateTextField.inputAccessoryView = datePickerToolbar
+        
+        // DatePicker 값 변경 감지
+        datePicker.addTarget(self, action: #selector(datePickerValueChanged), for: .valueChanged)
     }
     
     private func bindViewModel() {
@@ -119,6 +168,45 @@ final class RecordInputViewController: UIViewController {
     
     @objc private func visitDateChanged(_ textField: UITextField) {
         viewModel.updateVisitDate(textField.text ?? "")
+    }
+    
+    // MARK: - Date Picker Actions
+    
+    /// DatePicker 값 변경 시 호출
+    /// 날짜를 YYYY-MM-DD 형식의 문자열로 변환하여 TextField에 표시
+    @objc private func datePickerValueChanged() {
+        let selectedDate = datePicker.date
+        let formattedDate = formatDateToString(selectedDate)
+        recordInputView.visitDateTextField.text = formattedDate
+        viewModel.updateVisitDate(formattedDate)
+    }
+    
+    /// DatePicker 완료 버튼 탭
+    /// 선택한 날짜를 확정하고 키보드(DatePicker)를 닫음
+    @objc private func datePickerDoneButtonTapped() {
+        let selectedDate = datePicker.date
+        let formattedDate = formatDateToString(selectedDate)
+        recordInputView.visitDateTextField.text = formattedDate
+        viewModel.updateVisitDate(formattedDate)
+        recordInputView.visitDateTextField.resignFirstResponder()
+    }
+    
+    /// DatePicker 취소 버튼 탭
+    /// 날짜 선택을 취소하고 키보드(DatePicker)를 닫음
+    @objc private func datePickerCancelButtonTapped() {
+        recordInputView.visitDateTextField.resignFirstResponder()
+    }
+    
+    /// Date를 "YYYY-MM-DD" 형식의 문자열로 변환
+    /// API에서 요구하는 날짜 형식으로 포맷팅 (예: "2025-10-23")
+    /// - Parameter date: 변환할 Date 객체
+    /// - Returns: "YYYY-MM-DD" 형식의 문자열
+    private func formatDateToString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.timeZone = TimeZone.current
+        return formatter.string(from: date)
     }
     
     @objc private func didTapRecord() {
@@ -237,6 +325,11 @@ extension RecordInputViewController: UITextFieldDelegate {
     }
     
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        // 날짜 입력 필드는 DatePicker를 통해서만 값을 설정하므로 직접 입력 불가
+        if textField == recordInputView.visitDateTextField {
+            return false
+        }
+        
         guard let text = textField.text else { return true }
         let newText = (text as NSString).replacingCharacters(in: range, with: string)
         

@@ -24,8 +24,15 @@ protocol APIServiceProtocol {
     
     // MARK: - Record API
     func getRecords() -> AnyPublisher<RecordList, NetworkError>
-    func createRecord(visitDate: String, name: String, museum: String, note: String, image: String?) -> AnyPublisher<Record, NetworkError>
+    func createRecord(visitDate: String, name: String, museum: String, note: String?, image: String?) -> AnyPublisher<Record, NetworkError>
     func deleteRecord(id: Int) -> AnyPublisher<Void, NetworkError>
+    
+    // MARK: - Folder Detail
+    func getFolderDetail(id: Int) -> AnyPublisher<FolderDetailDTO, NetworkError>
+    
+    // MARK: - Audio Stream
+    /// 서버에서 오디오 스트림을 받아 임시 파일 URL 반환
+    func streamAudio(jobId: String) -> AnyPublisher<URL, NetworkError>
     
     // MARK: - Like API
     func getLikes() -> AnyPublisher<LikeList, NetworkError>
@@ -33,6 +40,9 @@ protocol APIServiceProtocol {
     func likeArtwork(id: Int) -> AnyPublisher<Bool, NetworkError>
     func likeArtist(id: Int) -> AnyPublisher<Bool, NetworkError>
     // Docent 관련은 현재 Dummy 데이터 사용으로 제외
+    
+    // MARK: - Highlights API
+    func getHighlights(filter: String?, itemName: String?, itemType: String?, ordering: String?, page: Int?, search: String?) -> AnyPublisher<HighlightsResponseDTO, NetworkError>
     
     // MARK: - Generic Request (범용 API 요청)
     /// Completion Handler 기반 네트워크 요청
@@ -135,7 +145,7 @@ final class APIService: APIServiceProtocol {
 private extension APIService {
     
     /// 공통 네트워크 요청 메서드 (Combine 방식)
-    func request<T: Codable>(
+    func request<T: Decodable>(
         target: APITarget,
         responseType: T.Type
     ) -> AnyPublisher<T, NetworkError> {
@@ -143,7 +153,7 @@ private extension APIService {
     }
     
     /// 401 에러 재시도 포함 네트워크 요청 (Combine 방식)
-    private func requestWithRetry<T: Codable>(
+    private func requestWithRetry<T: Decodable>(
         target: APITarget,
         responseType: T.Type,
         isRetrying: Bool
@@ -228,7 +238,7 @@ private extension APIService {
     }
     
     /// 토큰 갱신 및 원래 요청 재시도 (Combine 방식)
-    private func refreshTokenAndRetryCombine<T: Codable>(
+    private func refreshTokenAndRetryCombine<T: Decodable>(
         originalTarget: APITarget,
         responseType: T.Type,
         promise: @escaping (Result<T, NetworkError>) -> Void
@@ -381,7 +391,7 @@ private extension APIService {
             .eraseToAnyPublisher()
     }
     
-    internal func createRecord(visitDate: String, name: String, museum: String, note: String, image: String?) -> AnyPublisher<Record, NetworkError> {
+    internal func createRecord(visitDate: String, name: String, museum: String, note: String?, image: String?) -> AnyPublisher<Record, NetworkError> {
         return request(target: .createRecord(visitDate: visitDate, name: name, museum: museum, note: note, image: image), responseType: RecordDTO.self)
             .map { $0.toDomainEntity() }
             .eraseToAnyPublisher()
@@ -390,6 +400,53 @@ private extension APIService {
     internal func deleteRecord(id: Int) -> AnyPublisher<Void, NetworkError> {
         return request(target: .deleteRecord(id: id), responseType: EmptyResponse.self)
             .map { _ in () }
+            .eraseToAnyPublisher()
+    }
+    
+    // MARK: - Folder Detail API 구현
+    internal func getFolderDetail(id: Int) -> AnyPublisher<FolderDetailDTO, NetworkError> {
+        return request(target: .getFolderDetail(id: id), responseType: FolderDetailDTO.self)
+            .eraseToAnyPublisher()
+    }
+    
+    // MARK: - Audio Stream 구현
+    internal func streamAudio(jobId: String) -> AnyPublisher<URL, NetworkError> {
+        // 직접 URLSession으로 다운로드 (인증 헤더 포함)
+        let base = APITarget.getFeedList.baseURL
+        let url = base.appendingPathComponent(APITarget.streamAudio(jobId: jobId).path)
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        // 오디오 응답 수용
+        request.setValue("audio/mpeg, audio/mp3, application/octet-stream", forHTTPHeaderField: "Accept")
+        if let token = TokenManager.shared.accessToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .mapError { _ in NetworkError.unknownError }
+            .tryMap { data, response in
+                // 1) 응답이 오디오면 파일로 저장 후 로컬 URL 반환
+                if let http = response as? HTTPURLResponse {
+                    let contentType = http.value(forHTTPHeaderField: "Content-Type") ?? ""
+                    if contentType.contains("audio") || contentType.contains("octet-stream") {
+                        let tmpURL = FileManager.default.temporaryDirectory.appendingPathComponent("stream_\(jobId).mp3")
+                        try data.write(to: tmpURL, options: .atomic)
+                        return tmpURL
+                    }
+                }
+                // 2) JSON에 오디오 URL이 담겨오는 경우 처리
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    if let urlString = (json["audio_url"] as? String) ?? (json["url"] as? String),
+                       let url = URL(string: urlString) {
+                        return url
+                    }
+                }
+                // 3) 그 외에는 응답 URL 자체가 스트림인 경우 (리다이렉트 등)
+                if let finalURL = (response as? HTTPURLResponse)?.url {
+                    return finalURL
+                }
+                throw NetworkError.decodingError
+            }
+            .mapError { _ in NetworkError.decodingError }
             .eraseToAnyPublisher()
     }
     
@@ -415,6 +472,12 @@ private extension APIService {
     internal func likeArtist(id: Int) -> AnyPublisher<Bool, NetworkError> {
         return request(target: .likeArtist(id: id), responseType: LikeToggleResponseDTO.self)
             .map { $0.isLiked }
+            .eraseToAnyPublisher()
+    }
+    
+    // MARK: - Highlights API 구현
+    internal func getHighlights(filter: String?, itemName: String?, itemType: String?, ordering: String?, page: Int?, search: String?) -> AnyPublisher<HighlightsResponseDTO, NetworkError> {
+        return request(target: .getHighlights(filter: filter, itemName: itemName, itemType: itemType, ordering: ordering, page: page, search: search), responseType: HighlightsResponseDTO.self)
             .eraseToAnyPublisher()
     }
     

@@ -83,13 +83,14 @@ final class RecordInputView: BaseView {
     }()
     
     // 방문 날짜 입력 필드
+    // UIDatePicker를 inputView로 사용하므로 직접 텍스트 입력은 불가능
     let visitDateTextField: UITextField = {
         let textField = UITextField()
-        textField.placeholder = "방문 날짜를 기록하세요."
+        textField.placeholder = "방문 날짜를 선택하세요. (YYYY-MM-DD)"
         textField.font = .systemFont(ofSize: 16, weight: .regular)
         textField.textColor = .white
         textField.attributedPlaceholder = NSAttributedString(
-            string: "방문 날짜를 기록하세요.",
+            string: "방문 날짜를 선택하세요. (YYYY-MM-DD)",
             attributes: [
                 .foregroundColor: UIColor.white.withAlphaComponent(0.3),
                 .font: UIFont.systemFont(ofSize: 16, weight: .regular)
@@ -103,9 +104,9 @@ final class RecordInputView: BaseView {
         textField.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
         textField.leftViewMode = .always
         textField.rightViewMode = .always
-        textField.keyboardType = .numbersAndPunctuation
+        // keyboardType은 제거 (DatePicker 사용)
         textField.returnKeyType = .done
-        textField.tintColor = UIColor(hex: "#FF7C27") // 커서 색상 변경
+        textField.tintColor = UIColor(hex: "#FF7C27")
         return textField
     }()
     

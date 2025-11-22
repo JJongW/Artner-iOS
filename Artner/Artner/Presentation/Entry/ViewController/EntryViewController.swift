@@ -37,6 +37,11 @@ final class EntryViewController: BaseViewController<EntryViewModel, AppCoordinat
         entryView.onBackButtonTapped = { [weak self] in
             self?.coordinator.popViewController(animated: true)
         }
+        // 우측 햄버거(사이드바) 버튼 액션 연결
+        entryView.didTapMenuButton = { [weak self] in
+            guard let self = self else { return }
+            self.coordinator.showSidebar(from: self)
+        }
 
         for case let button as UIButton in entryView.suggestionStack.arrangedSubviews {
             button.addTarget(self, action: #selector(didTapSuggestionButton(_:)), for: .touchUpInside)
@@ -208,7 +213,7 @@ final class EntryViewController: BaseViewController<EntryViewModel, AppCoordinat
         let leadingOffset: CGFloat = 20
 
         // 모든 제약조건을 다시 생성하여 SnapKit 에러 방지
-        entryView.blurredImageView.snp.remakeConstraints {
+        entryView.blurredAnimationView.snp.remakeConstraints {
             $0.top.equalTo(entryView.customNavigationBar.snp.bottom).offset(20)
             $0.width.height.equalTo(size)
             

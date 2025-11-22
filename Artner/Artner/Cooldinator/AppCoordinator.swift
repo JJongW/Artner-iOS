@@ -37,7 +37,7 @@ final class AppCoordinator {
     func start() {
         // DI Container 설정
         container.configureForDevelopment()
-        
+
         // DI Container를 통해 ViewModel 생성
         let homeViewModel = container.makeHomeViewModel()
         let homeVC = HomeViewController(viewModel: homeViewModel, coordinator: self)
@@ -69,6 +69,17 @@ final class AppCoordinator {
         let playerViewModel = container.makePlayerViewModel(docent: docent)
         let playerVC = PlayerViewController(viewModel: playerViewModel, coordinator: self)
         navigationController.pushViewController(playerVC, animated: true)
+    }
+
+    /// 카메라를 닫고 Player 화면으로 이동
+    func dismissCameraAndShowPlayer(docent: Docent) {
+        if navigationController.presentedViewController != nil {
+            navigationController.dismiss(animated: true) { [weak self] in
+                self?.showPlayer(docent: docent)
+            }
+        } else {
+            showPlayer(docent: docent)
+        }
     }
 
     func showCamera() {
@@ -154,7 +165,8 @@ final class AppCoordinator {
         navigationController.pushViewController(saveVC, animated: true)
     }
     func showUnderline() {
-        let underlineVC = UnderlineViewController()
+        let underlineVM = DIContainer.shared.makeUnderlineViewModel()
+        let underlineVC = UnderlineViewController(viewModel: underlineVM)
         underlineVC.goToFeedHandler = { [weak self] in self?.popToHome() }
         navigationController.pushViewController(underlineVC, animated: true)
     }

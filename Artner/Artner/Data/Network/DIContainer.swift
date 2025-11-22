@@ -59,6 +59,11 @@ final class DIContainer {
         return LikeRepositoryImpl(apiService: apiService)
     }()
     
+    /// Highlight Repository 인스턴스
+    lazy var highlightRepository: HighlightRepository = {
+        return HighlightRepositoryImpl(apiService: apiService)
+    }()
+    
     /// Auth Repository 인스턴스
     lazy var authRepository: AuthRepository = {
         return AuthRepositoryImpl(apiService: apiService)
@@ -125,6 +130,11 @@ final class DIContainer {
         return ToggleLikeUseCaseImpl(likeRepository: likeRepository)
     }()
     
+    /// Highlights UseCase 인스턴스
+    lazy var getHighlightsUseCase: GetHighlightsUseCase = {
+        return GetHighlightsUseCaseImpl(highlightRepository: highlightRepository)
+    }()
+    
     /// Kakao Login UseCase 인스턴스
     lazy var kakaoLoginUseCase: KakaoLoginUseCase = {
         return KakaoLoginUseCaseImpl(authRepository: authRepository)
@@ -186,6 +196,11 @@ extension DIContainer {
     /// LikeViewModel 생성
     func makeLikeViewModel() -> LikeViewModel {
         return LikeViewModel(getLikesUseCase: getLikesUseCase)
+    }
+    
+    /// UnderlineViewModel 생성
+    func makeUnderlineViewModel() -> UnderlineViewModel {
+        return UnderlineViewModel(getHighlightsUseCase: getHighlightsUseCase)
     }
 }
 

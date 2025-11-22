@@ -22,14 +22,20 @@ struct SaveFolderModel {
 /// 폴더에 저장된 개별 아이템 모델
 struct SavedItem {
     let id: String
+    let jobId: String?
     let title: String
+    let artistName: String?
+    let script: String?
     let type: SaveItemType
     let savedDate: Date
     let thumbnailURL: String?
     
-    init(id: String = UUID().uuidString, title: String, type: SaveItemType, savedDate: Date = Date(), thumbnailURL: String? = nil) {
+    init(id: String = UUID().uuidString, jobId: String? = nil, title: String, artistName: String? = nil, script: String? = nil, type: SaveItemType, savedDate: Date = Date(), thumbnailURL: String? = nil) {
         self.id = id
+        self.jobId = jobId
         self.title = title
+        self.artistName = artistName
+        self.script = script
         self.type = type
         self.savedDate = savedDate
         self.thumbnailURL = thumbnailURL
