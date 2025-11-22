@@ -15,12 +15,7 @@ final class EntryView: BaseView {
     let contentView = UIView()
 
     let customNavigationBar = CustomNavigationBar()
-    let blurredImageView: UIImageView = {
-        let imageView = UIImageView()
-        imageView.image = UIImage(named: "Artner_img")
-        imageView.contentMode = .scaleAspectFit
-        return imageView
-    }()
+    let blurredAnimationView = LottieRemoteView()
     let greetingLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.boldSystemFont(ofSize: 18)
@@ -144,7 +139,7 @@ final class EntryView: BaseView {
         scrollView.keyboardDismissMode = .interactive
         scrollView.alwaysBounceVertical = true
 
-        [customNavigationBar, blurredImageView, greetingLabel, descriptionLabel, suggestionLabel, suggestionScrollView, textField, searchButton].forEach {
+        [customNavigationBar, blurredAnimationView, greetingLabel, descriptionLabel, suggestionLabel, suggestionScrollView, textField, searchButton].forEach {
             contentView.addSubview($0)
         }
         
@@ -153,8 +148,8 @@ final class EntryView: BaseView {
         // bottomFadeView를 스크롤뷰에 추가 (컨텐츠 위에 오버레이)
         addSubview(bottomFadeView)
 
-        blurredImageView.contentMode = .scaleAspectFit
-        blurredImageView.clipsToBounds = true
+        blurredAnimationView.clipsToBounds = true
+        blurredAnimationView.load(urlString: "https://lottie.host/d0d08cf4-f3d6-40cd-b98c-e7babcc85851/MtTaxs6tEa.lottie")
 
         ["🖼️\n작품 표현\n방식에 대해", "🎨\n인상주의에\n대해", "🎨\n레오나르도 다빈치"].forEach { title in
             let button = UIButton()
@@ -264,14 +259,14 @@ final class EntryView: BaseView {
             $0.height.equalTo(44)
         }
 
-        blurredImageView.snp.makeConstraints {
+        blurredAnimationView.snp.makeConstraints {
             $0.top.equalTo(customNavigationBar.snp.bottom).offset(20)
             $0.centerX.equalToSuperview()
             $0.width.height.equalTo(155)
         }
 
         greetingLabel.snp.makeConstraints {
-            greetingTopConstraint = $0.top.equalTo(blurredImageView.snp.bottom).offset(10).constraint
+        greetingTopConstraint = $0.top.equalTo(blurredAnimationView.snp.bottom).offset(10).constraint
             $0.leading.trailing.equalToSuperview().inset(20)
         }
 

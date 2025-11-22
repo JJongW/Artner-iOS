@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		C3432F8D2E769EB1006E739B /* Moya in Frameworks */ = {isa = PBXBuildFile; productRef = C3432F8C2E769EB1006E739B /* Moya */; };
 		C34330142EAFA377006E739B /* KakaoSDK in Frameworks */ = {isa = PBXBuildFile; productRef = C34330132EAFA377006E739B /* KakaoSDK */; };
+		C34338682EC96A63006E739B /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = C34338672EC96A63006E739B /* Lottie */; };
 		C3E07E892DA11F0600BB0D0A /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = C3E07E882DA11F0600BB0D0A /* SnapKit */; };
 /* End PBXBuildFile section */
 
@@ -48,6 +49,7 @@
 				C3432F8D2E769EB1006E739B /* Moya in Frameworks */,
 				C3E07E892DA11F0600BB0D0A /* SnapKit in Frameworks */,
 				C34330142EAFA377006E739B /* KakaoSDK in Frameworks */,
+				C34338682EC96A63006E739B /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -93,6 +95,7 @@
 				C3E07E882DA11F0600BB0D0A /* SnapKit */,
 				C3432F8C2E769EB1006E739B /* Moya */,
 				C34330132EAFA377006E739B /* KakaoSDK */,
+				C34338672EC96A63006E739B /* Lottie */,
 			);
 			productName = Artner;
 			productReference = C3E07E4B2DA1140200BB0D0A /* Artner.app */;
@@ -126,6 +129,7 @@
 				C3E07E872DA11F0600BB0D0A /* XCRemoteSwiftPackageReference "SnapKit" */,
 				C3432F8B2E769E81006E739B /* XCRemoteSwiftPackageReference "Moya" */,
 				C34330122EAFA377006E739B /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */,
+				C34338662EC96A63006E739B /* XCRemoteSwiftPackageReference "lottie-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C3E07E4C2DA1140200BB0D0A /* Products */;
@@ -375,6 +379,14 @@
 				minimumVersion = 2.25.0;
 			};
 		};
+		C34338662EC96A63006E739B /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.5.2;
+			};
+		};
 		C3E07E872DA11F0600BB0D0A /* XCRemoteSwiftPackageReference "SnapKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SnapKit/SnapKit";
@@ -395,6 +407,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C34330122EAFA377006E739B /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
 			productName = KakaoSDK;
+		};
+		C34338672EC96A63006E739B /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C34338662EC96A63006E739B /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = Lottie;
 		};
 		C3E07E882DA11F0600BB0D0A /* SnapKit */ = {
 			isa = XCSwiftPackageProductDependency;
