@@ -153,6 +153,7 @@ final class EntryViewController: BaseViewController<EntryViewModel, AppCoordinat
             description: String(response.text.prefix(200)) + "...", // 앞부분 200자만
             imageURL: "", // 이미지 URL은 아직 제공되지 않음
             audioURL: nil, // 오디오 URL은 나중에 audioJobId로 조회
+            audioJobId: response.audioJobId, // audioJobId 저장
             paragraphs: [paragraph]
         )
         

@@ -19,6 +19,7 @@ struct DummyDocentData {
                 description: "여러분, 지금 여러분 앞에 서 있는 이 작품은 인류 미술사에서 가장 유명한 그림 중 하나...",
                 imageURL: "titleImage2",
                 audioURL: nil,
+                audioJobId: nil,
                 paragraphs: dummyDocentParagraphs
             ),
             Docent(
@@ -28,6 +29,7 @@ struct DummyDocentData {
                 description: "반 고흐의 걸작 중 하나...",
                 imageURL: "titleImage2",
                 audioURL: nil,
+                audioJobId: nil,
                 paragraphs: [
                     DocentParagraph(
                         id: "2",
@@ -44,6 +46,7 @@ struct DummyDocentData {
                 description: "빛과 그림자 표현이 뛰어난 작품...",
                 imageURL: "titleImage2",
                 audioURL: nil,
+                audioJobId: nil,
                 paragraphs: [
                     DocentParagraph(
                         id: "3",

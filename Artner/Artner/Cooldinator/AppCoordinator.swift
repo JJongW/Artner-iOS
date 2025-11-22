@@ -16,6 +16,7 @@ final class AppCoordinator {
     private let container = DIContainer.shared
 
     private var sideMenu: SideMenuContainerView?
+    private var cancellables = Set<AnyCancellable>()
 
     init(window: UIWindow) {
         self.window = window
@@ -66,9 +67,54 @@ final class AppCoordinator {
     }
 
     func showPlayer(docent: Docent) {
-        let playerViewModel = container.makePlayerViewModel(docent: docent)
-        let playerVC = PlayerViewController(viewModel: playerViewModel, coordinator: self)
-        navigationController.pushViewController(playerVC, animated: true)
+        print("🎬 [AppCoordinator] showPlayer 호출됨")
+        print("🎬 [AppCoordinator] audioURL: \(docent.audioURL?.absoluteString ?? "nil")")
+        print("🎬 [AppCoordinator] audioJobId: \(docent.audioJobId ?? "nil")")
+        
+        // audioURL이 없고 audioJobId가 있으면 streamAudio 호출
+        if docent.audioURL == nil, let audioJobId = docent.audioJobId {
+            print("🎬 [AppCoordinator] streamAudio 호출 필요 - jobId: \(audioJobId)")
+            ToastManager.shared.showLoading("오디오 불러오는 중")
+            APIService.shared.streamAudio(jobId: audioJobId)
+                .receive(on: DispatchQueue.main)
+                .sink(
+                    receiveCompletion: { completion in
+                        print("🎬 [AppCoordinator] streamAudio completion")
+                        ToastManager.shared.hideCurrentToast()
+                        if case .failure(let error) = completion {
+                            print("❌ [AppCoordinator] streamAudio 실패: \(error)")
+                            ToastManager.shared.showError("오디오를 불러오는데 실패했습니다")
+                        }
+                    },
+                    receiveValue: { [weak self] fileURL in
+                        guard let self = self else { return }
+                        print("✅ [AppCoordinator] streamAudio 성공 - fileURL: \(fileURL.absoluteString)")
+                        ToastManager.shared.hideCurrentToast()
+                        // audioURL을 설정한 새로운 Docent 생성
+                        let docentWithAudio = Docent(
+                            id: docent.id,
+                            title: docent.title,
+                            artist: docent.artist,
+                            description: docent.description,
+                            imageURL: docent.imageURL,
+                            audioURL: fileURL,
+                            audioJobId: docent.audioJobId,
+                            paragraphs: docent.paragraphs
+                        )
+                        print("🎬 [AppCoordinator] PlayerViewController 생성 및 표시")
+                        let playerViewModel = self.container.makePlayerViewModel(docent: docentWithAudio)
+                        let playerVC = PlayerViewController(viewModel: playerViewModel, coordinator: self)
+                        self.navigationController.pushViewController(playerVC, animated: true)
+                    }
+                )
+                .store(in: &cancellables)
+        } else {
+            // audioURL이 이미 있거나 audioJobId가 없는 경우 바로 Player 표시
+            print("🎬 [AppCoordinator] audioURL이 있거나 audioJobId가 없음 - 바로 Player 표시")
+            let playerViewModel = container.makePlayerViewModel(docent: docent)
+            let playerVC = PlayerViewController(viewModel: playerViewModel, coordinator: self)
+            navigationController.pushViewController(playerVC, animated: true)
+        }
     }
 
     /// 카메라를 닫고 Player 화면으로 이동
@@ -111,7 +157,7 @@ final class AppCoordinator {
             artist: "미지의 작가", 
             description: "이 작품은 이미지 인식을 통해 탐색된 결과입니다.",
             imageURL: "https://www.naver.com",
-            audioURL: nil,
+            audioURL: nil, audioJobId: "f2ec47d2-bd1f-42e2-b70d-aeefc237f12e",
             paragraphs: [
                 DocentParagraph(
                     id: "p-999-1",

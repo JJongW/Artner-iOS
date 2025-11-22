@@ -300,6 +300,24 @@ final class PlayerView: BaseView {
     func setParagraphs(_ paragraphs: [DocentParagraph]) {
         self.paragraphs = paragraphs
         lyricsTableView.reloadData() // 테이블 뷰를 새로고침하여 문단 데이터를 반영
+        
+        // 실제 도슨트 길이 계산하여 총 시간 표시 업데이트
+        let totalDuration = calculateTotalDuration(from: paragraphs)
+        updateTotalTimeLabel(totalDuration)
+    }
+    
+    /// 문단 배열에서 총 재생 시간 계산
+    private func calculateTotalDuration(from paragraphs: [DocentParagraph]) -> TimeInterval {
+        guard let lastParagraph = paragraphs.last else { return 0.0 }
+        // 마지막 문단의 endTime이 총 재생 시간
+        return lastParagraph.endTime
+    }
+    
+    /// 총 시간 라벨 업데이트
+    private func updateTotalTimeLabel(_ totalTime: TimeInterval) {
+        let totalMinutes = Int(totalTime) / 60
+        let totalSeconds = Int(totalTime) % 60
+        totalTimeLabel.text = String(format: "%d:%02d", totalMinutes, totalSeconds)
     }
 
     // MARK: - Actions

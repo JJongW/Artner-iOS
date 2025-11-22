@@ -370,14 +370,37 @@ extension CameraViewController {
                 guard let self = self else { return }
                 switch result {
                 case .success(let statusDTO):
-                    if statusDTO.status == "completed", let audioUrl = statusDTO.audioUrl {
-                        // 로딩 토스트는 상위에서 이미 숨김 처리됨
-                        let docentForPlay = self.buildDocentForPlay(from: baseDocent, status: statusDTO)
-                        // 성공 토스트 표시 후 Player로 이동
-                        DispatchQueue.main.async {
-                            ToastManager.shared.showSuccess("도슨트가 준비되었습니다")
+                    if statusDTO.status == "completed" {
+                        // audioUrl이 있으면 사용, 없으면 jobId로 streamAudio 호출
+                        if let audioUrlString = statusDTO.audioUrl, let audioUrl = URL(string: audioUrlString) {
+                            // audioUrl이 완전한 URL인 경우
+                            let docentForPlay = self.buildDocentForPlay(from: baseDocent, status: statusDTO, audioURL: audioUrl)
+                            DispatchQueue.main.async {
+                                ToastManager.shared.showSuccess("도슨트가 준비되었습니다")
+                            }
+                            self.coordinator.dismissCameraAndShowPlayer(docent: docentForPlay)
+                        } else {
+                            // audioUrl이 없거나 job_id만 있는 경우 streamAudio 호출
+                            ToastManager.shared.showLoading("오디오 불러오는 중")
+                            APIService.shared.streamAudio(jobId: jobId)
+                                .receive(on: DispatchQueue.main)
+                                .sink(
+                                    receiveCompletion: { completion in
+                                        ToastManager.shared.hideCurrentToast()
+                                        if case .failure = completion {
+                                            self.showAPIError()
+                                        }
+                                    },
+                                    receiveValue: { [weak self] fileURL in
+                                        guard let self = self else { return }
+                                        ToastManager.shared.hideCurrentToast()
+                                        let docentForPlay = self.buildDocentForPlay(from: baseDocent, status: statusDTO, audioURL: fileURL)
+                                        ToastManager.shared.showSuccess("도슨트가 준비되었습니다")
+                                        self.coordinator.dismissCameraAndShowPlayer(docent: docentForPlay)
+                                    }
+                                )
+                                .store(in: &self.cancellables)
                         }
-                        self.coordinator.dismissCameraAndShowPlayer(docent: docentForPlay)
                     } else if statusDTO.status == "failed" {
                         self.showAPIError()
                     } else {
@@ -406,7 +429,7 @@ extension CameraViewController {
     }
 
     /// AudioStatusDTO의 타임스탬프를 사용하여 Player용 Docent 구성
-    private func buildDocentForPlay(from base: Docent, status: AudioStatusDTO) -> Docent {
+    private func buildDocentForPlay(from base: Docent, status: AudioStatusDTO, audioURL: URL) -> Docent {
         let duration = status.duration ?? 0
         // timestamp를 문단으로 변환: 각 문장을 하나의 문단으로 매핑
         let paragraphs: [DocentParagraph]
@@ -439,7 +462,8 @@ extension CameraViewController {
             artist: base.artist,
             description: base.description,
             imageURL: base.imageURL,
-            audioURL: status.audioUrl.flatMap { URL(string: $0) }, 
+            audioURL: audioURL,
+            audioJobId: base.audioJobId, // audioJobId 유지
             paragraphs: paragraphs
         )
     }
@@ -480,6 +504,7 @@ extension CameraViewController {
             description: String(response.text.prefix(200)) + "...", // 앞부분 200자만
             imageURL: "", // 이미지 URL은 아직 제공되지 않음
             audioURL: nil, // 오디오 URL은 나중에 audioJobId로 조회
+            audioJobId: response.audioJobId, // audioJobId 저장
             paragraphs: [paragraph]
         )
         

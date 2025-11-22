@@ -14,5 +14,6 @@ struct Docent {
     let description: String
     let imageURL: String
     let audioURL: URL?
+    let audioJobId: String? // 오디오 생성 job_id (audioURL이 없을 때 streamAudio 호출에 사용)
     let paragraphs: [DocentParagraph]
 }

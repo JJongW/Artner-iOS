@@ -6,10 +6,12 @@
 //
 import AVFoundation
 
-final class PlayerViewModel {
+final class PlayerViewModel: NSObject {
 
     private let docent: Docent
     private var audioPlayer: AVAudioPlayer?
+    private var avPlayer: AVPlayer?
+    private var timeObserver: Any?
     private var isPlaying = false
     private var timer: Timer?
 
@@ -40,6 +42,7 @@ final class PlayerViewModel {
 
     init(docent: Docent) {
         self.docent = docent
+        super.init()
         // 데이터 로딩 시뮬레이션
         simulateDataLoading()
         prepareAudio()
@@ -237,18 +240,37 @@ final class PlayerViewModel {
     private func prepareAudio() {
         // 우선 Docent의 오디오 URL이 있으면 그걸 사용
         if let audioURL = docent.audioURL {
-            do {
-                audioPlayer = try AVAudioPlayer(contentsOf: audioURL)
-                audioPlayer?.prepareToPlay()
+            // URL이 원격 URL(HTTP/HTTPS)인지 확인
+            let isRemoteURL = audioURL.scheme == "http" || audioURL.scheme == "https"
+            
+            if isRemoteURL {
+                // 원격 URL인 경우 AVPlayer 사용
+                let playerItem = AVPlayerItem(url: audioURL)
+                avPlayer = AVPlayer(playerItem: playerItem)
+                
+                // 볼륨 확인 및 설정 (0이면 소리가 안 남)
+                avPlayer?.volume = 1.0
+                
                 isUsingSimulation = false
-                print("✅ 스트림 오디오 로딩 성공 (AVAudioPlayer)")
+                print("✅ 원격 오디오 URL 로딩 성공 (AVPlayer): \(audioURL.absoluteString)")
+                
+                // 재생 상태 관찰
+                setupAVPlayerObservers(playerItem: playerItem)
                 return
-            } catch {
-                print("⚠️ 스트림 오디오 초기화 실패: \(error.localizedDescription) -> 애니메이션 시뮬레이션으로 전환")
-                // 오디오 재생이 불가하면 애니메이션 모드로 전환
-                audioPlayer = nil
-                isUsingSimulation = true
-                return
+            } else {
+                // 로컬 파일 URL인 경우 AVAudioPlayer 사용
+                do {
+                    audioPlayer = try AVAudioPlayer(contentsOf: audioURL)
+                    audioPlayer?.prepareToPlay()
+                    isUsingSimulation = false
+                    print("✅ 로컬 오디오 파일 로딩 성공 (AVAudioPlayer): \(audioURL.path)")
+                    return
+                } catch {
+                    print("⚠️ 로컬 오디오 초기화 실패: \(error.localizedDescription) -> 애니메이션 시뮬레이션으로 전환")
+                    audioPlayer = nil
+                    isUsingSimulation = true
+                    return
+                }
             }
         }
         // 없으면 더미로 시뮬레이션
@@ -263,6 +285,53 @@ final class PlayerViewModel {
         }
         print("⚠️ 오디오 파일을 찾을 수 없어 시뮬레이션 모드로 실행합니다.")
         isUsingSimulation = true
+    }
+    
+    private func setupAVPlayerObservers(playerItem: AVPlayerItem) {
+        guard let player = avPlayer else { return }
+        
+        // AVPlayerItem 상태 관찰 (준비 완료 확인)
+        playerItem.addObserver(self, forKeyPath: "status", options: [.new], context: nil)
+        
+        // 재생 시간 관찰 (0.1초 간격)
+        let interval = CMTime(seconds: 0.1, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
+        timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] _ in
+            self?.updateHighlightIndex()
+            self?.updateProgress()
+        }
+        
+        // 재생 완료 알림
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(playerDidFinishPlaying),
+            name: .AVPlayerItemDidPlayToEndTime,
+            object: playerItem
+        )
+    }
+    
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+        if keyPath == "status" {
+            if let playerItem = object as? AVPlayerItem {
+                switch playerItem.status {
+                case .readyToPlay:
+                    print("✅ AVPlayerItem 준비 완료 - 재생 가능")
+                case .failed:
+                    print("❌ AVPlayerItem 로딩 실패: \(playerItem.error?.localizedDescription ?? "알 수 없는 오류")")
+                    isUsingSimulation = true
+                case .unknown:
+                    print("⚠️ AVPlayerItem 상태 알 수 없음")
+                @unknown default:
+                    break
+                }
+            }
+        }
+    }
+    
+    @objc private func playerDidFinishPlaying() {
+        isPlaying = false
+        onPlayStateChanged?(false)
+        timer?.invalidate()
+        timer = nil
     }
 
     func togglePlayPause() {
@@ -320,6 +389,8 @@ final class PlayerViewModel {
         if isUsingSimulation {
             simulationCurrentTime = 0.0
             simulationStartTime = nil
+        } else if let avPlayer = avPlayer {
+            avPlayer.seek(to: .zero)
         } else {
             audioPlayer?.currentTime = 0.0
         }
@@ -333,13 +404,26 @@ final class PlayerViewModel {
         if isUsingSimulation {
             // 시뮬레이션 모드: 현재 시간 기록
             simulationStartTime = Date()
+            startTimer()
+        } else if let avPlayer = avPlayer {
+            // AVPlayer 사용 (원격 URL)
+            // AVPlayerItem이 준비되었는지 확인
+            if let playerItem = avPlayer.currentItem, playerItem.status == .readyToPlay {
+                avPlayer.play()
+                print("▶️ AVPlayer 재생 시작")
+            } else {
+                print("⚠️ AVPlayerItem이 아직 준비되지 않음. 상태: \(avPlayer.currentItem?.status.rawValue ?? -1)")
+                // 준비되지 않았어도 재생 시도 (비동기 로딩 중일 수 있음)
+                avPlayer.play()
+            }
+            // AVPlayer는 timeObserver로 시간 업데이트하므로 별도 타이머 불필요
         } else {
-            // 실제 오디오 모드
+            // AVAudioPlayer 사용 (로컬 파일)
             audioPlayer?.play()
+            startTimer()
         }
         
-        startTimer()
-        print("▶️ 재생 시작 (시뮬레이션: \(isUsingSimulation))")
+        print("▶️ 재생 시작 (시뮬레이션: \(isUsingSimulation), AVPlayer: \(avPlayer != nil))")
     }
     
     private func pausePlayback() {
@@ -349,13 +433,18 @@ final class PlayerViewModel {
                 simulationCurrentTime += Date().timeIntervalSince(startTime)
             }
             simulationStartTime = nil
+            timer?.invalidate()
+            timer = nil
+        } else if let avPlayer = avPlayer {
+            // AVPlayer 사용 (원격 URL)
+            avPlayer.pause()
         } else {
-            // 실제 오디오 모드
+            // AVAudioPlayer 사용 (로컬 파일)
             audioPlayer?.pause()
+            timer?.invalidate()
+            timer = nil
         }
         
-        timer?.invalidate()
-        timer = nil
         print("⏸️ 재생 일시정지")
     }
 
@@ -413,8 +502,11 @@ final class PlayerViewModel {
                 return simulationCurrentTime
             }
             return simulationCurrentTime + Date().timeIntervalSince(startTime)
+        } else if let avPlayer = avPlayer {
+            // AVPlayer 사용 (원격 URL)
+            return CMTimeGetSeconds(avPlayer.currentTime())
         } else {
-            // 실제 오디오 모드
+            // AVAudioPlayer 사용 (로컬 파일)
             return audioPlayer?.currentTime ?? 0.0
         }
     }
@@ -424,8 +516,12 @@ final class PlayerViewModel {
             // 시뮬레이션 모드: 마지막 문단 끝 시간 + 2초
             guard let lastParagraph = paragraphs.last else { return 60.0 }
             return lastParagraph.endTime + 2.0
+        } else if let avPlayer = avPlayer, let duration = avPlayer.currentItem?.duration {
+            // AVPlayer 사용 (원격 URL)
+            let seconds = CMTimeGetSeconds(duration)
+            return seconds.isFinite ? seconds : 60.0
         } else {
-            // 실제 오디오 모드
+            // AVAudioPlayer 사용 (로컬 파일)
             return audioPlayer?.duration ?? 60.0
         }
     }
@@ -439,6 +535,17 @@ final class PlayerViewModel {
     deinit {
         timer?.invalidate()
         audioPlayer?.stop()
+        
+        // AVPlayer 정리
+        if let timeObserver = timeObserver {
+            avPlayer?.removeTimeObserver(timeObserver)
+        }
+        // AVPlayerItem observer 제거
+        avPlayer?.currentItem?.removeObserver(self, forKeyPath: "status")
+        NotificationCenter.default.removeObserver(self)
+        avPlayer?.pause()
+        avPlayer = nil
+        
         print("🗑️ PlayerViewModel 해제됨")
     }
 }

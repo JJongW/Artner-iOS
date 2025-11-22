@@ -411,42 +411,95 @@ private extension APIService {
     
     // MARK: - Audio Stream 구현
     internal func streamAudio(jobId: String) -> AnyPublisher<URL, NetworkError> {
+        print("🎵 [streamAudio] 시작 - jobId: \(jobId)")
+        
         // 직접 URLSession으로 다운로드 (인증 헤더 포함)
         let base = APITarget.getFeedList.baseURL
-        let url = base.appendingPathComponent(APITarget.streamAudio(jobId: jobId).path)
+        let path = APITarget.streamAudio(jobId: jobId).path
+        let url = base.appendingPathComponent(path)
+        
+        print("🎵 [streamAudio] 요청 URL: \(url.absoluteString)")
+        
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         // 오디오 응답 수용
         request.setValue("audio/mpeg, audio/mp3, application/octet-stream", forHTTPHeaderField: "Accept")
         if let token = TokenManager.shared.accessToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            print("🎵 [streamAudio] Authorization 헤더 설정됨")
+        } else {
+            print("⚠️ [streamAudio] AccessToken이 없습니다")
         }
+        
+        print("🎵 [streamAudio] URLSession 요청 시작")
         return URLSession.shared.dataTaskPublisher(for: request)
-            .mapError { _ in NetworkError.unknownError }
+            .handleEvents(
+                receiveSubscription: { _ in
+                    print("🎵 [streamAudio] 구독 시작")
+                },
+                receiveOutput: { data, response in
+                    if let httpResponse = response as? HTTPURLResponse {
+                        print("🎵 [streamAudio] 응답 받음 - Status: \(httpResponse.statusCode)")
+                        print("🎵 [streamAudio] Content-Type: \(httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "없음")")
+                        print("🎵 [streamAudio] 데이터 크기: \(data.count) bytes")
+                    }
+                },
+                receiveCompletion: { completion in
+                    switch completion {
+                    case .finished:
+                        print("🎵 [streamAudio] 완료")
+                    case .failure(let error):
+                        print("❌ [streamAudio] 실패: \(error.localizedDescription)")
+                    }
+                },
+                receiveCancel: {
+                    print("⚠️ [streamAudio] 취소됨")
+                }
+            )
+            .mapError { error in
+                print("❌ [streamAudio] mapError: \(error.localizedDescription)")
+                return NetworkError.unknownError
+            }
             .tryMap { data, response in
+                print("🎵 [streamAudio] tryMap 시작 - 데이터 처리 중")
+                
                 // 1) 응답이 오디오면 파일로 저장 후 로컬 URL 반환
                 if let http = response as? HTTPURLResponse {
                     let contentType = http.value(forHTTPHeaderField: "Content-Type") ?? ""
+                    print("🎵 [streamAudio] Content-Type 확인: \(contentType)")
+                    
                     if contentType.contains("audio") || contentType.contains("octet-stream") {
                         let tmpURL = FileManager.default.temporaryDirectory.appendingPathComponent("stream_\(jobId).mp3")
+                        print("🎵 [streamAudio] 오디오 파일 저장 중: \(tmpURL.path)")
                         try data.write(to: tmpURL, options: .atomic)
+                        print("✅ [streamAudio] 오디오 파일 저장 완료: \(tmpURL.path)")
                         return tmpURL
                     }
                 }
+                
                 // 2) JSON에 오디오 URL이 담겨오는 경우 처리
                 if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    print("🎵 [streamAudio] JSON 응답 확인 중")
                     if let urlString = (json["audio_url"] as? String) ?? (json["url"] as? String),
                        let url = URL(string: urlString) {
+                        print("✅ [streamAudio] JSON에서 오디오 URL 추출: \(urlString)")
                         return url
                     }
                 }
+                
                 // 3) 그 외에는 응답 URL 자체가 스트림인 경우 (리다이렉트 등)
                 if let finalURL = (response as? HTTPURLResponse)?.url {
+                    print("✅ [streamAudio] 응답 URL 사용: \(finalURL.absoluteString)")
                     return finalURL
                 }
+                
+                print("❌ [streamAudio] 데이터 처리 실패 - 모든 케이스 실패")
                 throw NetworkError.decodingError
             }
-            .mapError { _ in NetworkError.decodingError }
+            .mapError { error in
+                print("❌ [streamAudio] 최종 mapError: \(error.localizedDescription)")
+                return NetworkError.decodingError
+            }
             .eraseToAnyPublisher()
     }
     

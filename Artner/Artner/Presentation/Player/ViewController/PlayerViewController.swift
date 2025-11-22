@@ -100,9 +100,11 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
     private func configureAudioSession() {
         do {
             let session = AVAudioSession.sharedInstance()
-            // playback 카테고리에서는 defaultToSpeaker 옵션을 사용하지 않음
-            try session.setCategory(.playback, mode: .default, options: [])
+            // AVPlayer를 사용할 때도 playback 카테고리 필요
+            // mixWithOthers 옵션을 추가하여 다른 오디오와 혼합 가능하도록 설정
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try session.setActive(true, options: [])
+            print("✅ AVAudioSession 설정 완료")
         } catch {
             print("⚠️ AVAudioSession 설정 실패: \(error.localizedDescription)")
         }

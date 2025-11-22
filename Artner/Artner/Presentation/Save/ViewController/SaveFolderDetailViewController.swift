@@ -93,23 +93,34 @@ final class SaveFolderDetailViewController: UIViewController, UITableViewDataSou
             guard let self = self else { return }
             // 오디오 스트림 다운로드 후 플레이어로 이동
             guard let jobId = item.jobId else {
+                print("❌ [SaveFolderDetail] jobId가 nil입니다 - item.id: \(item.id)")
                 ToastManager.shared.showError("오디오 정보를 찾을 수 없습니다")
                 return
             }
+            print("🎵 [SaveFolderDetail] 도슨트 재생 시작 - item.id: \(item.id), jobId: \(jobId)")
             ToastManager.shared.showLoading("오디오 불러오는 중")
             APIService.shared.streamAudio(jobId: jobId)
                 .receive(on: DispatchQueue.main)
-                .sink(receiveCompletion: { _ in
-                    ToastManager.shared.hideCurrentToast()
-                }, receiveValue: { [weak self] fileURL in
-                    guard let self = self else { return }
-                    var docent = self.buildDocent(from: item)
-                    // fileURL로 재생하도록 주입
-                    docent = Docent(id: docent.id, title: docent.title, artist: docent.artist, description: docent.description, imageURL: docent.imageURL, audioURL: fileURL, paragraphs: docent.paragraphs)
-                    let vm = DIContainer.shared.makePlayerViewModel(docent: docent)
-                    let vc = PlayerViewController(viewModel: vm, coordinator: AppCoordinator(window: UIApplication.shared.connectedScenes.compactMap{($0 as? UIWindowScene)?.windows.first}.first ?? UIWindow()))
-                    self.navigationController?.pushViewController(vc, animated: true)
-                })
+                .sink(
+                    receiveCompletion: { completion in
+                        ToastManager.shared.hideCurrentToast()
+                        if case .failure(let error) = completion {
+                            print("❌ [SaveFolderDetail] streamAudio 실패: \(error)")
+                            ToastManager.shared.showError("오디오를 불러오는데 실패했습니다")
+                        }
+                    },
+                    receiveValue: { [weak self] fileURL in
+                        guard let self = self else { return }
+                        print("✅ [SaveFolderDetail] streamAudio 성공 - fileURL: \(fileURL.absoluteString)")
+                        var docent = self.buildDocent(from: item)
+                        print("🎵 [SaveFolderDetail] buildDocent 완료 - audioJobId: \(docent.audioJobId ?? "nil")")
+                        // fileURL로 재생하도록 주입
+                        docent = Docent(id: docent.id, title: docent.title, artist: docent.artist, description: docent.description, imageURL: docent.imageURL, audioURL: fileURL, audioJobId: docent.audioJobId, paragraphs: docent.paragraphs)
+                        let vm = DIContainer.shared.makePlayerViewModel(docent: docent)
+                        let vc = PlayerViewController(viewModel: vm, coordinator: AppCoordinator(window: UIApplication.shared.connectedScenes.compactMap{($0 as? UIWindowScene)?.windows.first}.first ?? UIWindow()))
+                        self.navigationController?.pushViewController(vc, animated: true)
+                    }
+                )
                 .store(in: &self.cancellables)
         }
         return cell
@@ -129,9 +140,11 @@ private extension SaveFolderDetailViewController {
                 guard let self = self else { return }
                 // DTO → SavedItem 매핑
                 self.items = detail.items.map { dto in
-                    SavedItem(
+                    let jobId = dto.audioJobId ?? String(dto.id)
+                    print("💾 [SaveFolderDetail] 아이템 매핑 - id: \(dto.id), audioJobId: \(dto.audioJobId ?? "nil"), 사용할 jobId: \(jobId)")
+                    return SavedItem(
                         id: String(dto.id),
-                        jobId: dto.audioJobId ?? String(dto.id),
+                        jobId: jobId,
                         title: dto.name,
                         artistName: dto.artistName,
                         script: dto.script,
@@ -177,6 +190,7 @@ private extension SaveFolderDetailViewController {
             description: String(fullText.prefix(200)),
             imageURL: item.thumbnailURL ?? "",
             audioURL: nil,
+            audioJobId: item.jobId, // jobId를 audioJobId로 저장
             paragraphs: paragraphs
         )
     }
