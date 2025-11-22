@@ -17,28 +17,4 @@ final class DocentRepositoryImpl: DocentRepository {
         print("📦 Dummy Docent 데이터 반환")
         return DummyDocentData().sampleDocents
     }
-    
-    // MARK: - Future: API 연동 준비
-    
-    /// TODO: 향후 API가 준비되면 APIService를 통한 비동기 방식으로 변경
-    /*
-    private let apiService: APIServiceProtocol
-    private var cancellables = Set<AnyCancellable>()
-    
-    func fetchDocentsAsync(completion: @escaping ([Docent]) -> Void) {
-        apiService.getDocentList()
-            .sink(
-                receiveCompletion: { result in
-                    if case .failure(let error) = result {
-                        print("❌ Docent API 실패: \(error.localizedDescription)")
-                        completion(DummyDocentData().sampleDocents) // Fallback
-                    }
-                },
-                receiveValue: { docents in
-                    completion(docents)
-                }
-            )
-            .store(in: &cancellables)
-    }
-    */
 }

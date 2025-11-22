@@ -76,15 +76,4 @@ class BaseViewController<ViewModelType, CoordinatorType>: UIViewController {
             checkAndFixKeyboardViews(in: subview)
         }
     }
-    
-    /// 안전한 뷰 스냅샷을 위한 헬퍼 메서드
-    func safeCreateSnapshot(of view: UIView) -> UIImage? {
-        // 뷰가 화면에 보이는지 확인
-        guard view.isVisibleInWindow else {
-            print("⚠️ 뷰가 화면에 보이지 않아 스냅샷 생성을 건너뜁니다.")
-            return nil
-        }
-        
-        return view.safeSnapshot()
-    }
 }

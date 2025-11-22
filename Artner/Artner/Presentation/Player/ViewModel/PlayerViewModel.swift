@@ -83,12 +83,6 @@ final class PlayerViewModel: NSObject {
         onLoadingStateChanged?(false)
     }
 
-    // Implement updatePlayerState method
-    func updatePlayerState(_ isPlaying: Bool) {
-        // 플레이어 상태 업데이트 로직
-        // 예시: self.isPlaying = isPlaying
-    }
-
     // Implement saveHighlight method
     func saveHighlight(_ highlight: TextHighlight) {
         // 문단별 배열 초기화
@@ -446,10 +440,6 @@ final class PlayerViewModel: NSObject {
         }
         
         print("⏸️ 재생 일시정지")
-    }
-
-    func currentPlayButtonTitle() -> String {
-        return isPlaying ? "⏸️ 정지" : "▶️ 재생"
     }
 
     private func startTimer() {
