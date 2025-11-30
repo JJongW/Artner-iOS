@@ -205,10 +205,18 @@ final class AppCoordinator {
         likeVC.goToFeedHandler = { [weak self] in self?.popToHome() }
         navigationController.pushViewController(likeVC, animated: true)
     }
-    func showSave() {
+    func showSave(folderId: Int? = nil) {
         let saveVC = SaveViewController()
         saveVC.goToFeedHandler = { [weak self] in self?.popToHome() }
         navigationController.pushViewController(saveVC, animated: true)
+        
+        // 특정 폴더로 이동하는 경우
+        if let folderId = folderId {
+            // SaveViewController가 로드된 후 특정 폴더로 이동
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                saveVC.navigateToFolder(folderId: folderId)
+            }
+        }
     }
     func showUnderline() {
         let underlineVM = DIContainer.shared.makeUnderlineViewModel()

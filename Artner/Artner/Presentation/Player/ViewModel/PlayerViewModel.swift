@@ -29,6 +29,9 @@ final class PlayerViewModel: NSObject {
     
     // 로딩 상태 관리
     private var isLoading = true
+    
+    // API에서 가져온 duration (audioJobId가 있을 때 사용)
+    private var apiDuration: TimeInterval?
 
     // 외부 콜백들
     var onHighlightIndexChanged: ((Int) -> Void)?
@@ -46,6 +49,11 @@ final class PlayerViewModel: NSObject {
         // 데이터 로딩 시뮬레이션
         simulateDataLoading()
         prepareAudio()
+        
+        // audioJobId가 있으면 API에서 duration 가져오기
+        if let audioJobId = docent.audioJobId {
+            fetchAudioDuration(jobId: audioJobId)
+        }
         
         // 저장된 하이라이트 로드
         loadSavedHighlights()
@@ -214,6 +222,33 @@ final class PlayerViewModel: NSObject {
         print("📂 [Storage] 하이라이트 로드 완료: \(highlights.count)개")
     }
     
+    /// API에서 오디오 duration 가져오기
+    /// - Parameter jobId: 오디오 job ID
+    private func fetchAudioDuration(jobId: String) {
+        print("📊 [PlayerViewModel] 오디오 duration 조회 시작 - jobId: \(jobId)")
+        
+        APIService.shared.request(APITarget.audioStatus(jobId: jobId)) { [weak self] (result: Result<AudioStatusDTO, Error>) in
+            guard let self = self else { return }
+            
+            switch result {
+            case .success(let statusDTO):
+                if let duration = statusDTO.duration, duration > 0 {
+                    self.apiDuration = TimeInterval(duration)
+                    print("✅ [PlayerViewModel] 오디오 duration 조회 성공: \(String(format: "%.1f", duration))초")
+                    
+                    // duration이 로드되면 진행률 업데이트 (UI에 반영)
+                    DispatchQueue.main.async {
+                        self.updateProgress()
+                    }
+                } else {
+                    print("⚠️ [PlayerViewModel] duration이 없거나 0입니다")
+                }
+            case .failure(let error):
+                print("❌ [PlayerViewModel] 오디오 duration 조회 실패: \(error.localizedDescription)")
+            }
+        }
+    }
+    
     private func simulateDataLoading() {
         // 로딩 시작 알림
         isLoading = true
@@ -309,6 +344,16 @@ final class PlayerViewModel: NSObject {
                 switch playerItem.status {
                 case .readyToPlay:
                     print("✅ AVPlayerItem 준비 완료 - 재생 가능")
+                    // duration이 로드되었는지 확인하고 진행률 업데이트
+                    let duration = playerItem.duration
+                    let seconds = CMTimeGetSeconds(duration)
+                    if seconds.isFinite && seconds > 0 {
+                        print("📊 [PlayerViewModel] AVPlayer duration 로드됨: \(String(format: "%.1f", seconds))초")
+                        // duration이 로드되면 진행률 업데이트 (UI에 반영)
+                        DispatchQueue.main.async { [weak self] in
+                            self?.updateProgress()
+                        }
+                    }
                 case .failed:
                     print("❌ AVPlayerItem 로딩 실패: \(playerItem.error?.localizedDescription ?? "알 수 없는 오류")")
                     isUsingSimulation = true
@@ -376,6 +421,56 @@ final class PlayerViewModel: NSObject {
             self.startPlayback()
             self.isPlaying = true
             self.onPlayStateChanged?(true)
+        }
+    }
+    
+    /// 프로그레스 바 터치 시 특정 시간으로 이동
+    /// - Parameter progress: 진행률 (0.0 ~ 1.0)
+    func seek(to progress: Float) {
+        // 로딩 중에는 seek 불가
+        guard !isLoading else {
+            print("⚠️ 아직 로딩 중입니다.")
+            return
+        }
+        
+        let totalTime = getTotalTime()
+        let targetTime = TimeInterval(progress) * totalTime
+        
+        print("⏩ [PlayerViewModel] Seek 요청: \(String(format: "%.1f", targetTime))초 (진행률: \(progress * 100)%)")
+        
+        if isUsingSimulation {
+            // 시뮬레이션 모드: 현재 시간 업데이트
+            simulationCurrentTime = targetTime
+            if isPlaying {
+                // 재생 중이면 시작 시간을 현재 시간 기준으로 재설정
+                simulationStartTime = Date()
+            } else {
+                simulationStartTime = nil
+            }
+            // 하이라이트 인덱스 업데이트
+            updateHighlightIndex()
+            // 진행률 업데이트
+            updateProgress()
+        } else if let avPlayer = avPlayer {
+            // AVPlayer 사용 (원격 URL)
+            let targetCMTime = CMTime(seconds: targetTime, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
+            avPlayer.seek(to: targetCMTime) { [weak self] completed in
+                if completed {
+                    print("✅ [PlayerViewModel] AVPlayer seek 완료: \(String(format: "%.1f", targetTime))초")
+                    // seek 후 하이라이트 인덱스 업데이트
+                    self?.updateHighlightIndex()
+                    self?.updateProgress()
+                } else {
+                    print("⚠️ [PlayerViewModel] AVPlayer seek 취소됨")
+                }
+            }
+        } else {
+            // AVAudioPlayer 사용 (로컬 파일)
+            audioPlayer?.currentTime = targetTime
+            print("✅ [PlayerViewModel] AVAudioPlayer seek 완료: \(String(format: "%.1f", targetTime))초")
+            // seek 후 하이라이트 인덱스 업데이트
+            updateHighlightIndex()
+            updateProgress()
         }
     }
     
@@ -502,17 +597,45 @@ final class PlayerViewModel: NSObject {
     }
     
     private func getTotalTime() -> TimeInterval {
+        // 우선 문단 기반으로 총 시간 계산 (실제 도슨트 길이)
+        let paragraphBasedTime: TimeInterval = {
+            guard let lastParagraph = paragraphs.last else { return 0.0 }
+            return lastParagraph.endTime + 2.0 // 마지막 문단 끝 시간 + 여유 시간
+        }()
+        
+        // 1순위: API에서 가져온 duration (가장 정확)
+        if let apiDuration = apiDuration, apiDuration > 0 {
+            print("📊 [PlayerViewModel] API duration 사용: \(String(format: "%.1f", apiDuration))초")
+            return apiDuration
+        }
+        
         if isUsingSimulation {
-            // 시뮬레이션 모드: 마지막 문단 끝 시간 + 2초
-            guard let lastParagraph = paragraphs.last else { return 60.0 }
-            return lastParagraph.endTime + 2.0
+            // 시뮬레이션 모드: 문단 기반 시간 사용
+            return paragraphBasedTime > 0 ? paragraphBasedTime : 60.0
         } else if let avPlayer = avPlayer, let duration = avPlayer.currentItem?.duration {
             // AVPlayer 사용 (원격 URL)
             let seconds = CMTimeGetSeconds(duration)
-            return seconds.isFinite ? seconds : 60.0
-        } else {
+            // duration이 유효하고 finite한 경우에만 사용
+            if seconds.isFinite && seconds > 0 {
+                // 실제 duration과 문단 기반 시간 중 더 큰 값 사용 (더 정확한 값)
+                return max(seconds, paragraphBasedTime)
+            } else {
+                // duration이 유효하지 않으면 문단 기반 시간 사용
+                return paragraphBasedTime > 0 ? paragraphBasedTime : 60.0
+            }
+        } else if let audioPlayer = audioPlayer {
             // AVAudioPlayer 사용 (로컬 파일)
-            return audioPlayer?.duration ?? 60.0
+            let duration = audioPlayer.duration
+            if duration > 0 {
+                // 실제 duration과 문단 기반 시간 중 더 큰 값 사용
+                return max(duration, paragraphBasedTime)
+            } else {
+                // duration이 0이면 문단 기반 시간 사용
+                return paragraphBasedTime > 0 ? paragraphBasedTime : 60.0
+            }
+        } else {
+            // 오디오 플레이어가 없으면 문단 기반 시간 사용
+            return paragraphBasedTime > 0 ? paragraphBasedTime : 60.0
         }
     }
 

@@ -164,6 +164,33 @@ final class SaveViewController: UIViewController {
         
         present(alert, animated: true)
     }
+    
+    /// 특정 폴더로 이동하는 메서드
+    /// - Parameter folderId: 이동할 폴더 ID
+    func navigateToFolder(folderId: Int) {
+        let folderIdString = String(folderId)
+        
+        // 폴더 목록에서 해당 폴더 찾기
+        if let folder = viewModel.folders.first(where: { $0.id == folderIdString }) {
+            print("📁 [SaveViewController] 특정 폴더로 이동: \(folder.name)")
+            let detailVC = SaveFolderDetailViewController(folder: folder)
+            navigationController?.pushViewController(detailVC, animated: true)
+        } else {
+            print("⚠️ [SaveViewController] 폴더를 찾을 수 없음: \(folderId)")
+            // 폴더 목록이 아직 로드되지 않았을 수 있으므로, 폴더 목록 로드 후 재시도
+            // viewModel의 폴더 목록이 업데이트될 때까지 대기
+            viewModel.$folders
+                .dropFirst() // 초기값 제외
+                .sink { [weak self] folders in
+                    if let folder = folders.first(where: { $0.id == folderIdString }) {
+                        print("📁 [SaveViewController] 폴더 목록 로드 후 이동: \(folder.name)")
+                        let detailVC = SaveFolderDetailViewController(folder: folder)
+                        self?.navigationController?.pushViewController(detailVC, animated: true)
+                    }
+                }
+                .store(in: &cancellables)
+        }
+    }
 }
 
 // MARK: - UICollectionViewDataSource

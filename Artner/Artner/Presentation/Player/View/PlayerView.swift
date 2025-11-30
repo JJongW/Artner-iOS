@@ -54,6 +54,9 @@ final class PlayerView: BaseView {
     // ViewModel에서 하이라이트를 가져오기 위한 콜백
     var onGetHighlightsForParagraph: ((String) -> [TextHighlight])?
     
+    // 프로그레스 바 터치 콜백 (진행률 0.0 ~ 1.0)
+    var onProgressTapped: ((Float) -> Void)?
+    
     // 로딩 상태
     private var isLoading = true {
         didSet {
@@ -154,6 +157,11 @@ final class PlayerView: BaseView {
         
         // 플레이어 컨트롤 초기 비활성화
         playerControls.setEnabled(false)
+        
+        // 프로그레스 바 터치 이벤트 설정
+        progressView.onProgressTapped = { [weak self] progress in
+            self?.onProgressTapped?(progress)
+        }
     }
     
     private func setupGradientViews() {
@@ -315,9 +323,8 @@ final class PlayerView: BaseView {
     
     /// 총 시간 라벨 업데이트
     private func updateTotalTimeLabel(_ totalTime: TimeInterval) {
-        let totalMinutes = Int(totalTime) / 60
-        let totalSeconds = Int(totalTime) % 60
-        totalTimeLabel.text = String(format: "%d:%02d", totalMinutes, totalSeconds)
+        // formatTime 헬퍼 메서드 사용
+        totalTimeLabel.text = formatTime(totalTime)
     }
 
     // MARK: - Actions
@@ -381,20 +388,27 @@ final class PlayerView: BaseView {
     func updateProgress(_ currentTime: TimeInterval, totalTime: TimeInterval) {
         guard !isLoading else { return }
         
-        // 현재 시간 표시 업데이트
-        let currentMinutes = Int(currentTime) / 60
-        let currentSeconds = Int(currentTime) % 60
-        currentTimeLabel.text = String(format: "%d:%02d", currentMinutes, currentSeconds)
+        // 현재 시간 표시 업데이트 (초 단위를 분:초 형식으로 변환)
+        currentTimeLabel.text = formatTime(currentTime)
         
-        // 총 시간 표시 업데이트
-        let totalMinutes = Int(totalTime) / 60
-        let totalSeconds = Int(totalTime) % 60
-        totalTimeLabel.text = String(format: "%d:%02d", totalMinutes, totalSeconds)
+        // 총 시간 표시 업데이트 (초 단위를 분:초 형식으로 변환)
+        totalTimeLabel.text = formatTime(totalTime)
         
         // 진행 바 업데이트
         if totalTime > 0 {
             progressView.setProgress(Float(currentTime / totalTime), animated: true)
         }
+    }
+    
+    /// 시간을 "분:초" 형식으로 변환하는 헬퍼 메서드
+    /// - Parameter time: 초 단위 시간 (TimeInterval)
+    /// - Returns: "분:초" 형식의 문자열 (예: "2:33", "10:05")
+    private func formatTime(_ time: TimeInterval) -> String {
+        // TimeInterval은 초 단위이므로, 분과 초로 변환
+        let totalSeconds = Int(time)
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
     
     /// 플레이 상태 업데이트

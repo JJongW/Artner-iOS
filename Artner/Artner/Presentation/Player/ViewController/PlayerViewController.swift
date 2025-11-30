@@ -67,6 +67,13 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
         
         // 플레이어 컨트롤 액션들
         setupPlayerControlActions()
+        
+        // 프로그레스 바 터치 이벤트 바인딩
+        playerView.onProgressTapped = { [weak self] progress in
+            print("⏩ [PlayerViewController] 프로그레스 바 터치: \(progress)")
+            self?.viewModel.seek(to: progress)
+        }
+        
         print("🎯 PlayerViewController bindAction 완료")
     }
     
@@ -194,16 +201,6 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
     }
     
     // MARK: - Helper Methods
-    
-    private func showSaveConfirmation() {
-        // 기존 UIAlertController 대신 새로운 Toast 사용
-        ToastManager.shared.showSaved("도슨트가 저장되었습니다") { [weak self] in
-            // "보기" 버튼 클릭 시 저장 목록으로 이동
-            print("💾 [Toast] 저장된 도슨트 보기 버튼 클릭됨")
-            // TODO: Coordinator를 통해 Save 화면으로 이동
-            // self?.coordinator.showSave()
-        }
-    }
 
     /// 선택된 폴더로 도슨트를 북마크 저장
     private func bookmarkDocent(to folder: Folder) {
@@ -229,12 +226,18 @@ final class PlayerViewController: BaseViewController<PlayerViewModel, AppCoordin
             ToastManager.shared.hideCurrentToast()
             switch result {
             case .success:
-                ToastManager.shared.showSuccess("저장되었습니다")
                 // 저장 버튼 색 변경 및 캐시 반영
                 self.playerView.setSaved(true)
                 self.setDocentSavedCached(title: docentInfo.title, artist: docentInfo.artist, saved: true)
                 self.setSavedFolderIdCached(title: docentInfo.title, artist: docentInfo.artist, folderId: folder.id)
                 self.isSavedCurrent = true
+                
+                // 저장 완료 토스트 표시 (보기 버튼 포함)
+                ToastManager.shared.showSaved("도슨트가 저장되었습니다") { [weak self] in
+                    // "보기" 버튼 클릭 시 Save 화면으로 이동
+                    print("💾 [Toast] 저장된 도슨트 보기 버튼 클릭됨")
+                    self?.coordinator.showSave(folderId: folder.id)
+                }
             case .failure:
                 ToastManager.shared.showError("저장에 실패했습니다")
             }
