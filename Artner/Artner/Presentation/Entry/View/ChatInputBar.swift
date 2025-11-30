@@ -74,6 +74,9 @@ final class ChatInputBar: UIView {
         button.contentHorizontalAlignment = .fill
         return button
     }()
+    
+    /// 채팅바 탭 시 키보드를 내리는 콜백
+    var onTapToDismiss: (() -> Void)?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -101,6 +104,21 @@ final class ChatInputBar: UIView {
             $0.trailing.equalToSuperview().inset(16)
             $0.centerY.equalTo(textField)
             $0.width.height.equalTo(24)
+        }
+        
+        // 채팅바 배경 영역 탭 제스처 추가 (키보드 내리기)
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTapToDismiss))
+        tapGesture.cancelsTouchesInView = false // 텍스트 필드 터치는 허용
+        addGestureRecognizer(tapGesture)
+    }
+    
+    /// 채팅바 배경 영역 탭 시 키보드 내리기
+    @objc private func handleTapToDismiss(_ gesture: UITapGestureRecognizer) {
+        let location = gesture.location(in: self)
+        
+        // 텍스트 필드나 전송 버튼 영역이 아닌 배경 영역을 탭한 경우에만 키보드 내리기
+        if !textField.frame.contains(location) && !sendButton.frame.contains(location) {
+            onTapToDismiss?()
         }
     }
 }

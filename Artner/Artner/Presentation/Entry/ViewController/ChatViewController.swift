@@ -13,6 +13,9 @@ final class ChatViewController: BaseViewController<ChatViewModel, AppCoordinator
     private let chatView = ChatView()
     private var cancellables = Set<AnyCancellable>()
     private var keyboardHeight: CGFloat = 0
+    
+    // 채팅바와 키보드 사이의 여유 공간 (최소한의 간격만)
+    private let chatInputBarSpacing: CGFloat = 0
 
     override func loadView() {
         self.view = chatView
@@ -24,6 +27,7 @@ final class ChatViewController: BaseViewController<ChatViewModel, AppCoordinator
         chatView.tableView.delegate = self
         chatView.chatInputBar.textField.delegate = self
         setupKeyboardNotifications()
+        setupTapGestureToDismissKeyboard()
         bindActions()
         bindViewModel()
         setupTextFieldSettings()
@@ -121,10 +125,15 @@ final class ChatViewController: BaseViewController<ChatViewModel, AppCoordinator
             return
         }
         
-        keyboardHeight = keyboardFrame.height
+        // 키보드 frame을 view 좌표계로 변환
+        let convertedFrame = view.convert(keyboardFrame, from: nil)
+        // 키보드가 화면에서 차지하는 높이 계산
+        keyboardHeight = view.bounds.height - convertedFrame.origin.y
         
         UIView.animate(withDuration: duration) { [weak self] in
-            self?.adjustTableViewForKeyboard(show: true)
+            guard let self = self else { return }
+            self.adjustTableViewForKeyboard(show: true)
+            self.adjustChatInputBarForKeyboard(show: true)
         }
     }
     
@@ -134,7 +143,9 @@ final class ChatViewController: BaseViewController<ChatViewModel, AppCoordinator
         }
         
         UIView.animate(withDuration: duration) { [weak self] in
-            self?.adjustTableViewForKeyboard(show: false)
+            guard let self = self else { return }
+            self.adjustTableViewForKeyboard(show: false)
+            self.adjustChatInputBarForKeyboard(show: false)
         }
     }
     
@@ -148,9 +159,33 @@ final class ChatViewController: BaseViewController<ChatViewModel, AppCoordinator
     }
     
     private func adjustTableViewForKeyboard(show: Bool) {
-        let bottomInset = show ? keyboardHeight : 0
+        // 테이블뷰는 채팅바 높이만큼만 inset 조정 (키보드는 채팅바가 처리)
+        let bottomInset: CGFloat = 0
         chatView.tableView.contentInset.bottom = bottomInset
         chatView.tableView.verticalScrollIndicatorInsets.bottom = bottomInset
+    }
+    
+    /// 채팅바를 키보드와 함께 올라가도록 조정
+    private func adjustChatInputBarForKeyboard(show: Bool) {
+        guard let bottomConstraint = chatView.chatInputBarBottomConstraint else { return }
+        
+        if show {
+            // 키보드가 올라올 때: 키보드 높이만큼 채팅바를 위로 이동
+            // safeArea bottom inset을 고려하여 정확한 위치 계산
+            let safeAreaBottom = view.safeAreaInsets.bottom
+            
+            // 키보드 높이에서 safeArea bottom을 빼고, 간격을 추가
+            // 음수 offset이므로 위로 올라감
+            let offset = keyboardHeight - safeAreaBottom + chatInputBarSpacing
+            
+            bottomConstraint.update(offset: -offset)
+        } else {
+            // 키보드가 내려갈 때: safeAreaLayoutGuide에 다시 붙이기
+            bottomConstraint.update(offset: 0)
+        }
+        
+        // 레이아웃 업데이트
+        chatView.layoutIfNeeded()
     }
     private func bindViewModel() {
         viewModel.$chatItems
@@ -169,6 +204,11 @@ final class ChatViewController: BaseViewController<ChatViewModel, AppCoordinator
     private func bindActions() {
         chatView.chatInputBar.sendButton.addTarget(self, action: #selector(didTapSend), for: .touchUpInside)
         
+        // 채팅바 탭 시 키보드 내리기
+        chatView.chatInputBar.onTapToDismiss = { [weak self] in
+            self?.dismissKeyboard()
+        }
+        
         // CustomNavigationBar 뒤로가기 버튼 액션 연결
         chatView.onBackButtonTapped = { [weak self] in
             self?.coordinator.popViewController(animated: true)
@@ -178,6 +218,43 @@ final class ChatViewController: BaseViewController<ChatViewModel, AppCoordinator
             guard let self = self else { return }
             self.coordinator.showSidebar(from: self)
         }
+    }
+    
+    /// 테이블뷰나 다른 영역을 터치하면 키보드가 내려가도록 제스처 설정
+    private func setupTapGestureToDismissKeyboard() {
+        // 테이블뷰에 탭 제스처 추가
+        let tableViewTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTapToDismissKeyboard))
+        tableViewTapGesture.cancelsTouchesInView = false // 테이블뷰 셀의 기본 동작은 유지
+        chatView.tableView.addGestureRecognizer(tableViewTapGesture)
+        
+        // 뷰 배경에 탭 제스처 추가 (네비게이션 바 제외)
+        let viewTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTapToDismissKeyboard))
+        viewTapGesture.cancelsTouchesInView = false
+        view.addGestureRecognizer(viewTapGesture)
+    }
+    
+    /// 탭 제스처로 키보드 내리기
+    @objc private func handleTapToDismissKeyboard(_ gesture: UITapGestureRecognizer) {
+        let location = gesture.location(in: view)
+        
+        // 채팅바 영역을 탭한 경우는 제외 (ChatInputBar의 제스처가 처리)
+        if chatView.chatInputBar.frame.contains(location) {
+            return
+        }
+        
+        // 네비게이션 바 영역을 탭한 경우는 제외
+        if chatView.customNavigationBar.frame.contains(location) {
+            return
+        }
+        
+        // 그 외 영역을 탭한 경우 키보드 내리기
+        dismissKeyboard()
+    }
+    
+    /// 키보드 내리기 메서드
+    private func dismissKeyboard() {
+        chatView.chatInputBar.textField.resignFirstResponder()
+        view.endEditing(true)
     }
 
     @objc private func didTapListen() {

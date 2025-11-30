@@ -31,6 +31,9 @@ final class ChatView: BaseView {
     }()
 
     let chatInputBar = ChatInputBar()
+    
+    // 채팅바 bottom constraint (키보드와 함께 올라가도록 조정하기 위해 저장)
+    var chatInputBarBottomConstraint: Constraint?
 
     // MARK: - Callbacks
     var onBackButtonTapped: (() -> Void)?
@@ -66,8 +69,10 @@ final class ChatView: BaseView {
         }
 
         chatInputBar.snp.makeConstraints {
-            $0.leading.trailing.bottom.equalTo(safeAreaLayoutGuide)
+            $0.leading.trailing.equalToSuperview()
             $0.height.equalTo(60)
+            // bottom constraint를 저장하여 키보드와 함께 올라가도록 조정
+            chatInputBarBottomConstraint = $0.bottom.equalTo(safeAreaLayoutGuide).constraint
         }
     }
 }
