@@ -83,11 +83,17 @@ final class EntryViewController: BaseViewController<EntryViewModel, AppCoordinat
     
     /// 텍스트로 실시간 도슨트 API 호출
     private func searchWithText(keyword: String) {
+        // 도슨트 생성 중 로딩 Toast 표시
+        ToastManager.shared.showLoading("도슨트 생성 중")
+        
         // APIService를 통해 API 호출
         APIService.shared.request(
             APITarget.realtimeDocent(inputText: keyword, inputImage: nil)
         ) { [weak self] (result: Result<RealtimeDocentResponseDTO, Error>) in
             guard let self = self else { return }
+            
+            // 로딩 Toast 숨기기
+            ToastManager.shared.hideCurrentToast()
             
             // 검색 버튼 다시 활성화
             DispatchQueue.main.async {
