@@ -75,7 +75,7 @@ final class PlayerControlsView: UIView {
     
     private func setupUI() {
         addSubview(containerView)
-        
+
         // 컨테이너 설정 - 새로운 디자인 스펙 적용
         containerView.backgroundColor = DesignConstants.containerColor
         containerView.layer.cornerRadius = DesignConstants.containerRadius
@@ -83,6 +83,10 @@ final class PlayerControlsView: UIView {
         containerView.layer.shadowOffset = CGSize(width: 0, height: 2)
         containerView.layer.shadowRadius = 8
         containerView.layer.shadowOpacity = 0.3
+        containerView.isUserInteractionEnabled = true
+        containerView.clipsToBounds = false
+        self.isUserInteractionEnabled = true
+        self.clipsToBounds = false
         
         // 저장 버튼 (북마크)
         setupSaveButton()
@@ -106,6 +110,8 @@ final class PlayerControlsView: UIView {
         saveButton.setImage(icon, for: .normal)
         saveButton.tintColor = AppColor.textPrimary
         saveButton.imageView?.contentMode = .scaleAspectFit
+        saveButton.isEnabled = true
+        saveButton.isUserInteractionEnabled = true
         containerView.addSubview(saveButton)
     }
     
@@ -172,7 +178,7 @@ final class PlayerControlsView: UIView {
     // MARK: - State Management
     
     private func updateButtonsForState() {
-        
+
         // 1단계: 현재 버튼들을 페이드 아웃
         UIView.animate(withDuration: 0.2, animations: {
             [self.saveButton, self.playButton, self.pauseButton, self.replayButton].forEach {
@@ -184,7 +190,7 @@ final class PlayerControlsView: UIView {
                 $0.isHidden = true
                 $0.alpha = 1.0 // alpha 복원
             }
-            
+
             // 새로운 상태에 따른 레이아웃 설정
             switch self.currentState {
             case .idle:
@@ -192,7 +198,10 @@ final class PlayerControlsView: UIView {
             case .playing:
                 self.setupPlayingLayout()
             }
-            
+
+            // 레이아웃 즉시 적용 (제약조건이 올바르게 반영되도록)
+            self.containerView.layoutIfNeeded()
+
             // 새로운 버튼들을 보이게 하되 alpha 0으로 시작
             switch self.currentState {
             case .idle:
@@ -200,15 +209,17 @@ final class PlayerControlsView: UIView {
                 self.playButton.isHidden = false
                 self.replayButton.isHidden = false
                 self.saveButton.alpha = 1.0
+                self.saveButton.isUserInteractionEnabled = true
                 self.playButton.alpha = 0.0
                 self.replayButton.alpha = 0.0
             case .playing:
                 self.saveButton.isHidden = false
                 self.pauseButton.isHidden = false
                 self.saveButton.alpha = 1.0
+                self.saveButton.isUserInteractionEnabled = true
                 self.pauseButton.alpha = 0.0
             }
-            
+
             // 3단계: 새 버튼들을 페이드 인
             UIView.animate(withDuration: 0.2, delay: 0.1, options: [.curveEaseOut]) {
                 switch self.currentState {
@@ -286,10 +297,12 @@ final class PlayerControlsView: UIView {
     func setEnabled(_ enabled: Bool) {
         // 저장 버튼은 항상 동작 가능하도록 유지 (요구사항)
         saveButton.isEnabled = true
+        saveButton.isUserInteractionEnabled = true
         saveButton.alpha = 1.0
         // 나머지 컨트롤만 토글
         [playButton, pauseButton, replayButton].forEach {
             $0.isEnabled = enabled
+            $0.isUserInteractionEnabled = enabled
             $0.alpha = enabled ? 1.0 : 0.5
         }
     }
@@ -316,6 +329,7 @@ final class PlayerControlsView: UIView {
     // MARK: - Actions
     
     @objc private func saveButtonTapped() {
+        print("💾 [PlayerControlsView] saveButtonTapped 호출됨 - state: \(currentState)")
         // 버튼 터치 피드백
         addTouchFeedback(to: saveButton)
         onSaveButtonTapped?()

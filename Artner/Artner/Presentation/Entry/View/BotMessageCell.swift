@@ -10,13 +10,14 @@ import SnapKit
 
 final class BotMessageCell: UITableViewCell {
 
-    // Clean Architecture: 뷰 계층을 명확하게 분리하고, 요구사항(프로필 이미지 아래에 말풍선 세로 쌓기)을 정확히 반영
-    private let profileImageView: UIImageView = {
-        let imageView = UIImageView(image: UIImage(named: "ic_bot"))
-        imageView.contentMode = .scaleAspectFit
-        imageView.layer.cornerRadius = 16
-        imageView.clipsToBounds = true
-        return imageView
+    // Clean Architecture: 뷰 계층을 명확하게 분리하고, 요구사항(프로필 비디오 아래에 말풍선 세로 쌓기)을 정확히 반영
+    private lazy var profileVideoView: VideoPlayerView = {
+        let videoView = VideoPlayerView()
+        videoView.clipsToBounds = true
+        videoView.layer.cornerRadius = 16
+        // 비디오 로드
+        videoView.loadVideo(fileName: "ai_video")
+        return videoView
     }()
 
     private let bubbleLabel: PaddingLabel = {
@@ -62,15 +63,20 @@ final class BotMessageCell: UITableViewCell {
             $0.leading.equalToSuperview().offset(16)
             $0.trailing.equalToSuperview().offset(-16)
         }
+        
+        // 프로필 비디오 크기 제약 설정 (기존 이미지와 유사한 크기)
+        profileVideoView.snp.makeConstraints { make in
+            make.width.height.equalTo(32) // 프로필 이미지 크기
+        }
     }
 
     // MARK: - Public Method
     func configure(messages: [String], showProfile: Bool, showDocentButton: Bool) {
         verticalStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
-        // 프로필 이미지는 맨 위에, showProfile일 때만 add
+        // 프로필 비디오는 맨 위에, showProfile일 때만 add
         if showProfile {
-            verticalStackView.addArrangedSubview(profileImageView)
+            verticalStackView.addArrangedSubview(profileVideoView)
         }
 
         // 여러 줄 답변을 각각 bubbleLabel로 세로 쌓기

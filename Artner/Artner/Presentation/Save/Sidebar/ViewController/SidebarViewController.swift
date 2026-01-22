@@ -3,6 +3,7 @@
 //  Artner
 //
 //  Created by 신종원 on 6/1/25.
+//  Feature Isolation Refactoring - SidebarCoordinating 프로토콜 사용
 //
 //  Clean Architecture: View/ViewModel 분리, 액션/바인딩 담당
 
@@ -10,29 +11,34 @@ import UIKit
 import Combine
 import SnapKit
 
-// 사이드바 닫기 delegate 프로토콜
+// 사이드바 닫기 delegate 프로토콜 (deprecated - coordinator 사용 권장)
 protocol SidebarViewControllerDelegate: AnyObject {
     func sidebarDidRequestClose()
-    func sidebarDidRequestShowLike() // 좋아요 이동 요청
-    func sidebarDidRequestShowSave() // 저장 이동 요청
-    func sidebarDidRequestShowUnderline() // 밑줄 이동 요청
-    func sidebarDidRequestShowRecord() // 전시기록 이동 요청
-    func sidebarDidRequestLogout() // 로그아웃 요청
+    func sidebarDidRequestShowLike()
+    func sidebarDidRequestShowSave()
+    func sidebarDidRequestShowUnderline()
+    func sidebarDidRequestShowRecord()
+    func sidebarDidRequestLogout()
 }
 
 final class SidebarViewController: UIViewController {
     let sidebarView = SidebarView()
     let viewModel: SidebarViewModel
     private var cancellables = Set<AnyCancellable>()
-    // 사이드바 닫기 delegate
+
+    // Coordinator (프로토콜 기반)
+    private weak var coordinator: (any SidebarCoordinating)?
+
+    // 사이드바 닫기 delegate (deprecated - coordinator 사용 권장)
     weak var delegate: SidebarViewControllerDelegate?
 
     // MARK: - Initialization
-    init(viewModel: SidebarViewModel) {
+    init(viewModel: SidebarViewModel, coordinator: (any SidebarCoordinating)? = nil) {
         self.viewModel = viewModel
+        self.coordinator = coordinator
         super.init(nibName: nil, bundle: nil)
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }

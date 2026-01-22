@@ -1,3 +1,10 @@
+//
+//  SaveViewController.swift
+//  Artner
+//
+//  Feature Isolation Refactoring - SaveCoordinating 프로토콜 사용
+//
+
 import UIKit
 import Combine
 
@@ -5,13 +12,22 @@ final class SaveViewController: UIViewController {
     private let saveView = SaveView()
     private let viewModel: SaveViewModel
     private var cancellables = Set<AnyCancellable>()
+    private weak var coordinator: (any SaveCoordinating)?
+
+    /// 기존 호환성을 위한 핸들러 (deprecated - coordinator 사용 권장)
     var goToFeedHandler: (() -> Void)?
-    
-    init() {
-        self.viewModel = DIContainer.shared.makeSaveViewModel()
+
+    init(viewModel: SaveViewModel, coordinator: (any SaveCoordinating)? = nil) {
+        self.viewModel = viewModel
+        self.coordinator = coordinator
         super.init(nibName: nil, bundle: nil)
     }
-    
+
+    /// 기존 호환성을 위한 초기화 (DIContainer 직접 사용)
+    convenience init() {
+        self.init(viewModel: DIContainer.shared.makeSaveViewModel(), coordinator: nil)
+    }
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }

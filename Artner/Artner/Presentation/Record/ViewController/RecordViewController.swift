@@ -1,3 +1,10 @@
+//
+//  RecordViewController.swift
+//  Artner
+//
+//  Feature Isolation Refactoring - RecordCoordinating 프로토콜 사용
+//
+
 import UIKit
 import Combine
 
@@ -5,13 +12,22 @@ final class RecordViewController: UIViewController {
     private let recordView = RecordView()
     private let viewModel: RecordViewModel
     private var cancellables = Set<AnyCancellable>()
+    private weak var coordinator: (any RecordCoordinating)?
+
+    /// 기존 호환성을 위한 핸들러 (deprecated - coordinator 사용 권장)
     var goToRecordHandler: (() -> Void)?
-    
-    init() {
-        self.viewModel = DIContainer.shared.makeRecordViewModel()
+
+    init(viewModel: RecordViewModel, coordinator: (any RecordCoordinating)? = nil) {
+        self.viewModel = viewModel
+        self.coordinator = coordinator
         super.init(nibName: nil, bundle: nil)
     }
-    
+
+    /// 기존 호환성을 위한 초기화 (DIContainer 직접 사용)
+    convenience init() {
+        self.init(viewModel: DIContainer.shared.makeRecordViewModel(), coordinator: nil)
+    }
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -101,9 +117,13 @@ final class RecordViewController: UIViewController {
         viewModel.toggleSort() 
     }
     
-    @objc private func didTapGoRecord() { 
-        goToRecordHandler?() 
+    @objc private func didTapGoRecord() {
         print("📝 [RecordViewController] 전시 기록하러가기 버튼 클릭")
+        if let coordinator = coordinator {
+            coordinator.showRecordInput()
+        } else {
+            goToRecordHandler?()
+        }
     }
 }
 

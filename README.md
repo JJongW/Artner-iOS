@@ -34,47 +34,19 @@ Xcode에서 다음 환경변수를 설정하세요:
 
 ### 2025-01-27
 
-#### EntryView - Lottie 애니메이션 적용
-
-**수정할 내용:**
-- EntryView의 blurredImageView를 Lottie 애니메이션으로 교체
-- 기존 UIImageView 기반 이미지 표시 방식
+#### EntryView - MP4 비디오 재생 적용
 
 **수정한 내용:**
-- `EntryView.swift`: blurredImageView를 LottieRemoteView로 변경
+- `EntryView.swift`: LottieRemoteView를 VideoPlayerView로 변경
 ```swift
-// 변경 전
-let blurredImageView: UIImageView = {
-    let imageView = UIImageView()
-    imageView.image = UIImage(named: "Artner_img")
-    imageView.contentMode = .scaleAspectFit
-    return imageView
-}()
-
 // 변경 후
-let blurredAnimationView = LottieRemoteView()
+let blurredAnimationView = VideoPlayerView()
+blurredAnimationView.loadVideo(fileName: "ai_video")
 ```
 
-- `LottieRemoteView.swift`: dotlottie-wc 웹 컴포넌트를 사용한 Lottie 애니메이션 뷰 생성
-```swift
-final class LottieRemoteView: UIView {
-    private let webView: WKWebView
-    
-    func load(urlString: String) {
-        // dotlottie-wc 웹 컴포넌트를 사용하여 .lottie 파일 로드
-        let html = """
-        <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.8.5/dist/dotlottie-wc.js" type="module"></script>
-        <dotlottie-wc src="\(urlString)" style="width: 100%; height: 100%;" autoplay loop></dotlottie-wc>
-        """
-        webView.loadHTMLString(html, baseURL: nil)
-    }
-}
-```
-
-- `EntryView.swift`: Lottie URL 설정
-```swift
-blurredAnimationView.load(urlString: "https://lottie.host/d0d08cf4-f3d6-40cd-b98c-e7babcc85851/MtTaxs6tEa.lottie")
-```
+- `VideoPlayerView.swift`: AVPlayer를 사용한 MP4 비디오 재생 뷰 생성
+  - Bundle 또는 Assets.xcassets에서 비디오 파일 로드
+  - 자동 반복 재생 지원
 
 #### SideMenuContainerView - 애니메이션 개선
 

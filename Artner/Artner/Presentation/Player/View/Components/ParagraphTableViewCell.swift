@@ -65,7 +65,7 @@ final class ParagraphTableViewCell: UITableViewCell {
         
         // 텍스트뷰 초기화
         paragraphTextView.text = ""
-        paragraphTextView.isHighlightEnabled = false
+        paragraphTextView.isSelectionAllowed = false
     }
     
     private func setupUI() {
@@ -81,8 +81,7 @@ final class ParagraphTableViewCell: UITableViewCell {
         paragraphTextView.backgroundColor = .clear
         paragraphTextView.textAlignment = .left
         paragraphTextView.isScrollEnabled = false  // 스크롤 비활성화
-        paragraphTextView.isSelectable = true      // 텍스트 선택 활성화
-        paragraphTextView.isEditable = false      // 편집 비활성화
+        // isSelectable은 NonEditableTextView의 isSelectionAllowed로 관리됨
         paragraphTextView.isUserInteractionEnabled = true
         
         // 상호작용 요소 완전 비활성화 (Unknown interactable item 에러 방지)
@@ -114,7 +113,7 @@ final class ParagraphTableViewCell: UITableViewCell {
         
         // 접근성 설정
         paragraphTextView.accessibilityLabel = "문단 텍스트"
-        paragraphTextView.accessibilityHint = "텍스트를 길게 눌러서 하이라이트할 수 있습니다"
+        paragraphTextView.accessibilityHint = "정지 상태에서 텍스트를 길게 눌러 드래그하여 하이라이트할 수 있습니다"
         paragraphTextView.accessibilityElementsHidden = false
         
         // 텍스트 선택 후 하이라이트 적용을 위한 메뉴 설정
@@ -188,108 +187,16 @@ final class ParagraphTableViewCell: UITableViewCell {
         }
     }
     
-    // 커스텀 제스처 제거: 시스템 텍스트 선택/메뉴만 사용
-    
+    // iOS 네이티브 텍스트 선택 방식 사용
+    // NonEditableTextView가 자체적으로 delegate를 관리하므로 별도 설정 불필요
+
     private func setupTextSelection() {
-        // UITextView 델리게이트 설정
-        paragraphTextView.delegate = self
-        
-        // iOS 버전별 메뉴 시스템 설정
-        setupTextMenu()
+        // NonEditableTextView 내부에서 선택 및 하이라이트 로직 처리
+        // 콜백 연결은 configure()에서 수행
     }
     
-    private func setupTextMenu() {
-        // iOS 16+ 새로운 메뉴 시스템 지원
-        if #available(iOS 16.0, *) {
-            setupModernTextMenu()
-        } else {
-            setupLegacyTextMenu()
-        }
-    }
-    
-    @available(iOS 16.0, *)
-    private func setupModernTextMenu() {
-        // 시스템 기본 편집 메뉴 사용. 별도 설정 불필요
-    }
-    
-    // Long Press 방식으로 변경되어 더 이상 필요 없음
-    private func setupLegacyTextMenu() {
-        // 시스템 기본 메뉴 사용
-    }
-    
-    @objc func highlightSelectedText() {
-        guard let paragraph = self.paragraph,
-              let selectedRange = paragraphTextView.selectedTextRange,
-              !selectedRange.isEmpty,
-              paragraphTextView.isSelectable,
-              !paragraphTextView.isEditable else { // 편집 불가능 상태 확인
-            return 
-        }
-        
-        // 추가 안전성 검사: 텍스트뷰 상태 확인
-        guard paragraphTextView.text.count > 0 else {
-            return
-        }
-        
-        // 선택된 텍스트 범위를 NSRange로 변환
-        let startIndex = paragraphTextView.offset(from: paragraphTextView.beginningOfDocument, to: selectedRange.start)
-        let endIndex = paragraphTextView.offset(from: paragraphTextView.beginningOfDocument, to: selectedRange.end)
-        
-        // 범위 검증 강화
-        guard startIndex >= 0, 
-              endIndex > startIndex, 
-              endIndex <= paragraphTextView.text.count,
-              startIndex < paragraphTextView.text.count else {
-            return
-        }
-        
-        // 안전한 문자열 추출
-        let text = paragraphTextView.text
-        let startTextIndex = text?.index(text!.startIndex, offsetBy: startIndex)
-        let endTextIndex = text?.index(text!.startIndex, offsetBy: endIndex)
-        
-        // 인덱스 범위 재검증
-        guard startTextIndex! < text!.endIndex, endTextIndex! <= text!.endIndex else {
-            return
-        }
-        
-        let selectedText = String(text![startTextIndex!..<endTextIndex!])
+    // MARK: - 하이라이트 관리 (NonEditableTextView가 선택/저장 처리)
 
-        // 빈 텍스트 체크
-        guard !selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return
-        }
-        
-        // 하이라이트 모델 생성
-        let highlight = TextHighlight(
-            paragraphId: paragraph.id,
-            startIndex: startIndex,
-            endIndex: endIndex,
-            highlightedText: selectedText
-        )
-        
-        // 하이라이트 추가
-        highlights.append(highlight)
-        
-        // 하이라이트 적용 (현재 스타일 유지)
-        applyHighlights(textColor: paragraphTextView.textColor, font: paragraphTextView.font)
-        
-        // 선택 해제
-        paragraphTextView.selectedTextRange = nil
-        
-        // 하이라이트 저장 콜백 호출
-        onHighlightSaved?(highlight)
-    }
-
-    @objc func deleteSelectedHighlight() {
-        guard let selectedRange = paragraphTextView.selectedTextRange else { return }
-        let startIndex = paragraphTextView.offset(from: paragraphTextView.beginningOfDocument, to: selectedRange.start)
-        let endIndex = paragraphTextView.offset(from: paragraphTextView.beginningOfDocument, to: selectedRange.end)
-        if let target = highlights.first(where: { $0.startIndex <= endIndex && $0.endIndex >= startIndex }) {
-            onHighlightDeleted?(target)
-        }
-    }
-    
     // 하이라이트 설정 (외부에서 저장된 하이라이트 로드 시 사용)
     func setHighlights(_ highlights: [TextHighlight]) {
         print("📝 [Cell] setHighlights 호출됨 - 문단: \(paragraph?.id ?? "nil"), 하이라이트 개수: \(highlights.count)")
@@ -302,67 +209,18 @@ final class ParagraphTableViewCell: UITableViewCell {
         applyHighlights(textColor: paragraphTextView.textColor, font: paragraphTextView.font)
     }
     
-    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
-        print("🔧 [Cell] canPerformAction 호출: \(action)")
-        
-        // 하이라이트 액션 (텍스트 선택 시에만 표시)
-        if action == #selector(highlightSelectedText) {
-            let hasSelection = paragraphTextView.selectedTextRange != nil && 
-                              !paragraphTextView.selectedTextRange!.isEmpty
-            let isSelectable = paragraphTextView.isSelectable
-            
-            print("🔧 [Cell] 하이라이트 액션 조건: hasSelection=\(hasSelection), isSelectable=\(isSelectable)")
-            return hasSelection && isSelectable
-        }
-        
-        // 복사 액션 허용
-        if action == #selector(copy(_:)) {
-            let hasSelection = paragraphTextView.selectedTextRange != nil && 
-                              !paragraphTextView.selectedTextRange!.isEmpty
-            return hasSelection
-        }
-        
-        // 선택 관련 액션 허용
-        if action == #selector(selectAll(_:)) {
-            return paragraphTextView.isSelectable
-        }
-        
-        // 다른 모든 액션 차단
-        return false
-    }
+    // canPerformAction은 NonEditableTextView 내부에서 처리
+    // 셀은 First Responder가 되지 않고 텍스트뷰만 First Responder가 됨
     
-    // iOS 15 이하에서 메뉴 표시를 위한 추가 메서드
-    override var canBecomeFirstResponder: Bool {
-        return false // 셀은 First Responder가 되지 않도록 설정
-    }
-    
-    // 메뉴 표시 시 호출되는 메서드
-    override func becomeFirstResponder() -> Bool {
-        // 셀은 First Responder가 되지 않고, 텍스트뷰만 First Responder가 되도록
-        return false
-    }
-    
-    // 텍스트 선택 상태 제어
+    // 텍스트 선택 상태 제어 (정지 상태에서만 활성화)
     func setTextSelectionEnabled(_ enabled: Bool) {
-        paragraphTextView.isSelectable = enabled
+        // NonEditableTextView의 isSelectionAllowed 사용
+        paragraphTextView.isSelectionAllowed = enabled
         paragraphTextView.isUserInteractionEnabled = true // 항상 터치는 가능하게
-        
-        if enabled {
-            // 선택 활성화 시 First Responder로 설정 (메뉴 표시를 위해)
-            paragraphTextView.becomeFirstResponder()
-        } else {
-            // 선택 비활성화 시 선택 상태 정리
-            paragraphTextView.selectedTextRange = nil
-            
-            // 메뉴 숨김 (iOS 15 이하)
-            if #unavailable(iOS 16.0) {
-                UIMenuController.shared.setMenuVisible(false, animated: false)
-            }
-        }
-        
+
         // 접근성 업데이트
-        paragraphTextView.accessibilityHint = enabled ? 
-            "텍스트를 길게 눌러서 하이라이트할 수 있습니다" : 
+        paragraphTextView.accessibilityHint = enabled ?
+            "텍스트를 길게 눌러서 드래그하여 하이라이트할 수 있습니다" :
             "재생 중에는 텍스트 선택이 불가능합니다"
     }
     
@@ -387,8 +245,8 @@ final class ParagraphTableViewCell: UITableViewCell {
         // NonEditableTextView에 문단 ID 설정 (하이라이트 저장용)
         paragraphTextView.paragraphId = paragraph.id
         
-        // 하이라이트 활성화 상태 설정 (현재 재생 중인 문단에서만 활성화)
-        paragraphTextView.isHighlightEnabled = canHighlight
+        // 텍스트 선택 활성화 상태 설정 (정지 상태에서만 활성화)
+        paragraphTextView.isSelectionAllowed = canHighlight
         
         // 하이라이트 생성 콜백 연결
         paragraphTextView.onHighlightCreated = { [weak self] highlight in
@@ -514,147 +372,6 @@ final class ParagraphTableViewCell: UITableViewCell {
     }
 }
 
-// MARK: - UITextViewDelegate
-
-extension ParagraphTableViewCell: UITextViewDelegate {
-    
-    func textViewDidChangeSelection(_ textView: UITextView) {
-        // 텍스트 선택 상태 추적 및 메뉴 업데이트
-        if #unavailable(iOS 16.0) {
-            // iOS 15 이하에서 선택 상태 변경 시 메뉴 업데이트
-            if let selectedRange = textView.selectedTextRange, !selectedRange.isEmpty {
-                print("🔧 [TextView] 텍스트 선택됨, 메뉴 표시 시도")
-                
-                // 동적으로 메뉴 아이템 추가
-                let menuController = UIMenuController.shared
-                var items: [UIMenuItem] = []
-                // 선택 구간에 기존 하이라이트가 있는지 검사
-                let start = textView.offset(from: textView.beginningOfDocument, to: selectedRange.start)
-                let end = textView.offset(from: textView.beginningOfDocument, to: selectedRange.end)
-                let hasExisting = highlights.contains { $0.startIndex <= end && $0.endIndex >= start }
-                if hasExisting {
-                    items.append(UIMenuItem(title: "삭제", action: #selector(deleteSelectedHighlight)))
-                } else {
-                    items.append(UIMenuItem(title: "저장", action: #selector(highlightSelectedText)))
-                }
-                menuController.menuItems = items
-                
-                // 선택이 있을 때 메뉴 표시
-                UIMenuController.shared.setMenuVisible(true, animated: true)
-                
-                print("🔧 [TextView] 메뉴 아이템 동적 추가 완료: \(menuController.menuItems?.count ?? 0)개")
-            }
-        }
-    }
-    
-    @available(iOS 16.0, *)
-    func textView(_ textView: UITextView, editMenuForCharactersIn range: NSRange, suggestedActions: [UIMenuElement]) -> UIMenu? {
-        // 안전한 기본 액션만 유지
-        let safe = suggestedActions.compactMap { element -> UIMenuElement? in
-            guard let action = element as? UIAction else { return nil }
-            let title = action.title.lowercased()
-            if title.contains("copy") || title.contains("select") || title.contains("복사") || title.contains("선택") {
-                return action
-            }
-            return nil
-        }
-        // 선택 구간에 기존 하이라이트가 있는지 검사하여 저장/삭제 중 하나만 노출
-        let hasExisting = highlights.contains { $0.startIndex <= (range.location + range.length) && $0.endIndex >= range.location }
-        let action: UIAction
-        if hasExisting {
-            action = UIAction(title: "삭제") { [weak self] _ in self?.deleteSelectedHighlight() }
-        } else {
-            action = UIAction(title: "저장") { [weak self] _ in self?.highlightSelectedText() }
-        }
-        return UIMenu(children: safe + [action])
-    }
-    
-    // 모든 상호작용 차단 (링크, 첨부파일 등)
-    func textView(_ textView: UITextView, shouldInteractWith textAttachment: NSTextAttachment, in characterRange: NSRange) -> Bool {
-        return false // 첨부파일 상호작용 차단
-    }
-    
-    func textView(_ textView: UITextView, shouldInteractWith textAttachment: NSTextAttachment, in characterRange: NSRange, interaction: UITextItemInteraction) -> Bool {
-        return false // iOS 10+ 첨부파일 상호작용 차단
-    }
-    
-    func textView(_ textView: UITextView, shouldInteractWith URL: URL, in characterRange: NSRange) -> Bool {
-        return false // URL 상호작용 차단
-    }
-    
-    func textView(_ textView: UITextView, shouldInteractWith URL: URL, in characterRange: NSRange, interaction: UITextItemInteraction) -> Bool {
-        return false // iOS 10+ URL 상호작용 차단
-    }
-    
-    // 편집 방지를 위한 추가 delegate 메서드들
-    func textViewShouldBeginEditing(_ textView: UITextView) -> Bool {
-        // 편집 시작 방지 (선택만 가능)
-        return false
-    }
-    
-    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
-        // 텍스트 변경 방지
-        return false
-    }
-    
-    func textViewDidBeginEditing(_ textView: UITextView) {
-        // 편집 시작 시 즉시 종료
-        textView.resignFirstResponder()
-    }
-}
-
-// MARK: - UIEditMenuInteractionDelegate (iOS 16+)
-
-@available(iOS 16.0, *)
-extension ParagraphTableViewCell: UIEditMenuInteractionDelegate {
-    
-    func editMenuInteraction(_ interaction: UIEditMenuInteraction, menuFor configuration: UIEditMenuConfiguration, suggestedActions: [UIMenuElement]) -> UIMenu? {
-        
-        // 텍스트가 선택되어 있고, 선택 가능한 상태일 때만 하이라이트 메뉴 추가
-        let hasSelection = paragraphTextView.selectedTextRange != nil && 
-                          !paragraphTextView.selectedTextRange!.isEmpty
-        let isSelectable = paragraphTextView.isSelectable
-        
-        guard hasSelection && isSelectable else {
-            return UIMenu(children: []) // 빈 메뉴 반환
-        }
-        
-        // 기본 제공되는 액션들 중 안전한 것들만 필터링
-        let safeActions = suggestedActions.filter { element in
-            if let action = element as? UIAction {
-                let title = action.title.lowercased()
-                // 복사, 선택 관련 액션만 허용
-                return title.contains("copy") || 
-                       title.contains("select") ||
-                       title.contains("복사") ||
-                       title.contains("선택")
-            }
-            return false
-        }
-        
-        // 하이라이트 액션 생성
-        let highlightAction = UIAction(
-            title: "🖍️ 하이라이트",
-            image: UIImage(systemName: "highlighter"),
-            handler: { [weak self] _ in
-                self?.highlightSelectedText()
-            }
-        )
-        
-        // 안전한 액션들과 하이라이트 액션만 반환
-        var finalActions = safeActions
-        finalActions.append(highlightAction)
-        
-        return UIMenu(children: finalActions)
-    }
-    
-    func editMenuInteraction(_ interaction: UIEditMenuInteraction, targetRectFor configuration: UIEditMenuConfiguration) -> CGRect {
-        // 선택된 텍스트 영역을 반환
-        guard let selectedRange = paragraphTextView.selectedTextRange else {
-            return .zero
-        }
-        
-        return paragraphTextView.firstRect(for: selectedRange)
-    }
-    
-}
+// MARK: - Note
+// UITextViewDelegate 및 UIEditMenuInteractionDelegate는 NonEditableTextView 내부에서 처리됨
+// NonEditableTextView가 자체적으로 delegate를 설정하고 선택/하이라이트 로직을 관리

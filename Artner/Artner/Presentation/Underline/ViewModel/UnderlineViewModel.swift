@@ -12,6 +12,7 @@ struct UnderlineItem {
     let subtitle: String?
     let imageUrl: String?
     let isDocentAvailable: Bool
+    let highlightCount: Int // 해당 항목의 하이라이트 개수
     let createdAt: Date // 추가된 날짜 (최근 순 정렬용)
 }
 
@@ -74,6 +75,7 @@ final class UnderlineViewModel {
                 guard let self = self else { return }
                 // Map DTO -> UI Model
                 let dateFormatter = ISO8601DateFormatter()
+                dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
                 let mapped: [UnderlineItem] = response.results.map { dto in
                     let type: UnderlineItemType
                     switch dto.itemType {
@@ -81,14 +83,17 @@ final class UnderlineViewModel {
                     case "artwork": type = .artwork
                     default: type = .exhibition
                     }
-                    let created = dto.createdAt.flatMap { dateFormatter.date(from: $0) } ?? Date()
+                    let created = dto.latestDate.flatMap { dateFormatter.date(from: $0) } ?? Date()
+                    // id가 없으므로 itemType + itemName으로 고유 식별자 생성
+                    let uniqueId = "\(dto.itemType)_\(dto.itemName)"
                     return UnderlineItem(
-                        id: dto.id,
+                        id: uniqueId,
                         type: type,
                         title: dto.itemName,
-                        subtitle: dto.artistName,
-                        imageUrl: dto.thumbnail,
+                        subtitle: dto.subtitle,
+                        imageUrl: dto.thumbnailUrl,
                         isDocentAvailable: false,
+                        highlightCount: dto.highlightCount,
                         createdAt: created
                     )
                 }

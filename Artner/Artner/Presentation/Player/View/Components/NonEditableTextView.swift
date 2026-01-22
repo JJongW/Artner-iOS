@@ -3,324 +3,333 @@
 //  Artner
 //
 //  Created by 신종원 on 4/5/25.
+//  Refactored: iOS 네이티브 텍스트 선택 방식으로 변경
 //
 import UIKit
 
-/// 편집 불가능한 텍스트뷰 (선택만 가능)
-final class NonEditableTextView: UITextView, UIGestureRecognizerDelegate {
-    
-    // 하이라이트 생성 콜백 (TextHighlight 객체 전달)
+/// 편집 불가능한 텍스트뷰 (iOS 네이티브 선택 방식)
+/// - 정지 상태에서만 텍스트 선택 가능
+/// - 선택한 텍스트를 하이라이트로 저장
+final class NonEditableTextView: UITextView, UITextViewDelegate {
+
+    // MARK: - Callbacks
+
+    /// 하이라이트 생성 콜백 (TextHighlight 객체 전달)
     var onHighlightCreated: ((TextHighlight) -> Void)?
-    
-    // 하이라이트 삭제 콜백 (삭제할 하이라이트 정보 전달)
+
+    /// 하이라이트 삭제 콜백 (삭제할 하이라이트 정보 전달)
     var onHighlightDeleted: ((TextHighlight) -> Void)?
-    
-    // 문단 ID (하이라이트 저장 시 필요)
+
+    // MARK: - Properties
+
+    /// 문단 ID (하이라이트 저장 시 필요)
     var paragraphId: String = ""
-    
-    // 현재 적용된 하이라이트 목록 (삭제 감지용)
+
+    /// 현재 적용된 하이라이트 목록
     private var currentHighlights: [TextHighlight] = []
-    
-    // 하이라이트 활성화 상태 (현재 재생 중인 문단에서만 true)
-    var isHighlightEnabled: Bool = false
-    
-    // 하이라이트 드래그 상태 추적
-    private var isHighlightDragging = false
-    private var dragStartIndex: Int = 0
-    private var currentDragRange: NSRange?
-    
-    override init(frame: CGRect, textContainer: NSTextContainer?) {
-        super.init(frame: frame, textContainer: textContainer)
-        setupNonEditableConfiguration()
-        addTapGestureRecognizer() // 제스처 인식기 추가
-    }
-    
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        setupNonEditableConfiguration()
-        addTapGestureRecognizer() // 제스처 인식기 추가
-    }
-    
-    private func addTapGestureRecognizer() {
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
-        self.addGestureRecognizer(tapGesture)
+
+    /// 텍스트 선택 가능 여부 (정지 상태에서만 true)
+    var isSelectionAllowed: Bool = false {
+        didSet {
+            updateSelectionState()
+        }
     }
 
-    @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
-        // 하이라이트가 비활성화된 경우 무시
-        guard isHighlightEnabled else {
-            print("⚠️ [Tap] 하이라이트 비활성화 상태 - 터치 무시")
-            return
-        }
-        
-        let point = gesture.location(in: self)
-        let characterIndex = characterIndex(at: point)
-        
-        // 터치한 지점에 하이라이트가 있는지 확인
-        if let highlightToDelete = findHighlight(at: characterIndex) {
-            removeHighlight(highlightToDelete)
-            onHighlightDeleted?(highlightToDelete)
-            print("🗑️ [Tap] 하이라이트 삭제: \(highlightToDelete)")
-        }
+    /// 하이라이트 색상 (디자인: #FF7C27 오렌지)
+    private let highlightColor = UIColor(red: 255/255, green: 124/255, blue: 39/255, alpha: 0.4)
+
+    /// 선택 완료 감지용 타이머 (debounce)
+    private var selectionTimer: Timer?
+
+    /// 마지막 선택 범위 (드래그 완료 감지용)
+    private var lastSelectedRange: UITextRange?
+
+    /// 선택 중인지 여부
+    private var isSelecting: Bool = false
+
+    // MARK: - Initialization
+
+    override init(frame: CGRect, textContainer: NSTextContainer?) {
+        super.init(frame: frame, textContainer: textContainer)
+        setupTextView()
     }
-    
-    private func setupNonEditableConfiguration() {
-        // 데이터 검출 완전 비활성화 (링크, 전화번호 등)
-        self.dataDetectorTypes = []
-        
-        // 텍스트 선택 완전 비활성화 (Long Press로 대체)
-        self.isSelectable = false
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setupTextView()
+    }
+
+    private func setupTextView() {
+        // 기본 설정
         self.isEditable = false
-        
-        // 상호작용 가능한 요소들 비활성화
-        self.linkTextAttributes = [:]  // 링크 스타일 제거
-        
-        // 키보드 관련 설정 비활성화
+        self.isSelectable = false // 초기에는 선택 불가
+        self.dataDetectorTypes = []
+        self.delegate = self
+
+        // 키보드 관련 비활성화
         self.autocorrectionType = .no
         self.autocapitalizationType = .none
         self.spellCheckingType = .no
-        self.smartQuotesType = .no
-        self.smartDashesType = .no
-        self.smartInsertDeleteType = .no
-        
-        // Long Press Gesture 추가
-        setupLongPressGesture()
+
+        // 선택 색상 커스텀 (iOS 네이티브 선택 바 색상)
+        self.tintColor = UIColor(red: 255/255, green: 124/255, blue: 39/255, alpha: 1.0)
+
+        // 탭 제스처 추가 (하이라이트 삭제용)
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        tapGesture.numberOfTapsRequired = 1
+        tapGesture.delegate = self
+        self.addGestureRecognizer(tapGesture)
     }
-    
-    private func setupLongPressGesture() {
-        let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-        longPressGesture.minimumPressDuration = 0.3 // 0.3초 꾹 누르기
-        longPressGesture.allowableMovement = CGFloat.greatestFiniteMagnitude // 무제한 드래그 허용
-        longPressGesture.delegate = self
-        addGestureRecognizer(longPressGesture)
-        
-        print("🔧 [Gesture] Long Press 설정 완료 - 드래그 허용")
+
+    // MARK: - Selection State
+
+    private func updateSelectionState() {
+        self.isSelectable = isSelectionAllowed
+
+        if !isSelectionAllowed {
+            // 선택 불가 상태로 전환 시 현재 선택 해제
+            self.selectedTextRange = nil
+            selectionTimer?.invalidate()
+            selectionTimer = nil
+            isSelecting = false
+        }
+
+        print("📝 [TextView] 선택 상태 변경: \(isSelectionAllowed ? "선택 가능" : "선택 불가")")
     }
-    
-    // Long Press 방식으로 변경되어 First Responder 불필요
-    override var canBecomeFirstResponder: Bool { false }
-    
-    // Long Press로 드래그 하이라이트 (연속 드래그 지원)
-    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+
+    // MARK: - Tap Handler (하이라이트 삭제)
+
+    @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
+        guard isSelectionAllowed else { return }
+
+        // 현재 선택 중이면 탭 무시 (선택 완료 대기)
+        if let selected = selectedTextRange, !selected.isEmpty {
+            return
+        }
+
         let point = gesture.location(in: self)
-        let characterIndex = characterIndex(at: point)
-        
-        switch gesture.state {
-        case .began:
-            // 하이라이트가 비활성화된 경우 무시
-            guard isHighlightEnabled else {
-                print("⚠️ [LongPress] 하이라이트 비활성화 상태 - 드래그 무시")
+        let characterIndex = layoutManager.characterIndex(
+            for: point,
+            in: textContainer,
+            fractionOfDistanceBetweenInsertionPoints: nil
+        )
+
+        // 터치한 지점에 하이라이트가 있는지 확인
+        if let highlightToDelete = findHighlight(at: characterIndex) {
+            // 하이라이트 삭제
+            deleteHighlightWithConfirmation(highlightToDelete)
+        }
+    }
+
+    private func deleteHighlightWithConfirmation(_ highlight: TextHighlight) {
+        // 하이라이트 삭제
+        removeHighlight(highlight)
+        onHighlightDeleted?(highlight)
+
+        // 토스트 표시
+        ToastManager.shared.showSimple("하이라이트가 삭제되었습니다")
+        print("🗑️ [Tap] 하이라이트 삭제: \(highlight.highlightedText)")
+    }
+
+    // MARK: - UITextViewDelegate
+
+    func textViewDidChangeSelection(_ textView: UITextView) {
+        guard isSelectionAllowed else { return }
+
+        // 기존 타이머 취소 (debounce)
+        selectionTimer?.invalidate()
+
+        // 선택된 텍스트가 있는지 확인
+        guard let selectedRange = textView.selectedTextRange,
+              !selectedRange.isEmpty else {
+            isSelecting = false
+            lastSelectedRange = nil
+            return
+        }
+
+        isSelecting = true
+        lastSelectedRange = selectedRange
+
+        let selectedText = textView.text(in: selectedRange) ?? ""
+
+        // 선택된 텍스트가 의미 있는 길이일 때만 처리
+        if selectedText.count >= 2 {
+            // 선택이 1.5초 동안 변경되지 않으면 저장 (드래그 완료로 간주)
+            selectionTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { [weak self] _ in
+                guard let self = self else { return }
+
+                // 현재 선택이 마지막 선택과 동일한지 확인
+                guard let currentSelection = self.selectedTextRange,
+                      let lastSelection = self.lastSelectedRange,
+                      self.rangesAreEqual(currentSelection, lastSelection) else {
+                    return
+                }
+
+                // 하이라이트 저장
+                self.saveSelectionAsHighlight()
+            }
+        }
+    }
+
+    /// 두 UITextRange가 동일한지 비교
+    private func rangesAreEqual(_ range1: UITextRange, _ range2: UITextRange) -> Bool {
+        let start1 = offset(from: beginningOfDocument, to: range1.start)
+        let end1 = offset(from: beginningOfDocument, to: range1.end)
+        let start2 = offset(from: beginningOfDocument, to: range2.start)
+        let end2 = offset(from: beginningOfDocument, to: range2.end)
+        return start1 == start2 && end1 == end2
+    }
+
+    /// 현재 선택된 텍스트를 하이라이트로 저장
+    private func saveSelectionAsHighlight() {
+        guard let selectedRange = selectedTextRange,
+              !selectedRange.isEmpty else { return }
+
+        var startOffset = offset(from: beginningOfDocument, to: selectedRange.start)
+        var endOffset = offset(from: beginningOfDocument, to: selectedRange.end)
+
+        // 빈 텍스트나 공백만 있으면 무시
+        guard let fullText = self.text,
+              startOffset < fullText.count,
+              endOffset <= fullText.count else { return }
+
+        // 겹치는 기존 하이라이트 찾기 및 병합
+        var overlappingHighlights: [TextHighlight] = []
+        for highlight in currentHighlights {
+            // 범위가 겹치는지 확인
+            if highlight.startIndex <= endOffset && highlight.endIndex >= startOffset {
+                overlappingHighlights.append(highlight)
+                // 병합: 가장 작은 시작점과 가장 큰 끝점으로 확장
+                startOffset = min(startOffset, highlight.startIndex)
+                endOffset = max(endOffset, highlight.endIndex)
+            }
+        }
+
+        // 병합된 범위의 텍스트 추출
+        let startIndex = fullText.index(fullText.startIndex, offsetBy: startOffset)
+        let endIndex = fullText.index(fullText.startIndex, offsetBy: min(endOffset, fullText.count))
+        let mergedText = String(fullText[startIndex..<endIndex])
+
+        // 빈 텍스트나 공백만 있으면 무시
+        let trimmedText = mergedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedText.isEmpty else { return }
+
+        // 완전히 동일한 범위면 무시 (이미 하이라이트된 상태)
+        if overlappingHighlights.count == 1 {
+            let existing = overlappingHighlights[0]
+            if existing.startIndex == startOffset && existing.endIndex == endOffset {
+                print("⚠️ [Selection] 이미 하이라이트된 영역입니다")
+                self.selectedTextRange = nil
                 return
             }
-            
-            // 드래그 모드 시작
-            isHighlightDragging = true
-            dragStartIndex = characterIndex
-            
-            // 정확한 문자 위치에서 시작
-            let initialRange = NSRange(location: characterIndex, length: 1)
-            currentDragRange = initialRange
-            applyTemporaryHighlight(to: initialRange)
-            print("🎯 [LongPress] 드래그 시작: 문자 \(characterIndex)에서 시작")
-            
-        case .changed:
-            // 드래그 중 - 실시간 범위 업데이트 (핵심!)
-            if isHighlightDragging {
-                updateDragRange(to: characterIndex)
-            }
-            
-        case .ended, .cancelled, .failed:
-            // 드래그 종료 - 최종 하이라이트 적용
-            if isHighlightDragging, let finalRange = currentDragRange {
-                applyFinalHighlight(to: finalRange)
-            }
-            resetDragState()
-            
-        default:
-            break
         }
-    }
-    
-    private func characterIndex(at point: CGPoint) -> Int {
-        // iOS 16+ TextKit 2 호환성을 위한 현대적 방법
-        if #available(iOS 16.0, *) {
-            let textPosition = closestPosition(to: point) ?? beginningOfDocument
-            return offset(from: beginningOfDocument, to: textPosition)
-        } else {
-            // iOS 15 이하에서는 기존 방법 사용
-            let layoutManager = self.layoutManager
-            let textContainer = self.textContainer
-            return layoutManager.characterIndex(for: point, in: textContainer, fractionOfDistanceBetweenInsertionPoints: nil)
+
+        // 기존 겹치는 하이라이트들 제거
+        for oldHighlight in overlappingHighlights {
+            currentHighlights.removeAll { $0.id == oldHighlight.id }
+            // 삭제 콜백 호출 (서버에서도 삭제)
+            onHighlightDeleted?(oldHighlight)
+            print("🔄 [Selection] 기존 하이라이트 병합을 위해 삭제: \"\(oldHighlight.highlightedText)\"")
         }
-    }
-    
-    private func getWordRange(at characterIndex: Int) -> NSRange? {
-        guard let text = self.text,
-              characterIndex >= 0,
-              characterIndex < text.count else { return nil }
-        
-        let nsText = text as NSString
-        var wordRange = NSRange()
-        var foundRange = false
-        
-        // 단어 경계 찾기 (공백, 줄바꿈, 문장부호 기준)
-        nsText.enumerateSubstrings(in: NSRange(location: 0, length: nsText.length), 
-                                  options: [.byWords, .localized]) { (substring, range, _, stop) in
-            if range.contains(characterIndex) {
-                wordRange = range
-                foundRange = true
-                stop.pointee = true // 찾으면 더 이상 순회하지 않음
-            }
-        }
-        
-        // 단어를 찾지 못한 경우, 최소한 현재 문자 하나라도 선택
-        if !foundRange {
-            wordRange = NSRange(location: characterIndex, length: 1)
-            foundRange = true
-        }
-        
-        return foundRange ? wordRange : nil
-    }
-    
-    // MARK: - UIGestureRecognizerDelegate
-    
-    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        // Long Press가 드래그를 방해하지 않도록 동시 인식 허용
-        return true
-    }
-    
-    private func updateDragRange(to endIndex: Int) {
-        let startIndex = dragStartIndex
-        
-        // 시작점과 끝점 사이의 전체 범위 계산
-        let newRange = NSRange(
-            location: min(startIndex, endIndex),
-            length: abs(endIndex - startIndex)
-        )
-        
-        // 최소 길이 보장 (적어도 1글자는 선택)
-        let finalRange = newRange.length > 0 ? newRange : NSRange(location: startIndex, length: 1)
-        
-        // 텍스트 경계 검사
-        let textLength = text?.count ?? 0
-        let adjustedRange = NSRange(
-            location: min(max(finalRange.location, 0), textLength - 1),
-            length: min(finalRange.length, textLength - finalRange.location)
-        )
-        
-        // 범위가 변경된 경우에만 업데이트
-        if currentDragRange?.location != adjustedRange.location || 
-           currentDragRange?.length != adjustedRange.length {
-            currentDragRange = adjustedRange
-            applyTemporaryHighlight(to: adjustedRange)
-            print("🔄 [Drag] 범위 업데이트: \(adjustedRange) (시작:\(startIndex) → 끝:\(endIndex))")
-        }
-    }
-    
-    private func applyTemporaryHighlight(to range: NSRange) {
-        guard let originalText = attributedText?.mutableCopy() as? NSMutableAttributedString else { return }
-        
-        // 기존 임시 하이라이트 제거 (원본 텍스트 복원)
-        clearTemporaryHighlights()
-        
-        // 새로운 임시 하이라이트 적용 (반투명한 노란색)
-        originalText.addAttribute(.backgroundColor, 
-                                value: UIColor.systemYellow.withAlphaComponent(0.2), 
-                                range: range)
-        
-        attributedText = originalText
-    }
-    
-    private func applyFinalHighlight(to range: NSRange) {
-        guard let currentText = attributedText?.mutableCopy() as? NSMutableAttributedString else { return }
-        
-        // 최종 하이라이트 배경색 적용 (진한 노란색)
-        currentText.addAttribute(.backgroundColor, 
-                                value: UIColor.systemYellow.withAlphaComponent(0.4), 
-                                range: range)
-        
-        attributedText = currentText
-        
-        // TextHighlight 객체 생성 및 전달
-        let highlightedText = (text as NSString).substring(with: range)
-        let textHighlight = TextHighlight(
+
+        // 새로운 병합된 하이라이트 생성
+        let highlight = TextHighlight(
             paragraphId: paragraphId,
-            startIndex: range.location,
-            endIndex: range.location + range.length,
-            highlightedText: highlightedText
+            startIndex: startOffset,
+            endIndex: endOffset,
+            highlightedText: mergedText
         )
-        
-        print("🎨 [TextView] 최종 하이라이트 생성: \(textHighlight)")
-        onHighlightCreated?(textHighlight)
+
+        // 하이라이트 적용
+        currentHighlights.append(highlight)
+        applyAllHighlights()
+
+        // 선택 해제
+        self.selectedTextRange = nil
+        isSelecting = false
+
+        // 콜백 호출
+        onHighlightCreated?(highlight)
+
+        if overlappingHighlights.isEmpty {
+            print("✅ [Selection] 하이라이트 저장: \"\(mergedText)\"")
+        } else {
+            print("✅ [Selection] 하이라이트 병합 저장: \"\(mergedText)\" (\(overlappingHighlights.count)개 병합)")
+        }
     }
-    
-    private func clearTemporaryHighlights() {
-        // 전체 텍스트에서 배경색 속성 제거
-        guard let originalText = attributedText?.mutableCopy() as? NSMutableAttributedString else { return }
-        
-        originalText.removeAttribute(.backgroundColor, range: NSRange(location: 0, length: originalText.length))
-        attributedText = originalText
-    }
-    
-    private func resetDragState() {
-        isHighlightDragging = false
-        currentDragRange = nil
-        dragStartIndex = 0
-        print("🔄 [Drag] 상태 리셋")
-    }
-    
+
     // MARK: - Highlight Management
-    
-    /// 현재 하이라이트 목록 업데이트 (외부에서 호출)
+
+    /// 하이라이트 목록 업데이트 (외부에서 호출)
     func updateHighlights(_ highlights: [TextHighlight]) {
         currentHighlights = highlights
         applyAllHighlights()
     }
-    
+
     /// 특정 위치의 하이라이트 찾기
     private func findHighlight(at characterIndex: Int) -> TextHighlight? {
         return currentHighlights.first { highlight in
-            let range = NSRange(location: highlight.startIndex, length: highlight.endIndex - highlight.startIndex)
-            return range.contains(characterIndex)
+            characterIndex >= highlight.startIndex && characterIndex < highlight.endIndex
         }
     }
-    
-    /// 하이라이트 삭제 (시각적으로만)
+
+    /// 하이라이트 삭제
     private func removeHighlight(_ highlight: TextHighlight) {
-        // 현재 목록에서 제거
         currentHighlights.removeAll { $0.id == highlight.id }
-        
-        // 시각적으로 다시 적용
         applyAllHighlights()
     }
-    
-    /// 모든 하이라이트를 다시 적용
+
+    /// 모든 하이라이트 시각적 적용
     private func applyAllHighlights() {
         guard let originalText = attributedText?.mutableCopy() as? NSMutableAttributedString else { return }
-        
-        // 모든 배경색 제거
-        originalText.removeAttribute(.backgroundColor, range: NSRange(location: 0, length: originalText.length))
-        
-        // 현재 하이라이트들 다시 적용
+
+        // 기존 배경색 제거
+        let fullRange = NSRange(location: 0, length: originalText.length)
+        originalText.removeAttribute(.backgroundColor, range: fullRange)
+
+        // 하이라이트 색상 적용
         for highlight in currentHighlights {
             let range = NSRange(location: highlight.startIndex, length: highlight.endIndex - highlight.startIndex)
-            
-            // 범위 검사
+
+            // 범위 유효성 검사
             if range.location >= 0 && range.location + range.length <= originalText.length {
-                originalText.addAttribute(.backgroundColor,
-                                        value: UIColor.systemYellow.withAlphaComponent(0.4),
-                                        range: range)
+                originalText.addAttribute(.backgroundColor, value: highlightColor, range: range)
             }
         }
-        
-        attributedText = originalText
-        print("🎨 [Highlights] 전체 하이라이트 재적용: \(currentHighlights.count)개")
+
+        // UI 업데이트
+        let selectedRange = self.selectedTextRange
+        self.attributedText = originalText
+        self.selectedTextRange = selectedRange // 선택 상태 복원
+
+        print("🎨 [Highlights] 하이라이트 적용: \(currentHighlights.count)개")
     }
-    
-    // Long Press 방식으로 변경되어 메뉴 액션 불필요
+
+    // MARK: - Menu Actions
+
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
-        // 텍스트 선택이 비활성화되었으므로 모든 메뉴 액션 차단
+        // 복사, 붙여넣기 등 기본 메뉴 숨기기
+        // 선택만 허용하고 다른 액션은 차단
+        if action == #selector(select(_:)) || action == #selector(selectAll(_:)) {
+            return isSelectionAllowed
+        }
         return false
     }
 }
 
+// MARK: - UIGestureRecognizerDelegate
+
+extension NonEditableTextView: UIGestureRecognizerDelegate {
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        // 탭 제스처와 다른 제스처가 동시에 인식되도록 허용
+        return true
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRequireFailureOf otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        // 롱프레스(선택)가 실패해야 탭이 인식됨
+        if gestureRecognizer is UITapGestureRecognizer && otherGestureRecognizer is UILongPressGestureRecognizer {
+            return true
+        }
+        return false
+    }
+}

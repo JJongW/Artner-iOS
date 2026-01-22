@@ -140,24 +140,28 @@ final class PlayerView: BaseView {
     }
     
     private func setupControlsArea() {
+        // 컨트롤 영역이 터치를 제대로 전달하도록 설정
+        controlsContainerView.clipsToBounds = false
+        controlsContainerView.isUserInteractionEnabled = true
+
         // 시간 표시 스택뷰 설정
         timeStackView.axis = .horizontal
         timeStackView.distribution = .equalSpacing
         timeStackView.alignment = .center
         timeStackView.spacing = 0
-        
+
         // 시간 라벨 설정
         currentTimeLabel.textColor = AppColor.textSecondary
         currentTimeLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
         currentTimeLabel.text = "0:00"
-        
+
         totalTimeLabel.textColor = AppColor.textSecondary
         totalTimeLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
         totalTimeLabel.text = "0:00"
-        
+
         // 플레이어 컨트롤 초기 비활성화
         playerControls.setEnabled(false)
-        
+
         // 프로그레스 바 터치 이벤트 설정
         progressView.onProgressTapped = { [weak self] progress in
             self?.onProgressTapped?(progress)
@@ -264,13 +268,16 @@ final class PlayerView: BaseView {
             $0.height.equalTo(40)
         }
         
-        // 플레이어 컨트롤 (위쪽에 배치, 56px 높이)
+        // 플레이어 컨트롤 (위쪽에 배치)
+        // PlayerControlsView가 intrinsicContentSize로 자체 크기 결정
+        // 3버튼 레이아웃: 216px, 2버튼 레이아웃: 150px
         playerControls.snp.makeConstraints {
             $0.top.equalToSuperview().offset(12)
             $0.centerX.equalToSuperview()
-            $0.width.equalTo(120)
-            $0.height.equalTo(56)
+            $0.height.equalTo(64) // 충분한 높이 확보
         }
+        playerControls.setContentHuggingPriority(.required, for: .horizontal)
+        playerControls.setContentCompressionResistancePriority(.required, for: .horizontal)
         
         // 진행 바 (컨트롤 아래에 배치)
         progressView.snp.makeConstraints {
@@ -503,25 +510,22 @@ extension PlayerView: UITableViewDataSource {
         
         let paragraph = paragraphs[indexPath.row]
         let isHighlighted = indexPath.row == currentHighlightIndex
-        
-        // 하이라이트 가능 조건: 현재 활성화된 문단이면 재생/정지 상관없이 가능
-        // 사용자가 해당 문단에서 작업하는 동안 계속 상호작용 가능
-        let canHighlight = isHighlighted
-        
+
+        // 하이라이트 가능 조건: 정지 상태일 때만 모든 문단에서 텍스트 선택 가능
+        // iOS 네이티브 텍스트 선택 방식 사용 (길게 누르고 드래그)
+        let canHighlight = !isPlaying
+
         // 하이라이트 저장 콜백 설정 (ViewModel로 전달)
         cell.onHighlightSaved = { [weak self] highlight in
             self?.onHighlightCreated?(highlight)
         }
-        
+
         // 하이라이트 삭제 콜백 설정 (ViewModel로 전달)
         cell.onHighlightDeleted = { [weak self] highlight in
             self?.onHighlightDeleted?(highlight)
         }
-        
-        // 텍스트 선택 상태 설정 
-        cell.setTextSelectionEnabled(!isPlaying)
-        
-        // configure에서 하이라이트 활성화 조건을 전달
+
+        // configure에서 하이라이트 활성화 조건을 전달 (정지 상태에서만 활성화)
         cell.configure(with: paragraph, isHighlighted: isHighlighted, canHighlight: canHighlight)
         
         // 저장된 하이라이트 로드 (ViewModel에서 가져와서 적용)

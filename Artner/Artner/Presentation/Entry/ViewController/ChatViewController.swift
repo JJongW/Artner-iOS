@@ -3,12 +3,13 @@
 //  Artner
 //
 //  Created by 신종원 on 6/1/25.
+//  Feature Isolation Refactoring - EntryCoordinating 프로토콜 사용
 //
 
 import UIKit
 import Combine
 
-final class ChatViewController: BaseViewController<ChatViewModel, AppCoordinator>, UITableViewDataSource, UITableViewDelegate, UITextFieldDelegate {
+final class ChatViewController: BaseViewController<ChatViewModel, any EntryCoordinating>, UITableViewDataSource, UITableViewDelegate, UITextFieldDelegate {
 
     private let chatView = ChatView()
     private var cancellables = Set<AnyCancellable>()

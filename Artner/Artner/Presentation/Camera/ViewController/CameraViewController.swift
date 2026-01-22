@@ -1,3 +1,10 @@
+//
+//  CameraViewController.swift
+//  Artner
+//
+//  Feature Isolation Refactoring - CameraCoordinating 프로토콜 사용
+//
+
 import UIKit
 import AVFoundation
 import Combine
@@ -8,19 +15,19 @@ final class CameraViewController: UIViewController {
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var photoOutput: AVCapturePhotoOutput?
     private var cancellables = Set<AnyCancellable>()
-    
+
     // 카메라 관련 프로퍼티
     private var currentCameraPosition: AVCaptureDevice.Position = .back
     private var hasCheckedPermission = false
-    
-    // Coordinator 주입
-    private let coordinator: AppCoordinator
-    
-    init(coordinator: AppCoordinator) {
+
+    // Coordinator (프로토콜 기반)
+    private let coordinator: any CameraCoordinating
+
+    init(coordinator: any CameraCoordinating) {
         self.coordinator = coordinator
         super.init(nibName: nil, bundle: nil)
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }

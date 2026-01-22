@@ -1,3 +1,10 @@
+//
+//  LikeViewController.swift
+//  Artner
+//
+//  Feature Isolation Refactoring - LikeCoordinating 프로토콜 사용
+//
+
 import UIKit
 import Combine
 
@@ -5,13 +12,17 @@ final class LikeViewController: UIViewController {
     private let likeView = LikeView()
     private let viewModel: LikeViewModel
     private var cancellables = Set<AnyCancellable>()
+    private weak var coordinator: (any LikeCoordinating)?
+
+    /// 기존 호환성을 위한 핸들러 (deprecated - coordinator 사용 권장)
     var goToFeedHandler: (() -> Void)?
-    
-    init(viewModel: LikeViewModel) {
+
+    init(viewModel: LikeViewModel, coordinator: (any LikeCoordinating)? = nil) {
         self.viewModel = viewModel
+        self.coordinator = coordinator
         super.init(nibName: nil, bundle: nil)
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -168,9 +179,13 @@ final class LikeViewController: UIViewController {
             chevronImageView.tintColor = UIColor.white.withAlphaComponent(0.5)
         }
     }
-    @objc private func didTapGoFeed() { 
+    @objc private func didTapGoFeed() {
         // 홈 화면으로 돌아가는 액션
-        goToFeedHandler?()
+        if let coordinator = coordinator {
+            coordinator.popToHome()
+        } else {
+            goToFeedHandler?()
+        }
     }
 }
 
@@ -255,7 +270,7 @@ extension LikeViewController: UITableViewDataSource, UITableViewDelegate {
                     
                     // 좋아요 상태 변경을 다른 화면에 알림
                     NotificationCenter.default.post(
-                        name: NSNotification.Name("LikeStatusChanged"),
+                        name: .likeStatusChanged,
                         object: nil,
                         userInfo: ["id": item.id, "isLiked": isLiked]
                     )

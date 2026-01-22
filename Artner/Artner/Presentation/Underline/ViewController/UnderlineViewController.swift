@@ -1,3 +1,10 @@
+//
+//  UnderlineViewController.swift
+//  Artner
+//
+//  Feature Isolation Refactoring - UnderlineCoordinating 프로토콜 사용
+//
+
 import UIKit
 import Combine
 
@@ -5,13 +12,17 @@ final class UnderlineViewController: UIViewController {
     private let underlineView = UnderlineView()
     private let viewModel: UnderlineViewModel
     private var cancellables = Set<AnyCancellable>()
+    private weak var coordinator: (any UnderlineCoordinating)?
+
+    /// 기존 호환성을 위한 핸들러 (deprecated - coordinator 사용 권장)
     var goToFeedHandler: (() -> Void)?
-    
-    init(viewModel: UnderlineViewModel) {
+
+    init(viewModel: UnderlineViewModel, coordinator: (any UnderlineCoordinating)? = nil) {
         self.viewModel = viewModel
+        self.coordinator = coordinator
         super.init(nibName: nil, bundle: nil)
     }
-    
+
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     override func loadView() { self.view = underlineView }
     override func viewDidLoad() {
@@ -121,14 +132,22 @@ final class UnderlineViewController: UIViewController {
         }
     }
     
-    @objc private func didTapBack() { navigationController?.popViewController(animated: true) }
+    @objc private func didTapBack() {
+        coordinator?.popViewController(animated: true) ?? navigationController?.popViewController(animated: true)
+    }
     @objc private func didTapSearch() {}
     @objc private func didTapAll() { viewModel.selectCategory(nil); viewModel.fetchHighlights(filter: "all") }
     @objc private func didTapExhibition() { viewModel.selectCategory(.exhibition); viewModel.fetchHighlights(filter: "artwork", itemType: "artwork") }
     @objc private func didTapArtist() { viewModel.selectCategory(.artist); viewModel.fetchHighlights(filter: "artist", itemType: "artist") }
     @objc private func didTapArtwork() { viewModel.selectCategory(.artwork); viewModel.fetchHighlights(filter: "artwork", itemType: "artwork") }
     @objc private func didTapSort() { viewModel.toggleSort() }
-    @objc private func didTapGoFeed() { goToFeedHandler?() }
+    @objc private func didTapGoFeed() {
+        if let coordinator = coordinator {
+            coordinator.popToHome()
+        } else {
+            goToFeedHandler?()
+        }
+    }
 }
 extension UnderlineViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {

@@ -15,7 +15,7 @@ final class EntryView: BaseView {
     let contentView = UIView()
 
     let customNavigationBar = CustomNavigationBar()
-    let blurredAnimationView = LottieRemoteView()
+    let blurredAnimationView = VideoPlayerView()
     let greetingLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.boldSystemFont(ofSize: 18)
@@ -149,7 +149,8 @@ final class EntryView: BaseView {
         addSubview(bottomFadeView)
 
         blurredAnimationView.clipsToBounds = true
-        blurredAnimationView.load(urlString: "https://lottie.host/d0d08cf4-f3d6-40cd-b98c-e7babcc85851/MtTaxs6tEa.lottie")
+        // Bundle에서 ai_video.mp4 파일 로드 및 재생
+        blurredAnimationView.loadVideo(fileName: "ai_video")
 
         ["🖼️\n작품 표현\n방식에 대해", "🎨\n인상주의에\n대해", "🎨\n레오나르도 다빈치"].forEach { title in
             let button = UIButton()

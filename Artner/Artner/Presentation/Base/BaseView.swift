@@ -1,15 +1,17 @@
 //
-//  BaseVIew.swift
+//  BaseView.swift
 //  Artner
 //
-//  Created by 신종원 on 4/27/25.
+//  Created by 신종원 on 4/5/25.
 //
 
 import UIKit
 
+/// 모든 커스텀 뷰가 상속받는 기본 뷰
 class BaseView: UIView {
 
     // MARK: - Init
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setup()
@@ -21,6 +23,7 @@ class BaseView: UIView {
     }
 
     // MARK: - Setup Methods
+
     private func setup() {
         setupUI()
         setupLayout()

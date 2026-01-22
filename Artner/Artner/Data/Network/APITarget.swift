@@ -55,6 +55,8 @@ enum APITarget {
     
     // MARK: - Highlights API
     case getHighlights(filter: String?, itemName: String?, itemType: String?, ordering: String?, page: Int?, search: String?)
+    case createHighlight(payload: CreateHighlightRequestDTO)
+    case deleteHighlight(id: Int)
     
     // MARK: - Auth API
     case kakaoLogin(accessToken: String)
@@ -146,6 +148,10 @@ extension APITarget: TargetType {
         // Highlights
         case .getHighlights:
             return "/highlights"
+        case .createHighlight:
+            return "/highlights"
+        case .deleteHighlight(let id):
+            return "/highlights/\(id)"
             
         // Auth
         case .kakaoLogin:
@@ -201,14 +207,16 @@ extension APITarget: TargetType {
              .refreshToken,
              .realtimeDocent,
              .bookmarkDocent,
-             .docentStatus:
+             .docentStatus,
+             .createHighlight:
             return .post
             
         case .updateFolder:
             return .patch
             
         case .deleteFolder,
-             .deleteRecord:
+             .deleteRecord,
+             .deleteHighlight:
             return .delete
         }
     }
@@ -283,9 +291,20 @@ extension APITarget: TargetType {
             return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
             
         case .deleteFolder,
-             .deleteRecord:
+             .deleteRecord,
+             .deleteHighlight:
             return .requestPlain
-            
+
+        case .createHighlight(let payload):
+            let parameters: [String: Any] = [
+                "item_type": payload.itemType,
+                "item_name": payload.itemName,
+                "item_info": payload.itemInfo,
+                "highlighted_text": payload.highlightedText,
+                "note": payload.note
+            ]
+            return .requestParameters(parameters: parameters, encoding: JSONEncoding.default)
+
         case .kakaoLogin(let accessToken):
             let parameters = [
                 "access_token": accessToken

@@ -3,11 +3,13 @@
 //  Artner
 //
 //  Created by 신종원 on 4/27/25.
+//  Feature Isolation Refactoring - HomeCoordinating 프로토콜 사용
 //
+
 import UIKit
 import Combine
 
-final class HomeViewController: BaseViewController<HomeViewModel, AppCoordinator> {
+final class HomeViewController: BaseViewController<HomeViewModel, any HomeCoordinating> {
 
     private let homeView = HomeView()
     private var cancellables = Set<AnyCancellable>()
@@ -41,7 +43,7 @@ final class HomeViewController: BaseViewController<HomeViewModel, AppCoordinator
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleLikeStatusChanged),
-            name: NSNotification.Name("LikeStatusChanged"),
+            name: .likeStatusChanged,
             object: nil
         )
     }
@@ -138,43 +140,38 @@ final class HomeViewController: BaseViewController<HomeViewModel, AppCoordinator
         // 좋아요 타입과 ID 추출
         let (likeType, id) = extractLikeInfo(from: item)
         
-        // 좋아요 API 호출
-        DIContainer.shared.toggleLikeUseCase.execute(type: likeType, id: id)
-            .receive(on: DispatchQueue.main)
-            .sink(
-                receiveCompletion: { [weak self] completion in
-                    if case .failure(let error) = completion {
-                        print("❌ 좋아요 API 호출 실패: \(error)")
-                        // 실패 시 에러 토스트 표시
-                        ToastManager.shared.showError("좋아요 처리에 실패했습니다")
-                    }
-                },
-                receiveValue: { [weak self] isLiked in
-                    print("✅ 좋아요 상태 업데이트: \(isLiked)")
-                    
-                    guard let self = self else { return }
-                    
-                    // ViewModel의 좋아요 목록 업데이트
-                    if isLiked {
-                        self.viewModel.likedItemIds.insert(id)
-                    } else {
-                        self.viewModel.likedItemIds.remove(id)
-                    }
-                    
-                    // 좋아요 상태 변경을 다른 화면에 알림
-                    NotificationCenter.default.post(
-                        name: NSNotification.Name("LikeStatusChanged"),
-                        object: nil,
-                        userInfo: ["id": id, "isLiked": isLiked]
-                    )
-                    
-                    // UI 상태를 서버의 최종 상태로 업데이트
-                    if let cell = self.homeView.tableView.cellForRow(at: indexPath) as? DocentTableViewCell {
-                        cell.setLiked(isLiked)
-                    }
+        // 좋아요 API 호출 (Coordinator를 통해)
+        coordinator.toggleLike(type: likeType, id: id) { [weak self] result in
+            guard let self = self else { return }
+
+            switch result {
+            case .success(let isLiked):
+                print("✅ 좋아요 상태 업데이트: \(isLiked)")
+
+                // ViewModel의 좋아요 목록 업데이트
+                if isLiked {
+                    self.viewModel.likedItemIds.insert(id)
+                } else {
+                    self.viewModel.likedItemIds.remove(id)
                 }
-            )
-            .store(in: &cancellables)
+
+                // 좋아요 상태 변경을 다른 화면에 알림
+                NotificationCenter.default.post(
+                    name: .likeStatusChanged,
+                    object: nil,
+                    userInfo: ["id": id, "isLiked": isLiked]
+                )
+
+                // UI 상태를 서버의 최종 상태로 업데이트
+                if let cell = self.homeView.tableView.cellForRow(at: indexPath) as? DocentTableViewCell {
+                    cell.setLiked(isLiked)
+                }
+
+            case .failure(let error):
+                print("❌ 좋아요 API 호출 실패: \(error)")
+                ToastManager.shared.showError("좋아요 처리에 실패했습니다")
+            }
+        }
     }
     
     private func extractLikeInfo(from item: FeedItemType) -> (LikeType, Int) {

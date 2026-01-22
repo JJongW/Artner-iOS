@@ -3,12 +3,13 @@
 //  Artner
 //
 //  Created by 신종원 on 5/17/25.
+//  Feature Isolation Refactoring - EntryCoordinating 프로토콜 사용
 //
 
 import UIKit
 import SnapKit
 
-final class EntryViewController: BaseViewController<EntryViewModel, AppCoordinator> {
+final class EntryViewController: BaseViewController<EntryViewModel, any EntryCoordinating> {
 
     private let entryView = EntryView()
     private var isKeyboardVisible = false

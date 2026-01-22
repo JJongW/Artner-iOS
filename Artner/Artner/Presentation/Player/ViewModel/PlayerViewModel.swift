@@ -42,6 +42,7 @@ final class PlayerViewModel: NSObject {
     // 하이라이트 관련 콜백 추가
     var onHighlightSaved: ((TextHighlight) -> Void)?
     var onHighlightsLoaded: (([String: [TextHighlight]]) -> Void)?
+    var onShowUnderline: (() -> Void)?  // Underline 화면으로 이동 콜백
 
     init(docent: Docent) {
         self.docent = docent
@@ -65,6 +66,11 @@ final class PlayerViewModel: NSObject {
             artist: docent.artist,
             description: docent.description
         )
+    }
+
+    /// 원본 Docent 객체 반환 (북마크 등 API 호출용)
+    func getRawDocent() -> Docent {
+        return docent
     }
     
     // MARK: - Public Interface
@@ -97,75 +103,130 @@ final class PlayerViewModel: NSObject {
         if savedHighlights[highlight.paragraphId] == nil {
             savedHighlights[highlight.paragraphId] = []
         }
-        
-        // 강화된 중복 방지: 동일 범위가 이미 있으면 무시
-        // 조건을 완화하여 범위가 겹치는 경우도 체크
+
+        // 완전히 동일한 범위가 있으면 무시
         let isDuplicate = savedHighlights[highlight.paragraphId]!.contains { existing in
-            // 정확히 동일한 범위
-            if existing.startIndex == highlight.startIndex && existing.endIndex == highlight.endIndex {
-                return true
-            }
-            // 범위가 겹치는 경우 (더 엄격한 체크)
-            if existing.startIndex <= highlight.endIndex && existing.endIndex >= highlight.startIndex {
-                print("⚠️ [ViewModel] 하이라이트 범위가 기존 하이라이트와 겹칩니다")
-                return true
-            }
-            return false
+            existing.startIndex == highlight.startIndex && existing.endIndex == highlight.endIndex
         }
-        
+
         if isDuplicate {
             print("⚠️ [ViewModel] 중복 하이라이트 - 저장 무시")
             ToastManager.shared.showSimple("이미 하이라이트된 영역입니다")
             return
         }
-        
+
+        // 겹치는 기존 하이라이트는 이미 NonEditableTextView에서 삭제 콜백을 호출했으므로
+        // 여기서는 단순히 추가만 함
         savedHighlights[highlight.paragraphId]?.append(highlight)
         saveHighlightsToStorage()
-        
+
+        // 서버 API 연동 - 하이라이트 생성
+        createHighlightOnServer(highlight)
+
         // Toast 표시 - 하이라이트 저장 완료 알림
         showHighlightSavedToast(highlight: highlight)
-        
+
         // UI에 즉시 알림 (UI 업데이트 강제)
         onHighlightSaved?(highlight)
+    }
+
+    /// 서버에 하이라이트 생성 API 호출
+    private func createHighlightOnServer(_ highlight: TextHighlight) {
+        // item_type 결정: artist가 있으면 "artist", 없으면 "artwork"
+        let itemType = docent.artist.isEmpty ? "artwork" : "artist"
+        // item_info: 작가명 또는 추가 정보
+        let itemInfo = docent.artist.isEmpty ? docent.description : docent.artist
+
+        let payload = CreateHighlightRequestDTO(
+            itemType: itemType,
+            itemName: docent.title,
+            itemInfo: itemInfo,
+            highlightedText: highlight.highlightedText,
+            note: ""
+        )
+
+        APIService.shared.request(APITarget.createHighlight(payload: payload)) { [weak self] (result: Result<CreateHighlightResponseDTO, Error>) in
+            switch result {
+            case .success(let response):
+                print("✅ [API] 하이라이트 생성 성공: ID=\(response.serverId)")
+                // 서버 ID 저장 (String으로 변환된 값 사용)
+                self?.updateHighlightServerId(localId: highlight.id, serverId: response.serverId)
+            case .failure(let error):
+                print("❌ [API] 하이라이트 생성 실패: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// 하이라이트의 서버 ID 업데이트
+    private func updateHighlightServerId(localId: String, serverId: String) {
+        for (paragraphId, highlights) in savedHighlights {
+            if let index = highlights.firstIndex(where: { $0.id == localId }) {
+                savedHighlights[paragraphId]?[index].serverId = serverId
+                saveHighlightsToStorage()
+                print("💾 [Storage] 하이라이트 서버 ID 저장: \(serverId)")
+                return
+            }
+        }
     }
     
     /// 하이라이트 저장 완료 Toast 표시
     private func showHighlightSavedToast(highlight: TextHighlight) {
         let message = "하이라이트가 저장되었습니다"
-        
+
         // 저장된 하이라이트 목록으로 이동하는 액션
         let viewAction = { [weak self] in
-            // 실제 프로젝트에서는 저장된 하이라이트 화면으로 이동하는 로직 구현
             print("💡 [Toast] 저장된 하이라이트 보기 버튼 클릭됨")
-            // 예: Coordinator를 통해 Save 화면으로 이동
-            // self?.coordinator?.showSavedHighlights()
+            // Underline 화면으로 이동
+            self?.onShowUnderline?()
         }
-        
+
         ToastManager.shared.showSaved(message, viewAction: viewAction)
     }
     
     // 하이라이트 삭제
     func deleteHighlight(_ highlight: TextHighlight) {
         print("🗑️ [ViewModel] 하이라이트 삭제 요청: ID=\(highlight.id), 문단=\(highlight.paragraphId)")
-        
+
         // 해당 문단의 하이라이트 목록에서 제거
         if var paragraphHighlights = savedHighlights[highlight.paragraphId] {
             let beforeCount = paragraphHighlights.count
             paragraphHighlights.removeAll { $0.id == highlight.id }
             savedHighlights[highlight.paragraphId] = paragraphHighlights
             let afterCount = paragraphHighlights.count
-            
+
             print("🗑️ [ViewModel] 삭제 전: \(beforeCount)개, 삭제 후: \(afterCount)개")
-            
+
             // 스토리지에 저장
             saveHighlightsToStorage()
-            
+
+            // 서버 API 연동 - 하이라이트 삭제
+            deleteHighlightOnServer(highlight)
+
             // UI에 즉시 알림 (UI 업데이트 트리거)
-            onHighlightSaved?(highlight) // 같은 콜백 사용 (UI 업데이트 트리거)
-            
+            onHighlightSaved?(highlight)
+
             print("🗑️ [ViewModel] 하이라이트 삭제 완료 및 UI 업데이트 트리거")
         } else {
             print("❌ [ViewModel] 해당 문단의 하이라이트를 찾을 수 없음")
+        }
+    }
+
+    /// 서버에서 하이라이트 삭제 API 호출
+    private func deleteHighlightOnServer(_ highlight: TextHighlight) {
+        // serverId가 있고 Int로 변환 가능할 때만 서버에 삭제 요청
+        guard let serverIdString = highlight.serverId,
+              let serverId = Int(serverIdString) else {
+            print("⚠️ [API] 서버 ID가 없어 삭제 요청 스킵 (로컬에서만 삭제)")
+            return
+        }
+
+        APIService.shared.request(APITarget.deleteHighlight(id: serverId)) { (result: Result<EmptyResponse, Error>) in
+            switch result {
+            case .success:
+                print("✅ [API] 하이라이트 삭제 성공: ID=\(serverId)")
+            case .failure(let error):
+                print("❌ [API] 하이라이트 삭제 실패: \(error.localizedDescription)")
+            }
         }
     }
     
@@ -271,18 +332,23 @@ final class PlayerViewModel: NSObject {
         if let audioURL = docent.audioURL {
             // URL이 원격 URL(HTTP/HTTPS)인지 확인
             let isRemoteURL = audioURL.scheme == "http" || audioURL.scheme == "https"
-            
+
             if isRemoteURL {
                 // 원격 URL인 경우 AVPlayer 사용
                 let playerItem = AVPlayerItem(url: audioURL)
                 avPlayer = AVPlayer(playerItem: playerItem)
-                
-                // 볼륨 확인 및 설정 (0이면 소리가 안 남)
+
+                // 볼륨 설정 (1.0 = 최대)
                 avPlayer?.volume = 1.0
-                
+
+                // 자동 재생 대기 비활성화 (즉시 재생 가능하도록)
+                if #available(iOS 10.0, *) {
+                    avPlayer?.automaticallyWaitsToMinimizeStalling = false
+                }
+
                 isUsingSimulation = false
                 print("✅ 원격 오디오 URL 로딩 성공 (AVPlayer): \(audioURL.absoluteString)")
-                
+
                 // 재생 상태 관찰
                 setupAVPlayerObservers(playerItem: playerItem)
                 return
@@ -290,6 +356,7 @@ final class PlayerViewModel: NSObject {
                 // 로컬 파일 URL인 경우 AVAudioPlayer 사용
                 do {
                     audioPlayer = try AVAudioPlayer(contentsOf: audioURL)
+                    audioPlayer?.volume = 1.0
                     audioPlayer?.prepareToPlay()
                     isUsingSimulation = false
                     print("✅ 로컬 오디오 파일 로딩 성공 (AVAudioPlayer): \(audioURL.path)")
@@ -306,6 +373,7 @@ final class PlayerViewModel: NSObject {
         if let url = Bundle.main.url(forResource: "dummy", withExtension: "mp3") {
             do {
                 audioPlayer = try AVAudioPlayer(contentsOf: url)
+                audioPlayer?.volume = 1.0
                 audioPlayer?.prepareToPlay()
                 isUsingSimulation = false
                 print("✅ 더미 오디오 로딩 성공")
