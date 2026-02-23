@@ -7,3 +7,6 @@
 .env.development
 config.plist
 secrets.plist
+
+# Claude skills
+.claude/skills/
