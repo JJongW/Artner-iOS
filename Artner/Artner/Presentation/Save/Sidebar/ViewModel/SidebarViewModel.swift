@@ -38,9 +38,11 @@ final class SidebarViewModel {
     @Published var lengthValue: String = ""
     @Published var speedValue: String = ""
     @Published var difficultyValue: String = ""
+    /// 가장 최근 로드된 AIDocentSettings (AI 도슨트 설정 화면에 초기값 전달용)
+    private(set) var aiDocentSettings: AIDocentSettings?
     @Published var easyMode: Bool = false
-    @Published var fontSize: Float = 5
-    @Published var lineSpacing: Float = 5
+    @Published var fontSize: Float = ViewerSettingsManager.shared.fontSize
+    @Published var lineSpacing: Float = ViewerSettingsManager.shared.lineSpacing
     
     // MARK: - Private Methods
     
@@ -119,6 +121,8 @@ final class SidebarViewModel {
     
     /// AI 도슨트 설정 데이터 업데이트
     private func updateAIDocentSettings(_ aiSettings: AIDocentSettings) {
+        // 원본 설정 저장 (AI 도슨트 설정 화면 진입 시 초기값 전달용)
+        aiDocentSettings = aiSettings
         // AI 도슨트 이름 업데이트
         aiDocent = aiSettings.personal
         
@@ -127,9 +131,13 @@ final class SidebarViewModel {
         speedValue = aiSettings.speedKorean
         difficultyValue = aiSettings.difficultyKorean
         
-        // 뷰어 설정 값 업데이트
-        fontSize = Float(aiSettings.viewerFontSize)
-        lineSpacing = Float(aiSettings.viewerLineSpacing)
+        // 뷰어 설정 값 업데이트 (Manager와 동기화)
+        let newFontSize = Float(aiSettings.viewerFontSize)
+        let newLineSpacing = Float(aiSettings.viewerLineSpacing)
+        ViewerSettingsManager.shared.fontSize = newFontSize
+        ViewerSettingsManager.shared.lineSpacing = newLineSpacing
+        fontSize = newFontSize
+        lineSpacing = newLineSpacing
         
         #if DEBUG
         print("🔄 AI 도슨트 설정 업데이트 완료")
@@ -140,6 +148,15 @@ final class SidebarViewModel {
         print("   Font Size: \(aiSettings.viewerFontSize)")
         print("   Line Spacing: \(aiSettings.viewerLineSpacing)")
         #endif
+    }
+
+    // MARK: - Public Methods
+
+    /// AI 도슨트 설정 화면에서 저장 완료 시 사이드바 표시값 즉시 업데이트 (한글 표시명으로 전달)
+    func updateSpeakingDisplayValues(length: String, speed: String, difficulty: String) {
+        lengthValue     = length
+        speedValue      = speed
+        difficultyValue = difficulty
     }
 }
 

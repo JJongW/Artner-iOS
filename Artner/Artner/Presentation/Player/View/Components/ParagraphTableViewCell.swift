@@ -258,20 +258,21 @@ final class ParagraphTableViewCell: UITableViewCell {
             self?.onHighlightDeleted?(highlight)
         }
         
-        // 현재 스타일 설정
+        // 현재 스타일 설정 (ViewerSettingsManager에서 동적 폰트 크기 가져오기)
         let textColor: UIColor
         let font: UIFont
         let alpha: CGFloat
-        
+        let dynamicFontSize = ViewerSettingsManager.shared.actualFontSize
+
         if isHighlighted {
             // 현재 재생 중인 문단 - 밝고 크게
             textColor = AppColor.textPrimary
-            font = UIFont.systemFont(ofSize: 18, weight: .semibold)
+            font = UIFont.systemFont(ofSize: dynamicFontSize, weight: .semibold)
             alpha = 1.0
         } else {
             // 다른 문단들 - 약간 작고 흐리게
             textColor = AppColor.textPrimary
-            font = UIFont.systemFont(ofSize: 18, weight: .regular)
+            font = UIFont.systemFont(ofSize: dynamicFontSize, weight: .regular)
             alpha = 0.35
         }
         
@@ -280,13 +281,8 @@ final class ParagraphTableViewCell: UITableViewCell {
         paragraphTextView.font = font
         paragraphTextView.alpha = alpha
         
-        // 하이라이트가 있다면 적용, 없다면 기본 텍스트 설정
-        if highlights.isEmpty {
-            paragraphTextView.text = paragraph.fullText
-        } else {
-            // 하이라이트 적용 시 현재 스타일 정보 전달
-            applyHighlights(textColor: textColor, font: font)
-        }
+        // 항상 applyHighlights를 사용하여 줄 간격이 적용되도록 함
+        applyHighlights(textColor: textColor, font: font)
         
         // iOS 15 이하에서 메뉴 아이템 설정 - 전역에서 이미 설정됨
         
@@ -325,20 +321,25 @@ final class ParagraphTableViewCell: UITableViewCell {
         
         // 현재 스타일 또는 기본 스타일 사용
         let currentTextColor = textColor ?? paragraphTextView.textColor ?? AppColor.textPrimary
-        let currentFont = font ?? paragraphTextView.font ?? UIFont.systemFont(ofSize: 18)
-        
+        let currentFont = font ?? paragraphTextView.font ?? UIFont.systemFont(ofSize: ViewerSettingsManager.shared.actualFontSize)
+
+        // 줄 간격 설정
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = ViewerSettingsManager.shared.actualLineSpacing
+
         // 기본 텍스트 스타일 적용
         let fullRange = NSRange(location: 0, length: attributedText.length)
-        
+
         // 안전한 속성 적용
         do {
             attributedText.addAttribute(.font, value: currentFont, range: fullRange)
             attributedText.addAttribute(.foregroundColor, value: currentTextColor, range: fullRange)
-            
+            attributedText.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
+
             // 상호작용 관련 속성 명시적 제거
             attributedText.removeAttribute(.link, range: fullRange)
             attributedText.removeAttribute(.attachment, range: fullRange)
-            
+
         } catch {
         }
         

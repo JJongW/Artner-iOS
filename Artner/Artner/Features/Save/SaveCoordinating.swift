@@ -36,4 +36,8 @@ protocol SidebarCoordinating: Coordinator {
 
     /// 로그아웃 처리
     func logout()
+
+    /// AI 도슨트 설정 화면으로 이동
+    /// - Parameter currentPersonal: 현재 선택된 AI personal 값 (anna / adam / jia)
+    func showAIDocentSettings(currentPersonal: String)
 }

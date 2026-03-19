@@ -31,6 +31,8 @@ final class AppCoordinator:
 
     private var sideMenu: SideMenuContainerView?
     private var cancellables = Set<AnyCancellable>()
+    /// 사이드바 ViewModel 참조 — AI 도슨트 설정 화면에 현재 값 전달 및 저장 후 업데이트용
+    private var currentSidebarViewModel: SidebarViewModel?
 
     init(window: UIWindow) {
         self.window = window
@@ -105,6 +107,7 @@ final class AppCoordinator:
 
     func showSidebar(from viewController: UIViewController) {
         let sidebarViewModel = container.makeSidebarViewModel()
+        currentSidebarViewModel = sidebarViewModel
         let sidebarVC = SidebarViewController(viewModel: sidebarViewModel, coordinator: self)
         sidebarVC.delegate = self
         let sideMenu = SideMenuContainerView(menuViewController: sidebarVC, parentViewController: viewController)
@@ -306,6 +309,26 @@ final class AppCoordinator:
                 self?.showRecordInput()
             }
             self.navigationController.pushViewController(recordVC, animated: true)
+        })
+    }
+
+    func showAIDocentSettings(currentPersonal: String) {
+        // 사이드바 VM에서 현재 말하기 설정 값을 가져옴 (없으면 기본값)
+        let vm = container.makeAIDocentSettingsViewModel(
+            currentPersonal: currentPersonal,
+            currentLength:     currentSidebarViewModel?.aiDocentSettings?.length     ?? "medium",
+            currentSpeed:      currentSidebarViewModel?.aiDocentSettings?.speed      ?? "medium",
+            currentDifficulty: currentSidebarViewModel?.aiDocentSettings?.difficulty ?? "beginner"
+        )
+        let settingsVC = AIDocentSettingsViewController(viewModel: vm)
+        settingsVC.onSave = { [weak self] length, speed, difficulty in
+            self?.currentSidebarViewModel?.updateSpeakingDisplayValues(
+                length: length, speed: speed, difficulty: difficulty
+            )
+        }
+
+        sideMenu?.dismissMenu(completion: { [weak self] in
+            self?.navigationController.pushViewController(settingsVC, animated: true)
         })
     }
 

@@ -1,0 +1,504 @@
+{
+  "version": "1.0.0",
+  "project": "Artner-iOS",
+  "description": "Artner iOS 프로젝트 스킬 시스템 - Clean Architecture 코드 생성 + Workflow 자동화",
+  "categories": [
+    {
+      "id": "ios.uikit",
+      "name": "UIKit 컴포넌트",
+      "description": "ViewController, View, Cell 등 UI 컴포넌트 생성"
+    },
+    {
+      "id": "ios.navigation",
+      "name": "네비게이션",
+      "description": "Coordinator 패턴 기반 화면 전환"
+    },
+    {
+      "id": "ios.networking",
+      "name": "네트워킹",
+      "description": "Moya 기반 API 엔드포인트, DTO, 파이프라인"
+    },
+    {
+      "id": "ios.architecture",
+      "name": "아키텍처",
+      "description": "Clean Architecture 레이어 스캐폴딩"
+    },
+    {
+      "id": "ios.persistence",
+      "name": "영속성",
+      "description": "Keychain, UserDefaults 저장소"
+    },
+    {
+      "id": "ios.combine",
+      "name": "Combine",
+      "description": "Reactive 바인딩 패턴"
+    },
+    {
+      "id": "ios.testing",
+      "name": "테스팅",
+      "description": "XCTest 기반 유닛 테스트"
+    },
+    {
+      "id": "ios.bugfix",
+      "name": "버그 수정",
+      "description": "버그 진단 및 수정"
+    },
+    {
+      "id": "ios.refactor",
+      "name": "리팩토링",
+      "description": "코드 구조 개선"
+    },
+    {
+      "id": "ios.performance",
+      "name": "성능 최적화",
+      "description": "메모리, 렌더링 성능 개선"
+    },
+    {
+      "id": "docs",
+      "name": "문서화",
+      "description": "API/아키텍처 문서 생성"
+    },
+    {
+      "id": "ci_cd",
+      "name": "CI/CD",
+      "description": "GitHub Actions 워크플로우"
+    },
+    {
+      "id": "workflow",
+      "name": "워크플로우",
+      "description": "작업 계획 → 실행 → 검증 → 리포트 전체 파이프라인 자동화"
+    },
+    {
+      "id": "agent",
+      "name": "에이전트 팀",
+      "description": "전문화된 에이전트(Planning/Quality/Test)가 협업하여 품질 리뷰, 테스트 설계, 통합 보고서를 생성하는 다중 에이전트 워크플로우"
+    }
+  ],
+  "skills": [
+    {
+      "name": "ios.uikit.create_screen",
+      "category": "ios.uikit",
+      "description": "BaseViewController + BaseView + ViewModel 세트 생성",
+      "prompt_file": "prompts/ios.uikit.create_screen.md",
+      "parameters": {
+        "featureName": { "type": "string", "required": true, "description": "기능 이름 (PascalCase)" },
+        "components": { "type": "array", "required": false, "description": "UI 컴포넌트 목록 (UITableView, UICollectionView 등)" },
+        "hasViewModel": { "type": "boolean", "required": false, "default": true, "description": "ViewModel 생성 여부" }
+      },
+      "files_touched": [
+        "Artner/Artner/Presentation/{Feature}/ViewController/{Feature}ViewController.swift",
+        "Artner/Artner/Presentation/{Feature}/View/{Feature}View.swift",
+        "Artner/Artner/Presentation/{Feature}/ViewModel/{Feature}ViewModel.swift"
+      ]
+    },
+    {
+      "name": "ios.uikit.create_cell",
+      "category": "ios.uikit",
+      "description": "UITableViewCell 또는 UICollectionViewCell 생성",
+      "prompt_file": "prompts/ios.uikit.create_cell.md",
+      "parameters": {
+        "cellName": { "type": "string", "required": true, "description": "셀 이름 (PascalCase)" },
+        "cellType": { "type": "string", "required": true, "enum": ["UITableViewCell", "UICollectionViewCell"], "description": "셀 타입" },
+        "components": { "type": "array", "required": false, "description": "셀 내부 UI 컴포넌트" }
+      },
+      "files_touched": [
+        "Artner/Artner/Presentation/{Feature}/View/{CellName}{CellType}.swift"
+      ]
+    },
+    {
+      "name": "ios.navigation.add_route",
+      "category": "ios.navigation",
+      "description": "AppCoordinator에 새 네비게이션 메서드 추가",
+      "prompt_file": "prompts/ios.navigation.add_route.md",
+      "parameters": {
+        "fromFeature": { "type": "string", "required": true, "description": "출발 Feature" },
+        "toFeature": { "type": "string", "required": true, "description": "도착 Feature" },
+        "navigationType": { "type": "string", "required": false, "enum": ["push", "present", "modal"], "default": "push", "description": "전환 방식" }
+      },
+      "files_touched": [
+        "Artner/Artner/Cooldinator/AppCoordinator.swift"
+      ]
+    },
+    {
+      "name": "ios.navigation.create_protocol",
+      "category": "ios.navigation",
+      "description": "Feature Coordinating 프로토콜 생성",
+      "prompt_file": "prompts/ios.navigation.create_protocol.md",
+      "parameters": {
+        "featureName": { "type": "string", "required": true, "description": "기능 이름" },
+        "methods": { "type": "array", "required": true, "description": "프로토콜 메서드 목록" }
+      },
+      "files_touched": [
+        "Artner/Artner/Features/{Feature}/{Feature}Coordinating.swift",
+        "Artner/Artner/Cooldinator/AppCoordinator.swift"
+      ]
+    },
+    {
+      "name": "ios.networking.add_endpoint",
+      "category": "ios.networking",
+      "description": "APITarget enum에 새 API case 추가",
+      "prompt_file": "prompts/ios.networking.add_endpoint.md",
+      "parameters": {
+        "endpoint": { "type": "string", "required": true, "description": "API 경로 (예: /docents/search)" },
+        "method": { "type": "string", "required": true, "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"], "description": "HTTP 메서드" },
+        "parameters": { "type": "object", "required": false, "description": "요청 파라미터 {name: type}" }
+      },
+      "files_touched": [
+        "Artner/Artner/Data/Network/APITarget.swift"
+      ]
+    },
+    {
+      "name": "ios.networking.create_dto",
+      "category": "ios.networking",
+      "description": "Codable DTO 구조체 + toDomainEntity() 변환 메서드 생성",
+      "prompt_file": "prompts/ios.networking.create_dto.md",
+      "parameters": {
+        "dtoName": { "type": "string", "required": true, "description": "DTO 이름 (PascalCase)" },
+        "fields": { "type": "array", "required": true, "description": "필드 목록 [{name, type, serverKey?}]" },
+        "entityName": { "type": "string", "required": false, "description": "변환 대상 Domain Entity 이름" }
+      },
+      "files_touched": [
+        "Artner/Artner/Data/Network/DTOs/{DtoName}DTO.swift",
+        "Artner/Artner/Domain/Entity/{EntityName}.swift"
+      ]
+    },
+    {
+      "name": "ios.networking.add_full_pipeline",
+      "category": "ios.networking",
+      "description": "API 전체 파이프라인 생성 (APITarget → DTO → Repository → UseCase → DIContainer)",
+      "prompt_file": "prompts/ios.networking.add_full_pipeline.md",
+      "parameters": {
+        "featureName": { "type": "string", "required": true, "description": "기능 이름" },
+        "endpoint": { "type": "string", "required": true, "description": "API 경로" },
+        "responseType": { "type": "string", "required": true, "description": "응답 DTO 타입" }
+      },
+      "files_touched": [
+        "Artner/Artner/Data/Network/APITarget.swift",
+        "Artner/Artner/Data/Network/DTOs/{ResponseType}.swift",
+        "Artner/Artner/Domain/Repository/{Feature}Repository.swift",
+        "Artner/Artner/Data/RepositoryImpl/{Feature}RepositoryImpl.swift",
+        "Artner/Artner/Domain/UseCase/{Action}UseCase.swift",
+        "Artner/Artner/Data/UseCaseImpl/{Action}UseCaseImpl.swift",
+        "Artner/Artner/Data/Network/DIContainer.swift"
+      ]
+    },
+    {
+      "name": "ios.architecture.create_feature",
+      "category": "ios.architecture",
+      "description": "새 Feature 전체 스캐폴딩 (모든 레이어)",
+      "prompt_file": "prompts/ios.architecture.create_feature.md",
+      "parameters": {
+        "featureName": { "type": "string", "required": true, "description": "기능 이름" },
+        "hasApi": { "type": "boolean", "required": false, "default": true, "description": "API 연동 포함 여부" },
+        "components": { "type": "array", "required": false, "description": "UI 컴포넌트 목록" }
+      },
+      "files_touched": [
+        "Artner/Artner/Presentation/{Feature}/",
+        "Artner/Artner/Domain/Entity/",
+        "Artner/Artner/Domain/Repository/",
+        "Artner/Artner/Domain/UseCase/",
+        "Artner/Artner/Data/RepositoryImpl/",
+        "Artner/Artner/Data/UseCaseImpl/",
+        "Artner/Artner/Data/Network/DIContainer.swift",
+        "Artner/Artner/Cooldinator/AppCoordinator.swift"
+      ]
+    },
+    {
+      "name": "ios.architecture.create_usecase",
+      "category": "ios.architecture",
+      "description": "UseCase 프로토콜 + Impl 쌍 생성",
+      "prompt_file": "prompts/ios.architecture.create_usecase.md",
+      "parameters": {
+        "action": { "type": "string", "required": true, "description": "유즈케이스 액션 (예: FetchSearchResults)" },
+        "entityName": { "type": "string", "required": true, "description": "관련 Entity 이름" },
+        "repositoryName": { "type": "string", "required": true, "description": "의존 Repository 이름" }
+      },
+      "files_touched": [
+        "Artner/Artner/Domain/UseCase/{Action}UseCase.swift",
+        "Artner/Artner/Data/UseCaseImpl/{Action}UseCaseImpl.swift",
+        "Artner/Artner/Data/Network/DIContainer.swift"
+      ]
+    },
+    {
+      "name": "ios.architecture.create_repository",
+      "category": "ios.architecture",
+      "description": "Repository 프로토콜 + Impl 쌍 생성",
+      "prompt_file": "prompts/ios.architecture.create_repository.md",
+      "parameters": {
+        "entityName": { "type": "string", "required": true, "description": "관련 Entity 이름" },
+        "methods": { "type": "array", "required": true, "description": "Repository 메서드 목록" }
+      },
+      "files_touched": [
+        "Artner/Artner/Domain/Repository/{Entity}Repository.swift",
+        "Artner/Artner/Data/RepositoryImpl/{Entity}RepositoryImpl.swift",
+        "Artner/Artner/Data/Network/DIContainer.swift"
+      ]
+    },
+    {
+      "name": "ios.persistence.add_storage",
+      "category": "ios.persistence",
+      "description": "Keychain 또는 UserDefaults 저장 패턴 추가",
+      "prompt_file": "prompts/ios.persistence.add_storage.md",
+      "parameters": {
+        "storageType": { "type": "string", "required": true, "enum": ["Keychain", "UserDefaults"], "description": "저장소 타입" },
+        "dataKey": { "type": "string", "required": true, "description": "저장 키 이름" },
+        "valueType": { "type": "string", "required": true, "description": "저장 값 타입 (String, [String], Data 등)" }
+      },
+      "files_touched": [
+        "Artner/Artner/Data/Storage/"
+      ]
+    },
+    {
+      "name": "ios.combine.create_binding",
+      "category": "ios.combine",
+      "description": "ViewModel ↔ ViewController Combine 바인딩 패턴 생성",
+      "prompt_file": "prompts/ios.combine.create_binding.md",
+      "parameters": {
+        "publishedProperties": { "type": "array", "required": true, "description": "@Published 프로퍼티 목록" },
+        "actions": { "type": "array", "required": false, "description": "VC→VM 액션 메서드 목록" }
+      },
+      "files_touched": [
+        "Artner/Artner/Presentation/{Feature}/ViewModel/{Feature}ViewModel.swift",
+        "Artner/Artner/Presentation/{Feature}/ViewController/{Feature}ViewController.swift"
+      ]
+    },
+    {
+      "name": "ios.testing.setup_infrastructure",
+      "category": "ios.testing",
+      "description": "XCTest 타겟 + Mock 인프라 구축",
+      "prompt_file": "prompts/ios.testing.setup_infrastructure.md",
+      "parameters": {
+        "testTarget": { "type": "string", "required": false, "default": "ArtnerTests", "description": "테스트 타겟 이름" },
+        "mockingStrategy": { "type": "string", "required": false, "enum": ["protocol_mock", "class_mock"], "default": "protocol_mock", "description": "Mock 전략" }
+      },
+      "files_touched": [
+        "ArtnerTests/"
+      ]
+    },
+    {
+      "name": "ios.testing.unit_test_viewmodel",
+      "category": "ios.testing",
+      "description": "ViewModel 유닛 테스트 작성",
+      "prompt_file": "prompts/ios.testing.unit_test_viewmodel.md",
+      "parameters": {
+        "targetClass": { "type": "string", "required": true, "description": "테스트 대상 ViewModel 클래스" },
+        "testCases": { "type": "array", "required": false, "description": "테스트 케이스 목록" }
+      },
+      "files_touched": [
+        "ArtnerTests/{TargetClass}Tests.swift"
+      ]
+    },
+    {
+      "name": "ios.testing.unit_test_usecase",
+      "category": "ios.testing",
+      "description": "UseCase 유닛 테스트 작성",
+      "prompt_file": "prompts/ios.testing.unit_test_usecase.md",
+      "parameters": {
+        "targetClass": { "type": "string", "required": true, "description": "테스트 대상 UseCase 클래스" },
+        "mockRepository": { "type": "string", "required": true, "description": "Mock Repository 이름" }
+      },
+      "files_touched": [
+        "ArtnerTests/{TargetClass}Tests.swift"
+      ]
+    },
+    {
+      "name": "ios.bugfix.diagnose_fix",
+      "category": "ios.bugfix",
+      "description": "버그 진단 및 수정 가이드",
+      "prompt_file": "prompts/ios.bugfix.diagnose_fix.md",
+      "parameters": {
+        "symptom": { "type": "string", "required": true, "description": "증상 설명" },
+        "affectedArea": { "type": "string", "required": false, "description": "영향 받는 영역" }
+      },
+      "files_touched": []
+    },
+    {
+      "name": "ios.refactor.extract_pattern",
+      "category": "ios.refactor",
+      "description": "코드 리팩토링 패턴 추출 및 적용",
+      "prompt_file": "prompts/ios.refactor.extract_pattern.md",
+      "parameters": {
+        "targetFiles": { "type": "array", "required": true, "description": "리팩토링 대상 파일 목록" },
+        "refactorType": { "type": "string", "required": true, "description": "리팩토링 유형 (extract_method, callback_to_combine, protocol_extraction 등)" }
+      },
+      "files_touched": []
+    },
+    {
+      "name": "ios.performance.diagnose_memory",
+      "category": "ios.performance",
+      "description": "메모리 누수 진단 및 수정 가이드",
+      "prompt_file": "prompts/ios.performance.diagnose_memory.md",
+      "parameters": {
+        "targetArea": { "type": "string", "required": true, "description": "진단 대상 영역" },
+        "symptom": { "type": "string", "required": false, "description": "증상 (retain_cycle, high_memory 등)" }
+      },
+      "files_touched": []
+    },
+    {
+      "name": "ios.performance.optimize_rendering",
+      "category": "ios.performance",
+      "description": "UI 렌더링/스크롤 성능 최적화",
+      "prompt_file": "prompts/ios.performance.optimize_rendering.md",
+      "parameters": {
+        "targetView": { "type": "string", "required": true, "description": "최적화 대상 뷰" },
+        "issue": { "type": "string", "required": false, "description": "문제 유형 (scroll_frame_drop, layout_thrashing 등)" }
+      },
+      "files_touched": []
+    },
+    {
+      "name": "docs.generate_api_docs",
+      "category": "docs",
+      "description": "API/아키텍처 문서 생성",
+      "prompt_file": "prompts/docs.generate_api_docs.md",
+      "parameters": {
+        "scope": { "type": "string", "required": true, "enum": ["api", "architecture", "feature", "full"], "description": "문서 범위" },
+        "format": { "type": "string", "required": false, "default": "markdown", "description": "출력 형식" }
+      },
+      "files_touched": []
+    },
+    {
+      "name": "ci_cd.setup_github_actions",
+      "category": "ci_cd",
+      "description": "GitHub Actions iOS 빌드/테스트 워크플로우 설정",
+      "prompt_file": "prompts/ci_cd.setup_github_actions.md",
+      "parameters": {
+        "triggers": { "type": "array", "required": false, "default": ["push", "pull_request"], "description": "워크플로우 트리거" },
+        "includeTests": { "type": "boolean", "required": false, "default": true, "description": "테스트 단계 포함 여부" }
+      },
+      "files_touched": [
+        ".github/workflows/"
+      ]
+    },
+    {
+      "name": "workflow.plan",
+      "category": "workflow",
+      "description": "작업 기반 상세 Plan 문서 (AI_PLAN.md) 생성",
+      "prompt_file": "prompts/workflow.plan.md",
+      "template_file": "templates/AI_PLAN.md",
+      "parameters": {
+        "task_description": { "type": "string", "required": true, "description": "사용자가 요청한 작업 설명" }
+      },
+      "files_touched": ["AI_PLAN.md"]
+    },
+    {
+      "name": "workflow.export_pdf",
+      "category": "workflow",
+      "description": "마크다운 문서를 PDF로 내보내기",
+      "prompt_file": "prompts/workflow.export_pdf.md",
+      "parameters": {
+        "source_md": { "type": "string", "required": true, "description": "변환할 마크다운 파일 경로" },
+        "output_pdf_name": { "type": "string", "required": true, "description": "출력 PDF 파일명" }
+      },
+      "files_touched": []
+    },
+    {
+      "name": "workflow.context_notes",
+      "category": "workflow",
+      "description": "Plan 문서를 기반으로 Context Notes (AI_CONTEXT.md) 생성",
+      "prompt_file": "prompts/workflow.context_notes.md",
+      "template_file": "templates/AI_CONTEXT.md",
+      "parameters": {
+        "input_source": { "type": "string", "required": true, "description": "입력 소스 (PDF 또는 MD 파일 경로)" }
+      },
+      "files_touched": ["AI_CONTEXT.md"]
+    },
+    {
+      "name": "workflow.checklist_generate",
+      "category": "workflow",
+      "description": "작업별 체크리스트 (AI_CHECKLIST_WORK.md) 생성",
+      "prompt_file": "prompts/workflow.checklist_generate.md",
+      "template_file": "templates/AI_CHECKLIST_WORK.md",
+      "parameters": {
+        "task_plan_md": { "type": "string", "required": true, "description": "AI_PLAN.md 경로" },
+        "context_md": { "type": "string", "required": true, "description": "AI_CONTEXT.md 경로" }
+      },
+      "files_touched": ["AI_CHECKLIST_WORK.md"]
+    },
+    {
+      "name": "workflow.self_check",
+      "category": "workflow",
+      "description": "체크리스트 기반 Self-Check 수행 (사전/사후)",
+      "prompt_file": "prompts/workflow.self_check.md",
+      "parameters": {
+        "checklist_md": { "type": "string", "required": true, "description": "AI_CHECKLIST_WORK.md 경로" },
+        "code_diff": { "type": "string", "required": false, "description": "코드 변경 내용 (사후 검증 시)" }
+      },
+      "files_touched": ["AI_CHECKLIST_WORK.md"]
+    },
+    {
+      "name": "workflow.execute_task",
+      "category": "workflow",
+      "description": "Plan + Context 기반 코드 생성/수정 실행",
+      "prompt_file": "prompts/workflow.execute_task.md",
+      "parameters": {
+        "task_plan_md": { "type": "string", "required": true, "description": "AI_PLAN.md 경로" },
+        "context_md": { "type": "string", "required": true, "description": "AI_CONTEXT.md 경로" }
+      },
+      "files_touched": []
+    },
+    {
+      "name": "workflow.report",
+      "category": "workflow",
+      "description": "최종 리포트 (AI_REPORT.md) 생성",
+      "prompt_file": "prompts/workflow.report.md",
+      "template_file": "templates/AI_REPORT.md",
+      "parameters": {
+        "task_plan_md": { "type": "string", "required": true, "description": "AI_PLAN.md 경로" },
+        "context_md": { "type": "string", "required": true, "description": "AI_CONTEXT.md 경로" },
+        "checklist_md": { "type": "string", "required": true, "description": "AI_CHECKLIST_WORK.md 경로" },
+        "code_diff": { "type": "string", "required": true, "description": "코드 변경 내용" }
+      },
+      "files_touched": ["AI_REPORT.md"]
+    },
+    {
+      "name": "workflow.orchestrate",
+      "category": "workflow",
+      "description": "전체 워크플로우 오케스트레이션 (Plan → Context → Checklist → Self-Check → Execute → Self-Check → Report)",
+      "prompt_file": "prompts/workflow.orchestrate.md",
+      "parameters": {
+        "task_description": { "type": "string", "required": true, "description": "사용자가 요청한 작업 설명" }
+      },
+      "files_touched": ["AI_PLAN.md", "AI_CONTEXT.md", "AI_CHECKLIST_WORK.md", "AI_REPORT.md"]
+    },
+    {
+      "name": "agent.quality_review",
+      "category": "agent",
+      "description": "Quality Agent — Plan + Context + Code Diff 기반 품질 리뷰 (아키텍처/설계/코드품질/컨벤션)",
+      "prompt_file": "prompts/agent.quality_review.md",
+      "template_file": "templates/AI_QUALITY_REPORT.md",
+      "parameters": {
+        "plan_md": { "type": "string", "required": true, "description": "AI_PLAN.md 경로" },
+        "context_md": { "type": "string", "required": true, "description": "AI_CONTEXT.md 경로" },
+        "code_diff": { "type": "string", "required": false, "description": "코드 변경 내용 (git diff 결과)" },
+        "checklist_md": { "type": "string", "required": false, "description": "AI_CHECKLIST_WORK.md 경로" }
+      },
+      "files_touched": ["AI_QUALITY_REPORT.md"]
+    },
+    {
+      "name": "agent.test_design",
+      "category": "agent",
+      "description": "Test Agent — 테스트 전략/시나리오 설계 및 배포 가능 여부 판정",
+      "prompt_file": "prompts/agent.test_design.md",
+      "template_file": "templates/AI_TEST_REPORT.md",
+      "parameters": {
+        "plan_md": { "type": "string", "required": true, "description": "AI_PLAN.md 경로" },
+        "context_md": { "type": "string", "required": true, "description": "AI_CONTEXT.md 경로" },
+        "quality_report_md": { "type": "string", "required": false, "description": "AI_QUALITY_REPORT.md 경로" },
+        "code_diff": { "type": "string", "required": false, "description": "코드 변경 내용 (git diff 결과)" },
+        "write_test_code": { "type": "boolean", "required": false, "default": false, "description": "테스트 코드 실제 작성 여부" }
+      },
+      "files_touched": ["AI_TEST_REPORT.md"]
+    },
+    {
+      "name": "agent.team_orchestrate",
+      "category": "agent",
+      "description": "Agent Team 오케스트레이터 — Planning/Quality/Test 에이전트 4단계 Phase 파이프라인 실행 및 통합 보고서 생성",
+      "prompt_file": "prompts/agent.team_orchestrate.md",
+      "template_file": "templates/AI_REPORT_INTEGRATED.md",
+      "parameters": {
+        "task_description": { "type": "string", "required": true, "description": "사용자가 요청한 작업 설명" }
+      },
+      "files_touched": ["AI_PLAN.md", "AI_CONTEXT.md", "AI_CHECKLIST_WORK.md", "AI_QUALITY_REPORT.md", "AI_TEST_REPORT.md", "AI_REPORT_INTEGRATED.md"]
+    }
+  ]
+}

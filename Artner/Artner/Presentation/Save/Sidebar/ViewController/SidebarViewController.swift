@@ -58,6 +58,14 @@ final class SidebarViewController: UIViewController {
         
         sidebarView.closeButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
         sidebarView.easyModeSwitch.addTarget(self, action: #selector(didToggleEasyMode), for: .valueChanged)
+
+        // AI 도슨트 컨테이너 탭 연결
+        sidebarView.onAIDocentContainerTapped = { [weak self] in
+            guard let self = self else { return }
+            // 현재 로드된 AI personal 값을 coordinator에 전달 (없으면 기본값 "anna")
+            let personal = self.viewModel.aiDocent.isEmpty ? "anna" : self.viewModel.aiDocent
+            self.coordinator?.showAIDocentSettings(currentPersonal: personal)
+        }
     }
 
     private func setupStatButtons() {
@@ -309,10 +317,14 @@ final class SidebarViewController: UIViewController {
         }
     }
     @objc private func fontSizeChanged() {
-        viewModel.fontSize = sidebarView.fontSizeSlider.value
+        let value = sidebarView.fontSizeSlider.value
+        viewModel.fontSize = value
+        ViewerSettingsManager.shared.fontSize = value
     }
     @objc private func lineSpacingChanged() {
-        viewModel.lineSpacing = sidebarView.lineSpacingSlider.value
+        let value = sidebarView.lineSpacingSlider.value
+        viewModel.lineSpacing = value
+        ViewerSettingsManager.shared.lineSpacing = value
     }
     @objc private func didToggleEasyMode() {
         viewModel.easyMode = sidebarView.easyModeSwitch.isOn

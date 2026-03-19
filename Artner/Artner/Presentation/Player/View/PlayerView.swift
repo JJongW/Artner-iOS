@@ -6,6 +6,7 @@
 //
 import UIKit
 import SnapKit
+import Combine
 
 /// 플레이어 메인 뷰 - 전체 플레이어 UI를 관리
 final class PlayerView: BaseView {
@@ -64,6 +65,9 @@ final class PlayerView: BaseView {
         }
     }
     
+    // 뷰어 설정 구독
+    private var settingsCancellables = Set<AnyCancellable>()
+
     // 플레이어 상태
     private var isPlaying = false {
         didSet {
@@ -86,7 +90,8 @@ final class PlayerView: BaseView {
         setupTableView()
         setupControlsArea()
         setupGradientViews()
-        
+        bindViewerSettings()
+
         // 초기 로딩 상태 설정
         showLoadingState()
     }
@@ -206,6 +211,19 @@ final class PlayerView: BaseView {
         fadeoutGradientLayer.endPoint = CGPoint(x: 0.5, y: 1.0)    // 아래로
         fadeoutGradientView.layer.addSublayer(fadeoutGradientLayer)
         fadeoutGradientView.alpha = 0.0 // 초기에는 숨김
+    }
+
+    /// 뷰어 설정(글자 크기/줄 간격) 변경 구독 → 테이블 새로고침
+    private func bindViewerSettings() {
+        let manager = ViewerSettingsManager.shared
+        Publishers.CombineLatest(manager.$fontSize, manager.$lineSpacing)
+            .dropFirst() // 초기 구독 시 불필요한 리로드 방지
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _, _ in
+                guard let self = self, !self.isLoading else { return }
+                self.lyricsTableView.reloadData()
+            }
+            .store(in: &settingsCancellables)
     }
 
     override func setupLayout() {

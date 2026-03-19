@@ -33,6 +33,9 @@ final class SidebarView: UIView {
     let aiNameLabel = UILabel()
     let aiArrow = UIImageView(image: UIImage(named: "ic_arrow"))
     let aiDocentSeparator = UIView()
+
+    /// AI 도슨트 설정 컨테이너 탭 콜백
+    var onAIDocentContainerTapped: (() -> Void)?
     
     // AI 설정 세부 항목들
     let aiSettingsStack = UIStackView() // 길이, 속도, 난이도 전체 스택
@@ -75,7 +78,7 @@ final class SidebarView: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     private func setupUI() {
-        backgroundColor = UIColor.black.withAlphaComponent(0.75)
+        backgroundColor = UIColor.black
         // 닫기 버튼
         closeButton.setImage(UIImage(named: "ic_close"), for: .normal)
         closeButton.tintColor = .white
@@ -101,6 +104,9 @@ final class SidebarView: UIView {
         aiDocentTitleLabel.textColor = .white
         aiDocentContainer.backgroundColor = UIColor.white.withAlphaComponent(0.1)
         aiDocentContainer.layer.cornerRadius = 16
+        let aiDocentTapGesture = UITapGestureRecognizer(target: self, action: #selector(aiDocentContainerTapped))
+        aiDocentContainer.addGestureRecognizer(aiDocentTapGesture)
+        aiDocentContainer.isUserInteractionEnabled = true
         aiProfileImageView.layer.cornerRadius = 18
         aiProfileImageView.clipsToBounds = true
         aiProfileImageView.backgroundColor = .gray
@@ -651,10 +657,14 @@ final class SidebarView: UIView {
         // 두 슬라이더를 5로 초기화
         fontSizeSlider.setValue(5.0, animated: true)
         lineSpacingSlider.setValue(5.0, animated: true)
-        
+
         // 프로그레스 뷰 업데이트
         updateSliderProgress(fontSizeSlider)
         updateSliderProgress(lineSpacingSlider)
+
+        // VC의 슬라이더 변경 핸들러 트리거 (ViewModel/Manager 동기화)
+        fontSizeSlider.sendActions(for: .valueChanged)
+        lineSpacingSlider.sendActions(for: .valueChanged)
     }
     
     // MARK: - Skeleton UI Methods
@@ -750,6 +760,12 @@ final class SidebarView: UIView {
         }
     }
     
+    // MARK: - Tap Handlers
+
+    @objc private func aiDocentContainerTapped() {
+        onAIDocentContainerTapped?()
+    }
+
     /// 내부 컨텐츠 요소들의 alpha를 설정 (애니메이션용)
     /// - Parameter alpha: 설정할 alpha 값 (0.0 ~ 1.0)
     func setContentAlpha(_ alpha: CGFloat) {

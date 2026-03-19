@@ -91,3 +91,80 @@ Set in Xcode: Product → Scheme → Edit Scheme → Run → Environment Variabl
 
 - Code comments and documentation: Korean (한국어)
 - Variable/function names: English
+
+## Skills System
+
+프로젝트 전용 스킬 시스템이 `.claude/skills/`에 구축되어 있습니다. 슬래시 커맨드(`/커맨드명`)로 실행하거나, 자연어로 요청하면 자동 디스패치됩니다.
+
+### 프로젝트 표준 문서
+
+스킬 실행 시 반드시 `.claude/skills/templates/AI_MANUAL.md`를 먼저 참조합니다.
+
+### 슬래시 커맨드 목록
+
+| 커맨드 | 스킬 ID | 설명 |
+|--------|---------|------|
+| **Workflow** | | |
+| `/plan` | `workflow.orchestrate` | **전체 파이프라인 진입점** — Plan → 구현 → 검증 → 리포트 → Ship 자동 실행 |
+| `/orchestrate` | `workflow.orchestrate` | `/plan`과 동일한 전체 파이프라인 (별칭) |
+| `/ship` | — | 워크플로우 완료 후 git commit & push |
+| `/checklist` | `workflow.checklist_generate` | 체크리스트 단독 생성 |
+| `/self-check` | `workflow.self_check` | 자가 검증 단독 실행 |
+| `/report` | `workflow.report` | 리포트 단독 생성 |
+| **Agent** | | |
+| `/team` | `agent.team_orchestrate` | 에이전트 팀 오케스트레이션 |
+| `/quality-review` | `agent.quality_review` | 품질 리뷰 |
+| `/test-design` | `agent.test_design` | 테스트 설계 |
+| **iOS - UI** | | |
+| `/create-screen` | `ios.uikit.create_screen` | VC + View + VM 세트 생성 |
+| `/create-cell` | `ios.uikit.create_cell` | TableViewCell / CollectionViewCell 생성 |
+| **iOS - Architecture** | | |
+| `/create-feature` | `ios.architecture.create_feature` | 피처 전체 스캐폴딩 |
+| `/create-repository` | `ios.architecture.create_repository` | Repository 프로토콜 + Impl 생성 |
+| `/create-usecase` | `ios.architecture.create_usecase` | UseCase 프로토콜 + Impl 생성 |
+| **iOS - Networking** | | |
+| `/add-endpoint` | `ios.networking.add_endpoint` | APITarget에 새 case 추가 |
+| `/add-pipeline` | `ios.networking.add_full_pipeline` | API 전체 파이프라인 생성 |
+| `/create-dto` | `ios.networking.create_dto` | Codable DTO 구조체 생성 |
+| **iOS - Navigation** | | |
+| `/add-route` | `ios.navigation.add_route` | AppCoordinator 라우트 추가 |
+| `/create-protocol` | `ios.navigation.create_protocol` | Coordinating 프로토콜 생성 |
+| **iOS - 기타** | | |
+| `/add-storage` | `ios.persistence.add_storage` | Keychain/UserDefaults 저장소 추가 |
+| `/create-binding` | `ios.combine.create_binding` | Combine 바인딩 패턴 생성 |
+| **유지보수** | | |
+| `/bugfix` | `ios.bugfix.diagnose_fix` | 버그 진단 및 수정 |
+| `/refactor` | `ios.refactor.extract_pattern` | 리팩토링 패턴 추출 |
+| `/diagnose-memory` | `ios.performance.diagnose_memory` | 메모리 누수 진단 |
+| `/optimize-rendering` | `ios.performance.optimize_rendering` | 렌더링 성능 최적화 |
+| **테스팅** | | |
+| `/setup-tests` | `ios.testing.setup_infrastructure` | XCTest + Mock 인프라 구축 |
+| `/test-viewmodel` | `ios.testing.unit_test_viewmodel` | ViewModel 유닛 테스트 |
+| `/test-usecase` | `ios.testing.unit_test_usecase` | UseCase 유닛 테스트 |
+| **문서/CI** | | |
+| `/generate-docs` | `docs.generate_api_docs` | API/아키텍처 문서 생성 |
+| `/setup-ci` | `ci_cd.setup_github_actions` | GitHub Actions 워크플로우 설정 |
+| **메타** | | |
+| `/skills` | — | 전체 스킬 목록 조회 |
+
+### 자연어 디스패치
+
+슬래시 커맨드 외에 자연어로도 스킬이 자동 선택됩니다. 디스패치 규칙은 `.claude/skills/dispatcher.md`를 참조합니다.
+
+- 키워드 매칭 (한국어/영어 동의어)
+- 동사 기반 의미 분류 (생성/추가/수정/진단/최적화)
+- 복합 의도 → multi-skill chaining
+- 폴백 → 일반 어시스트 (스킬 미적용)
+
+### 스킬 시스템 디렉토리 구조
+
+```
+.claude/
+├── commands/             # 슬래시 커맨드 (30개)
+└── skills/
+    ├── manifest.json     # 스킬 정의 (파라미터, 카테고리)
+    ├── dispatcher.md     # 자연어 → 스킬 매핑 규칙
+    ├── examples.md       # 사용 예시
+    ├── prompts/          # 스킬별 프롬프트 (32개)
+    └── templates/        # 출력 템플릿 (9개)
+```

@@ -133,7 +133,11 @@ final class UnderlineViewController: UIViewController {
     }
     
     @objc private func didTapBack() {
-        coordinator?.popViewController(animated: true) ?? navigationController?.popViewController(animated: true)
+        if let coordinator = coordinator {
+            coordinator.popViewController(animated: true)
+        } else {
+            navigationController?.popViewController(animated: true)
+        }
     }
     @objc private func didTapSearch() {}
     @objc private func didTapAll() { viewModel.selectCategory(nil); viewModel.fetchHighlights(filter: "all") }

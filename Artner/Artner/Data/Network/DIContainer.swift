@@ -202,6 +202,21 @@ extension DIContainer {
     func makeUnderlineViewModel() -> UnderlineViewModel {
         return UnderlineViewModel(getHighlightsUseCase: getHighlightsUseCase)
     }
+
+    /// AIDocentSettingsViewModel 생성
+    func makeAIDocentSettingsViewModel(
+        currentPersonal: String,
+        currentLength: String = "medium",
+        currentSpeed: String = "medium",
+        currentDifficulty: String = "beginner"
+    ) -> AIDocentSettingsViewModel {
+        return AIDocentSettingsViewModel(
+            currentPersonal: currentPersonal,
+            currentLength: currentLength,
+            currentSpeed: currentSpeed,
+            currentDifficulty: currentDifficulty
+        )
+    }
 }
 
 // MARK: - Configuration
