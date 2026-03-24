@@ -92,6 +92,27 @@ Set in Xcode: Product → Scheme → Edit Scheme → Run → Environment Variabl
 - Code comments and documentation: Korean (한국어)
 - Variable/function names: English
 
+## 피처별 CLAUDE.md
+
+각 레이어/피처 디렉토리에 `CLAUDE.md`가 있습니다. 특정 피처 작업 시 해당 파일을 먼저 읽으세요.
+
+| 경로 | 내용 |
+|------|------|
+| `Artner/Artner/Domain/CLAUDE.md` | 도메인 레이어 — Entity, Repository/UseCase 프로토콜 규칙 |
+| `Artner/Artner/Data/CLAUDE.md` | 데이터 레이어 — RepositoryImpl, UseCaseImpl, Storage |
+| `Artner/Artner/Data/Network/CLAUDE.md` | 네트워크 — APITarget, APIService, DTOs, DIContainer |
+| `Artner/Artner/Cooldinator/CLAUDE.md` | 네비게이션 — AppCoordinator 라우트 전체 맵 |
+| `Artner/Artner/Presentation/Common/CLAUDE.md` | 공통 UI — ToastManager, NavigationBar, SkeletonView |
+| `Artner/Artner/Presentation/Launch/CLAUDE.md` | 로그인 화면 — 카카오 로그인 플로우 |
+| `Artner/Artner/Presentation/Home/CLAUDE.md` | 홈 피드 — 도슨트 목록, 좋아요 |
+| `Artner/Artner/Presentation/Entry/CLAUDE.md` | 도슨트 입장점 + AI 채팅 |
+| `Artner/Artner/Presentation/Player/CLAUDE.md` | 오디오 플레이어 + 하이라이트 저장 |
+| `Artner/Artner/Presentation/Camera/CLAUDE.md` | 카메라 스캔 |
+| `Artner/Artner/Presentation/Save/CLAUDE.md` | 저장 폴더 + Sidebar + AI 도슨트 설정 |
+| `Artner/Artner/Presentation/Like/CLAUDE.md` | 좋아요 목록 |
+| `Artner/Artner/Presentation/Record/CLAUDE.md` | 전시 기록 (목록 + 입력) |
+| `Artner/Artner/Presentation/Underline/CLAUDE.md` | 하이라이트(밑줄) 목록 |
+
 ## Skills System
 
 프로젝트 전용 스킬 시스템이 `.claude/skills/`에 구축되어 있습니다. 슬래시 커맨드(`/커맨드명`)로 실행하거나, 자연어로 요청하면 자동 디스패치됩니다.
