@@ -18,10 +18,14 @@ final class SidebarView: UIView {
     let statContainerView = UIView() // 통계 버튼 컨테이너
     let statStackView = UIStackView()
     
-    // 스켈레톤 UI 컴포넌트들
+    // 스켈레톤 UI 컴포넌트들 (overlay 방식)
     let nameSkeletonView = UIView()
-    let statSkeletonViews = [UIView(), UIView(), UIView(), UIView()]
-    let aiSettingsSkeletonViews = [UIView(), UIView(), UIView()]
+    let statSkeletonOverlay = UIView()        // statContainerView 전체를 덮는 overlay
+    let aiSettingsSkeletonOverlay = UIView()  // aiSettingsStack 영역을 덮는 overlay
+    private var shimmerLayers: [CAGradientLayer] = []
+    // layoutSubviews에서 shimmer를 자동 추가하기 위한 상태 추적
+    private var isStatSkeletonVisible = false
+    private var isAISkeletonVisible = false
     // 최근 도슨트
     let recentDocentButton = UIButton(type: .system)
     let recentDocentArrow = UIImageView(image: UIImage(named: "ic_arrow"))
@@ -353,14 +357,10 @@ final class SidebarView: UIView {
         contentView.addSubview(statContainerView)
         statContainerView.addSubview(statStackView)
         
-        // 스켈레톤 UI 컴포넌트들 추가
+        // 스켈레톤 UI 컴포넌트들 추가 (overlay 방식)
         contentView.addSubview(nameSkeletonView)
-        for skeletonView in statSkeletonViews {
-            statContainerView.addSubview(skeletonView)
-        }
-        for skeletonView in aiSettingsSkeletonViews {
-            aiSettingsStack.addSubview(skeletonView)
-        }
+        statContainerView.addSubview(statSkeletonOverlay)
+        // aiSettingsSkeletonOverlay는 aiDocentContainer에 addSubview 후 제약 설정됨
 
         // 최근 도슨트
         contentView.addSubview(recentDocentButton)
@@ -375,6 +375,7 @@ final class SidebarView: UIView {
         aiDocentContainer.addSubview(aiArrow)
         aiDocentContainer.addSubview(aiDocentSeparator)
         aiDocentContainer.addSubview(aiSettingsStack)
+        aiDocentContainer.addSubview(aiSettingsSkeletonOverlay)
         
         // AI 설정 스택에 컨테이너들 추가
         aiSettingsStack.addArrangedSubview(lengthContainer)
@@ -445,15 +446,10 @@ final class SidebarView: UIView {
         statStackView.snp.makeConstraints {
             $0.edges.equalToSuperview().inset(14)
         }
-        
-        // 통계 스켈레톤 UI 제약조건
-        for (index, skeletonView) in statSkeletonViews.enumerated() {
-            skeletonView.snp.makeConstraints {
-                $0.top.equalToSuperview().offset(14)
-                $0.leading.equalToSuperview().offset(14 + CGFloat(index) * 80)
-                $0.width.equalTo(60)
-                $0.height.equalTo(60)
-            }
+
+        // 통계 스켈레톤 overlay — statContainerView 전체를 덮음 (모서리 반경 동일)
+        statSkeletonOverlay.snp.makeConstraints {
+            $0.edges.equalToSuperview()
         }
         // 최근 도슨트
         recentDocentButton.snp.makeConstraints {
@@ -501,6 +497,14 @@ final class SidebarView: UIView {
         }
         // AI 설정 스택 레이아웃
         aiSettingsStack.snp.makeConstraints {
+            $0.top.equalTo(aiDocentSeparator.snp.bottom).offset(16)
+            $0.leading.equalToSuperview().offset(20)
+            $0.trailing.equalToSuperview().offset(-20)
+            $0.bottom.equalToSuperview().offset(-20)
+        }
+
+        // AI 설정 스켈레톤 overlay — aiSettingsStack과 동일 위치
+        aiSettingsSkeletonOverlay.snp.makeConstraints {
             $0.top.equalTo(aiDocentSeparator.snp.bottom).offset(16)
             $0.leading.equalToSuperview().offset(20)
             $0.trailing.equalToSuperview().offset(-20)
@@ -668,57 +672,99 @@ final class SidebarView: UIView {
     }
     
     // MARK: - Skeleton UI Methods
-    
-    /// 스켈레톤 UI 설정
+
+    /// 스켈레톤 UI 초기 설정 (ViewController의 viewDidLoad에서 호출)
     func setupSkeletonUI() {
         // 이름 스켈레톤
-        nameSkeletonView.backgroundColor = UIColor.white.withAlphaComponent(0.1)
+        nameSkeletonView.backgroundColor = UIColor.white.withAlphaComponent(0.12)
         nameSkeletonView.layer.cornerRadius = 4
-        nameSkeletonView.isHidden = true
-        
-        // 통계 스켈레톤
-        for skeletonView in statSkeletonViews {
-            skeletonView.backgroundColor = UIColor.white.withAlphaComponent(0.1)
-            skeletonView.layer.cornerRadius = 8
-            skeletonView.isHidden = true
-        }
-        
-        // AI 설정 스켈레톤
-        for skeletonView in aiSettingsSkeletonViews {
-            skeletonView.backgroundColor = UIColor.white.withAlphaComponent(0.1)
-            skeletonView.layer.cornerRadius = 4
-            skeletonView.isHidden = true
-        }
+        nameSkeletonView.alpha = 0
+
+        // 통계 영역 overlay 스켈레톤
+        statSkeletonOverlay.backgroundColor = UIColor.white.withAlphaComponent(0.08)
+        statSkeletonOverlay.layer.cornerRadius = 16
+        statSkeletonOverlay.alpha = 0
+
+        // AI 설정 영역 overlay 스켈레톤
+        aiSettingsSkeletonOverlay.backgroundColor = UIColor.white.withAlphaComponent(0.08)
+        aiSettingsSkeletonOverlay.layer.cornerRadius = 8
+        aiSettingsSkeletonOverlay.alpha = 0
     }
-    
-    /// 로딩 상태에 따른 UI 업데이트
+
+    /// shimmer가 없는 경우에만 추가 (중복 방지)
+    private func addShimmerIfNeeded(to view: UIView) {
+        guard view.layer.sublayers?.contains(where: { $0.name == "shimmerLayer" }) != true else { return }
+
+        let shimmerLayer = CAGradientLayer()
+        shimmerLayer.name = "shimmerLayer"
+        shimmerLayer.colors = [
+            UIColor.clear.cgColor,
+            UIColor.white.withAlphaComponent(0.22).cgColor,
+            UIColor.clear.cgColor
+        ]
+        shimmerLayer.locations = [0.0, 0.5, 1.0]
+        shimmerLayer.startPoint = CGPoint(x: 0.0, y: 0.5)
+        shimmerLayer.endPoint = CGPoint(x: 1.0, y: 0.5)
+        shimmerLayer.frame = view.bounds
+        view.layer.addSublayer(shimmerLayer)
+        shimmerLayers.append(shimmerLayer)
+
+        let animation = CABasicAnimation(keyPath: "transform.translation.x")
+        animation.fromValue = -max(view.bounds.width, 100)
+        animation.toValue = max(view.bounds.width, 100)
+        animation.duration = 1.4
+        animation.repeatCount = .infinity
+        animation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        shimmerLayer.add(animation, forKey: "shimmer")
+    }
+
+    /// 특정 뷰의 shimmer 레이어 제거
+    private func removeShimmer(from view: UIView) {
+        view.layer.sublayers?.filter { $0.name == "shimmerLayer" }.forEach { $0.removeFromSuperlayer() }
+        shimmerLayers.removeAll { $0.superlayer == nil }
+    }
+
+    /// 로딩 상태에 따른 UI 업데이트 (SidebarViewController에서 호출)
     func updateLoadingState(isLoading: Bool, isAISettingsLoading: Bool) {
-        // 이름 로딩 상태
-        nameSkeletonView.isHidden = !isLoading
-        nameLabel.isHidden = isLoading
-        
-        // 통계 로딩 상태
-        for (index, skeletonView) in statSkeletonViews.enumerated() {
-            skeletonView.isHidden = !isLoading
-            if index < statStackView.arrangedSubviews.count {
-                statStackView.arrangedSubviews[index].isHidden = isLoading
+        isStatSkeletonVisible = isLoading
+        isAISkeletonVisible = isAISettingsLoading
+
+        if isLoading {
+            // 스켈레톤 즉시 표시 (alpha), 컨텐츠 숨김
+            nameSkeletonView.alpha = 1
+            nameLabel.alpha = 0
+            statSkeletonOverlay.alpha = 1
+            statStackView.alpha = 0
+            // bounds가 확정되어 있으면 즉시 shimmer 시작, 아니면 layoutSubviews에서 자동 처리
+            if nameSkeletonView.bounds.width > 0 {
+                addShimmerIfNeeded(to: nameSkeletonView)
+                addShimmerIfNeeded(to: statSkeletonOverlay)
+            }
+        } else {
+            // 실제 컨텐츠 fade-in, 스켈레톤 fade-out
+            UIView.animate(withDuration: 0.3) {
+                self.nameSkeletonView.alpha = 0
+                self.nameLabel.alpha = 1
+                self.statSkeletonOverlay.alpha = 0
+                self.statStackView.alpha = 1
+            } completion: { _ in
+                self.removeShimmer(from: self.nameSkeletonView)
+                self.removeShimmer(from: self.statSkeletonOverlay)
             }
         }
-        
-        // AI 설정 로딩 상태
-        for (index, skeletonView) in aiSettingsSkeletonViews.enumerated() {
-            skeletonView.isHidden = !isAISettingsLoading
-        }
-        
-        // AI 설정 값들 로딩 상태 - 로딩 완료 시에만 표시
-        lengthValueLabel.isHidden = isAISettingsLoading
-        speedValueLabel.isHidden = isAISettingsLoading
-        difficultyValueLabel.isHidden = isAISettingsLoading
-        
-        // 로딩 완료 시 애니메이션으로 부드럽게 전환
-        if !isLoading && !isAISettingsLoading {
+
+        if isAISettingsLoading {
+            aiSettingsSkeletonOverlay.alpha = 1
+            aiSettingsStack.alpha = 0
+            if aiSettingsSkeletonOverlay.bounds.height > 0 {
+                addShimmerIfNeeded(to: aiSettingsSkeletonOverlay)
+            }
+        } else {
             UIView.animate(withDuration: 0.3) {
-                self.layoutIfNeeded()
+                self.aiSettingsSkeletonOverlay.alpha = 0
+                self.aiSettingsStack.alpha = 1
+            } completion: { _ in
+                self.removeShimmer(from: self.aiSettingsSkeletonOverlay)
             }
         }
     }
@@ -760,6 +806,32 @@ final class SidebarView: UIView {
         }
     }
     
+    // MARK: - Layout Subviews
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
+        // CALayer는 Auto Layout을 자동 추적하지 않으므로, bounds 확정 시 shimmer 시작 + frame 갱신
+        if isStatSkeletonVisible && nameSkeletonView.bounds.width > 0 {
+            addShimmerIfNeeded(to: nameSkeletonView)
+            addShimmerIfNeeded(to: statSkeletonOverlay)
+        }
+        if isAISkeletonVisible && aiSettingsSkeletonOverlay.bounds.height > 0 {
+            addShimmerIfNeeded(to: aiSettingsSkeletonOverlay)
+        }
+
+        // 기존 shimmer 레이어 frame 갱신
+        for shimmerLayer in shimmerLayers {
+            guard let host = shimmerLayer.superlayer else { continue }
+            if shimmerLayer.frame != host.bounds {
+                CATransaction.begin()
+                CATransaction.setDisableActions(true)
+                shimmerLayer.frame = host.bounds
+                CATransaction.commit()
+            }
+        }
+    }
+
     // MARK: - Tap Handlers
 
     @objc private func aiDocentContainerTapped() {

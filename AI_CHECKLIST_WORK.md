@@ -1,41 +1,39 @@
-# Work Checklist — 피처별 CLAUDE.md 분산 배치
+# Work Checklist — 사이드바 스켈레톤 UX 개선
 
 ## A. 런타임/기능
-- [x] 기존 코드 변경 없음 (문서만 추가)
-- [x] 빌드 영향 없음
+- [ ] Xcode 빌드 성공 (에러/워닝 없음)
+- [ ] 사이드바 열릴 때 스켈레톤이 올바른 위치에 표시됨
+- [ ] 스켈레톤 컴포넌트들이 서로 겹치지 않음
+- [ ] shimmer 애니메이션이 매끄럽게 반복됨
+- [ ] 데이터 로드 완료 시 스켈레톤→컨텐츠 전환이 부드러움 (alpha fade)
+- [ ] 사이드바 슬라이드인 애니메이션이 매끄러움 (내용 미리 노출 없음)
+- [ ] 사이드바 닫기(슬라이드아웃) 정상 동작
 
 ## B. 아키텍처
-- [x] 각 CLAUDE.md가 해당 레이어의 규칙을 정확히 반영
-- [x] 루트 CLAUDE.md와 중복 최소화 (피처 특화 내용만)
-- [x] 기존 README와 충돌 없음 (보완 관계, README를 참조로 링크)
+- [ ] View 파일만 수정 — ViewModel/UseCase 변경 없음
+- [ ] SidebarViewController.updateLoadingState(isLoading:isAISettingsLoading:) 시그니처 유지
+- [ ] AppCoordinator.showSidebar() 변경 없음
 
-## C. 코드품질
-- [x] 14개 CLAUDE.md 모두 표준 섹션 포함
-- [x] 각 파일의 파일 구조, 데이터 흐름, AI 작업 가이드 섹션 완비
-- [x] DIContainer 팩토리 메서드명 정확히 기재
+## C. 코드 품질
+- [ ] CAGradientLayer shimmer 패턴이 SkeletonView.swift 패턴과 일관성 있음
+- [ ] layoutSubviews에서 shimmerLayer.frame 업데이트 구현
+- [ ] alpha 기반 전환 (isHidden 최소화)
+- [ ] [weak self] 메모리 관리
 
 ## D. UI/UX
-- N/A (문서 작업)
+- [ ] 스켈레톤 위치가 실제 컨텐츠 위치와 정확히 일치
+- [ ] 로딩 중 shimmer가 부드럽게 반복
+- [ ] 로딩 완료 후 alpha 0.3s fade-in
+- [ ] 사이드바 슬라이드인 완료 후 컨텐츠 자연스럽게 등장
 
-## E. 테스팅
-- N/A (문서 작업)
+## E. 환경 설정
+- [ ] settings.local.json hook 경로 수정 (/Users/sinjong-won → /Users/sjw)
 
 ## F. 문서
-- [x] Domain/CLAUDE.md 생성
-- [x] Data/CLAUDE.md 생성
-- [x] Data/Network/CLAUDE.md 생성
-- [x] Cooldinator/CLAUDE.md 생성
-- [x] Presentation/Common/CLAUDE.md 생성
-- [x] Presentation/Launch/CLAUDE.md 생성
-- [x] Presentation/Home/CLAUDE.md 생성
-- [x] Presentation/Entry/CLAUDE.md 생성
-- [x] Presentation/Player/CLAUDE.md 생성
-- [x] Presentation/Camera/CLAUDE.md 생성
-- [x] Presentation/Save/CLAUDE.md 생성
-- [x] Presentation/Like/CLAUDE.md 생성
-- [x] Presentation/Record/CLAUDE.md 생성
-- [x] Presentation/Underline/CLAUDE.md 생성
+- [ ] AI_PLAN.md 작성 완료
+- [ ] AI_CONTEXT.md 작성 완료
 
-## G. 최종
-- [x] 모든 14개 파일 생성 완료
-- [x] 루트 CLAUDE.md에 피처별 CLAUDE.md 존재 안내 표 추가
+## G. 최종 Self-Check
+- [ ] 기존 바인딩 인터페이스 유지
+- [ ] 회귀 없음 (사이드바 닫기, 데이터 표시 등)
+- [ ] AI_MANUAL.md 규칙 위반 없음

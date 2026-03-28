@@ -1,65 +1,77 @@
-# AI_PLAN.md — 피처별 CLAUDE.md 분산 배치
+# Plan Document — 사이드바 스켈레톤 UX 개선
 
-## 작업 유형
-- 문서 생성 (Documentation)
-- 아키텍처 정보 분산 (Architecture Knowledge Distribution)
+## 1. 작업 개요
+- 작업명: 사이드바 스켈레톤 애니메이션 및 열림 UX 개선
+- 작성일: 2026-03-28
+- 작업자: AI (Claude)
 
-## 목표
-루트 `CLAUDE.md`에 집중된 프로젝트 컨텍스트를 각 모듈/피처 단위로 분산하여,
-AI가 특정 피처 작업 시 해당 디렉토리의 CLAUDE.md만으로 충분한 컨텍스트를 얻을 수 있도록 한다.
+## 2. 목표
+- 이 작업을 통해 해결할 문제:
+  1. 스켈레톤 컴포넌트 영역 겹침 (aiSettingsSkeletonViews 제약조건 없음, statSkeletonViews 오프셋 불일치)
+  2. 스켈레톤 shimmer 애니메이션 없음 (단순 배경색 박스)
+  3. 로딩 완료 전환이 갑작스러움 (isHidden 토글)
+  4. 사이드바 슬라이드인 전 내용이 잘못된 레이아웃으로 미리 노출
+  5. settings.local.json hook 경로 오류 (/Users/sinjong-won → /Users/sjw)
+- 성공 기준:
+  - 스켈레톤 뷰들이 실제 컨텐츠 위치와 정확히 일치
+  - shimmer 애니메이션이 부드럽게 반복
+  - 로딩 완료 시 alpha 기반 fade-in 전환
+  - 사이드바 슬라이드인이 완료된 후 컨텐츠가 자연스럽게 표시
 
-## 기존 README 현황
-- `Data/Network/README_Network.md` — Moya 기반 네트워크 시스템
-- `Presentation/Common/README_Toast.md` — Toast 컴포넌트 가이드
-- `Presentation/Record/README_RecordInput.md` — 전시기록 입력 화면 상세
+## 3. 범위 (Scope)
+### 포함
+- `Artner/Artner/Presentation/Save/Sidebar/View/SidebarView.swift` — 스켈레톤 레이아웃 및 애니메이션 개선
+- `Artner/Artner/Presentation/Save/Sidebar/View/SideMenuContainerView.swift` — 사이드바 열림 UX 개선
+- `.claude/settings.local.json` — hook 경로 수정
 
-→ 이 README 파일들의 내용을 CLAUDE.md에 통합/참조하고, AI 작업 가이드를 추가한다.
+### 제외
+- SidebarViewModel, SidebarViewController 로직 변경 없음
+- 실제 데이터 로딩 플로우 변경 없음
+- 다른 화면 영향 없음
 
-## 생성할 CLAUDE.md 목록 (14개)
+## 4. 요구사항
+- 기능 요구: shimmer 애니메이션, 겹침 제거, 부드러운 전환
+- 제약 조건: Clean Architecture 준수, 기존 바인딩 인터페이스 유지
+- 우선순위: P0 (UX 버그 수준)
 
-### 큰 단위 레이어
-1. `Artner/Artner/Domain/CLAUDE.md` — 도메인 레이어 전체
-2. `Artner/Artner/Data/CLAUDE.md` — 데이터 레이어 전체
-3. `Artner/Artner/Cooldinator/CLAUDE.md` — 네비게이션 Coordinator
+## 5. 의존 관계
+- 연관 파일:
+  - `Artner/Artner/Presentation/Save/Sidebar/View/SidebarView.swift`
+  - `Artner/Artner/Presentation/Save/Sidebar/View/SideMenuContainerView.swift`
+  - `.claude/settings.local.json`
+- 연관 스킬: 없음 (UI 수정만)
 
-### Data 서브레이어
-4. `Artner/Artner/Data/Network/CLAUDE.md` — 네트워크 + DTOs + DIContainer
+## 6. 구현 계획
 
-### Presentation 피처
-5. `Artner/Artner/Presentation/Common/CLAUDE.md` — 공통 UI 컴포넌트
-6. `Artner/Artner/Presentation/Launch/CLAUDE.md` — 카카오 로그인 화면
-7. `Artner/Artner/Presentation/Home/CLAUDE.md` — 홈 피드 화면
-8. `Artner/Artner/Presentation/Entry/CLAUDE.md` — 도슨트 입장점 + 채팅
-9. `Artner/Artner/Presentation/Player/CLAUDE.md` — 오디오 플레이어 + 하이라이트
-10. `Artner/Artner/Presentation/Camera/CLAUDE.md` — 카메라 스캔
-11. `Artner/Artner/Presentation/Save/CLAUDE.md` — 저장 폴더 + Sidebar + AIDocentSettings
-12. `Artner/Artner/Presentation/Like/CLAUDE.md` — 좋아요 목록
-13. `Artner/Artner/Presentation/Record/CLAUDE.md` — 전시 기록 (입력+목록)
-14. `Artner/Artner/Presentation/Underline/CLAUDE.md` — 하이라이트 목록
+### Step 1: settings.local.json hook 경로 수정
+- `/Users/sinjong-won/` → `/Users/sjw/` 경로 교정
 
-## CLAUDE.md 표준 섹션 구성
+### Step 2: SidebarView.swift — 스켈레톤 구조 개선
 
-각 파일은 아래 섹션을 포함한다:
-1. **한 줄 요약** — 이 모듈이 하는 일
-2. **파일 구조** — 디렉토리/파일 목록 + 역할
-3. **데이터 흐름** — View → VC → VM → UseCase → Repository 체인
-4. **UseCase / Repository / API 맵** — 어떤 UseCase/endpoint를 쓰는지
-5. **주요 컴포넌트** — 핵심 클래스/구조체의 역할
-6. **AI 작업 가이드** — 이 모듈 작업 시 주의사항, 패턴, 금지사항
-7. **관련 문서** — 다른 CLAUDE.md 또는 README 링크
+#### 2-1. 기존 개별 스켈레톤 뷰를 overlay 방식으로 교체
+- `statSkeletonViews [4개]` → `statSkeletonOverlay: UIView` (statContainerView 전체 덮는 단일 overlay)
+- `aiSettingsSkeletonViews [3개]` → `aiSettingsSkeletonOverlay: UIView` (aiSettingsStack 영역 덮는 overlay)
+- 각 overlay 내에 shimmer CAGradientLayer 애니메이션 추가
 
-## 구현 단계
-1. Domain/CLAUDE.md 생성
-2. Data/CLAUDE.md 생성
-3. Data/Network/CLAUDE.md 생성
-4. Cooldinator/CLAUDE.md 생성
-5. Presentation/Common/CLAUDE.md 생성
-6. 각 피처(Launch/Home/Entry/Player/Camera/Save/Like/Record/Underline) CLAUDE.md 생성
+#### 2-2. shimmer 애니메이션 추가
+- CAGradientLayer 기반 shimmer (SkeletonView.swift의 패턴 참조)
+- 좌 → 우 방향 반복 애니메이션
 
-## 리스크
-- 기존 README 파일과 내용 중복 가능성 → CLAUDE.md는 README를 "참조"로 링크, AI 작업 가이드에 집중
-- 정보 노후화 → CLAUDE.md는 구조/패턴 중심으로 작성, 세부 스펙은 README에 위임
+#### 2-3. updateLoadingState 개선
+- isHidden 토글 → alpha 기반 fade (0.3s)
+- 스켈레톤 사라질 때 alpha 0 → 컨텐츠 alpha 0→1
 
-## 영향 레이어
-- 코드 변경 없음 (문서만 추가)
-- 빌드 영향 없음
+### Step 3: SideMenuContainerView.swift — 열림 UX 개선
+- present() 시 menuView.alpha = 0으로 시작
+- 슬라이드인 시작 시 동시에 alpha 0 → 1 fade-in
+
+## 7. 리스크/대책
+- 리스크 1: overlay 방식 전환 시 SidebarViewController의 statStackView 바인딩과 충돌 가능
+  → 대책: statStackView.alpha 0/1 사용 (isHidden 사용 금지)
+- 리스크 2: CALayer 애니메이션이 layoutSubviews에서 업데이트 필요
+  → 대책: layoutSubviews override에서 shimmer frame 업데이트
+
+## 8. 다음 단계
+1. Step 1: settings.local.json 수정
+2. Step 2: SidebarView.swift 수정
+3. Step 3: SideMenuContainerView.swift 수정

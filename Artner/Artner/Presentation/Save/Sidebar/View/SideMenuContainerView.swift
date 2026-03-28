@@ -59,22 +59,23 @@ final class SideMenuContainerView: UIView {
 
         // 초기 위치: 우측 바깥 (trailing = menuWidth)
         menuViewTrailingConstraint?.update(offset: menuWidth)
+        // 컨텐츠는 슬라이드인 전에 보이지 않도록 alpha=0으로 시작
+        menuViewController.view.alpha = 0
 
         // 레이아웃을 먼저 완료시켜서 내부 뷰들이 모두 렌더링되도록 함
         layoutIfNeeded()
-
-        // 내부 뷰의 레이아웃도 완료되도록 강제
         menuViewController.view.layoutIfNeeded()
 
         // 레이아웃 완료 후 다음 런루프에서 애니메이션 시작
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
 
-            // 사이드바 슬라이드 인 애니메이션 (컨텐츠도 동시에 표시)
+            // 슬라이드인 + 컨텐츠 fade-in 동시 진행
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseOut) {
                 self.blurView.alpha = 0.8
                 self.overlayView.alpha = 1
                 self.menuViewTrailingConstraint?.update(offset: 0)
+                self.menuViewController.view.alpha = 1
                 self.layoutIfNeeded()
             }
         }
