@@ -8,3 +8,6 @@
 config.plist
 secrets.plist
 
+# Claude Code 로컬 설정 (다른 환경에서도 같은 설정 사용을 위해 추적)
+!.claude/settings.local.json
+
