@@ -97,7 +97,8 @@ final class AIDocentCellView: UIView {
     private(set) var isSelected: Bool = false
 
     // MARK: - UI
-    private let profileImageView = UIImageView()
+    /// MP4 루프 재생 뷰 (56×56)
+    let videoView = VideoLoopPlayerView()
     private let nameLabel = UILabel()
     private let descLabel = UILabel()
 
@@ -107,6 +108,7 @@ final class AIDocentCellView: UIView {
         super.init(frame: .zero)
         setupUI()
         setupLayout()
+        configureVideo()
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -119,47 +121,62 @@ final class AIDocentCellView: UIView {
         layer.borderWidth = 2
         layer.borderColor = UIColor.clear.cgColor
 
-        // 프로필 이미지
-        profileImageView.layer.cornerRadius = 18
-        profileImageView.clipsToBounds = true
-        profileImageView.backgroundColor = UIColor(red: 0.4, green: 0.3, blue: 0.2, alpha: 1.0)
-        profileImageView.contentMode = .scaleAspectFill
+        // 비디오 뷰 — 둥근 모서리
+        videoView.layer.cornerRadius = 12
+        videoView.clipsToBounds = true
+        videoView.backgroundColor = UIColor.white.withAlphaComponent(0.12)
 
-        // 이름
-        nameLabel.text = aiType.displayName
-        nameLabel.font = UIFont.boldSystemFont(ofSize: 16)
-        nameLabel.textColor = .white
+        // AI 이름 — Bold 700, 20px, letter-spacing 5%
+        let nameAttrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 20, weight: .bold),
+            .foregroundColor: UIColor.white,
+            .kern: 20.0 * 0.05   // 5%
+        ]
+        nameLabel.attributedText = NSAttributedString(string: aiType.displayName, attributes: nameAttrs)
 
-        // 설명
-        descLabel.text = aiType.description
-        descLabel.font = UIFont.systemFont(ofSize: 13)
-        descLabel.textColor = UIColor.white.withAlphaComponent(0.6)
-        descLabel.numberOfLines = 2
+        // 설명 — Regular 400, 16px, line-height 164%, letter-spacing -0.5%
+        let para = NSMutableParagraphStyle()
+        para.lineHeightMultiple = 1.64
+        let descAttrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 16, weight: .regular),
+            .foregroundColor: UIColor.white.withAlphaComponent(0.7),
+            .kern: 16.0 * (-0.005),   // -0.5%
+            .paragraphStyle: para
+        ]
+        descLabel.attributedText = NSAttributedString(string: aiType.description, attributes: descAttrs)
+        descLabel.numberOfLines = 0
     }
 
     private func setupLayout() {
-        addSubview(profileImageView)
+        addSubview(videoView)
         addSubview(nameLabel)
         addSubview(descLabel)
 
-        profileImageView.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(16)
-            $0.top.equalToSuperview().offset(16)
-            $0.width.height.equalTo(36)
+        // 비디오 — 56×56, 좌측 상단 고정
+        videoView.snp.makeConstraints {
+            $0.top.leading.equalToSuperview().offset(16)
+            $0.width.height.equalTo(56)
         }
 
+        // AI 이름 — videoView와 centerY, videoView trailing 기준
         nameLabel.snp.makeConstraints {
-            $0.leading.equalTo(profileImageView.snp.trailing).offset(12)
-            $0.top.equalTo(profileImageView)
+            $0.centerY.equalTo(videoView)
+            $0.leading.equalTo(videoView.snp.trailing).offset(12)
             $0.trailing.equalToSuperview().offset(-16)
         }
 
+        // 설명 — nameLabel 하단 10px, leading = videoView leading
         descLabel.snp.makeConstraints {
-            $0.leading.equalTo(nameLabel)
-            $0.top.equalTo(nameLabel.snp.bottom).offset(6)
+            $0.top.equalTo(videoView.snp.bottom).offset(10)
+            $0.leading.equalTo(videoView)        // icon과 동일 leading
             $0.trailing.equalToSuperview().offset(-16)
             $0.bottom.equalToSuperview().offset(-16)
         }
+    }
+
+    private func configureVideo() {
+        let resource = AIDocentSettingsViewModel.videoResource(for: aiType.personal)
+        videoView.configure(resourceName: resource.name, fileExtension: resource.ext)
     }
 
     // MARK: - Selection State
@@ -167,9 +184,7 @@ final class AIDocentCellView: UIView {
     func setSelected(_ selected: Bool) {
         isSelected = selected
         let orange = UIColor(named: "MainOrange") ?? UIColor(red: 1.0, green: 0.486, blue: 0.153, alpha: 1.0)
+        // border만 변경, 배경색은 고정
         layer.borderColor = selected ? orange.cgColor : UIColor.clear.cgColor
-        backgroundColor = selected
-            ? orange.withAlphaComponent(0.08)
-            : UIColor.white.withAlphaComponent(0.07)
     }
 }

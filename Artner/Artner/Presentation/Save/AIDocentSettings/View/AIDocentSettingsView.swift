@@ -24,8 +24,10 @@ final class AIDocentSettingsView: UIView {
     let aiArrowImage       = UIImageView(image: UIImage(systemName: "chevron.down"))
     let aiCellButton       = UIButton(type: .system)
 
-    // MARK: - 구분선
-    let separatorLine = UIView()
+    // MARK: - 구분선 (AI셀 하단 + 슬라이더 행 사이)
+    let separatorLine    = UIView()   // AI셀 아래
+    private let sliderSeparator1 = UIView()   // 길이 ↔ 속도
+    private let sliderSeparator2 = UIView()   // 속도 ↔ 난이도
 
     // MARK: - 말하기 설정 헤더
     let speakingSectionLabel = UILabel()
@@ -100,25 +102,35 @@ final class AIDocentSettingsView: UIView {
         // 탭 투명 버튼
         aiCellButton.backgroundColor = .clear
 
-        // 구분선
-        separatorLine.backgroundColor = UIColor.white.withAlphaComponent(0.15)
+        // 구분선 공통 스타일
+        let separatorColor = UIColor.white.withAlphaComponent(0.15)
+        separatorLine.backgroundColor    = separatorColor
+        sliderSeparator1.backgroundColor = separatorColor
+        sliderSeparator2.backgroundColor = separatorColor
 
         // 말하기 설정 헤더
         speakingSectionLabel.text = "말하기 설정"
         speakingSectionLabel.font = .boldSystemFont(ofSize: 16)
         speakingSectionLabel.textColor = .white
 
-        // 초기화 버튼
-        let orange = UIColor(named: "MainOrange") ?? UIColor(red: 1.0, green: 0.486, blue: 0.153, alpha: 1.0)
+        // 초기화 버튼 — background:#222222, 텍스트/아이콘 흰색, 75×26, pill, 12px regular
         var config = UIButton.Configuration.plain()
-        config.image = UIImage(systemName: "arrow.counterclockwise")
-        config.title = "초기화"
+        config.image = UIImage(named: "ic_refresh")
         config.imagePlacement = .trailing
         config.imagePadding = 4
-        config.baseForegroundColor = orange
-        config.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8)
+        config.baseForegroundColor = .white
+        config.contentInsets = NSDirectionalEdgeInsets(top: 5, leading: 10, bottom: 5, trailing: 10)
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attrs in
+            var out = attrs
+            out.font = UIFont.systemFont(ofSize: 12, weight: .regular)
+            return out
+        }
+        config.attributedTitle = AttributedString("초기화")
+        var bg = UIBackgroundConfiguration.clear()
+        bg.backgroundColor = UIColor(red: 0x22/255.0, green: 0x22/255.0, blue: 0x22/255.0, alpha: 1.0)
+        bg.cornerRadius = 13
+        config.background = bg
         resetButton.configuration = config
-        resetButton.titleLabel?.font = .systemFont(ofSize: 13)
 
         // 저장하기 버튼
         saveButton.setTitle("저장하기", for: .normal)
@@ -145,7 +157,9 @@ final class AIDocentSettingsView: UIView {
         contentView.addSubview(speakingSectionLabel)
         contentView.addSubview(resetButton)
         contentView.addSubview(lengthRow)
+        contentView.addSubview(sliderSeparator1)
         contentView.addSubview(speedRow)
+        contentView.addSubview(sliderSeparator2)
         contentView.addSubview(difficultyRow)
 
         // 네비게이션
@@ -201,36 +215,56 @@ final class AIDocentSettingsView: UIView {
         }
         aiCellButton.snp.makeConstraints { $0.edges.equalToSuperview() }
 
-        // 구분선
+        // AI셀 하단 구분선 — aiCellContainer 하단에서 26pt
         separatorLine.snp.makeConstraints {
-            $0.top.equalTo(aiCellContainer.snp.bottom).offset(20)
+            $0.top.equalTo(aiCellContainer.snp.bottom).offset(26)
             $0.leading.trailing.equalToSuperview()
             $0.height.equalTo(1)
         }
 
-        // 말하기 설정 헤더
+        // 말하기 설정 헤더 — separatorLine 하단에서 26pt
         speakingSectionLabel.snp.makeConstraints {
-            $0.top.equalTo(separatorLine.snp.bottom).offset(20)
+            $0.top.equalTo(separatorLine.snp.bottom).offset(26)
             $0.leading.equalToSuperview().offset(20)
         }
         resetButton.snp.makeConstraints {
             $0.centerY.equalTo(speakingSectionLabel)
             $0.trailing.equalToSuperview().offset(-16)
+            $0.width.equalTo(75)
+            $0.height.equalTo(26)
         }
 
-        // 슬라이더 행들
+        // 길이 행 — speakingSectionLabel 하단에서 42pt
         lengthRow.snp.makeConstraints {
-            $0.top.equalTo(speakingSectionLabel.snp.bottom).offset(20)
+            $0.top.equalTo(speakingSectionLabel.snp.bottom).offset(42)
             $0.leading.equalToSuperview().offset(20)
             $0.trailing.equalToSuperview().offset(-20)
         }
+
+        // 구분선1 — lengthRow 슬라이더 하단에서 26pt
+        sliderSeparator1.snp.makeConstraints {
+            $0.top.equalTo(lengthRow.slider.snp.bottom).offset(26)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(1)
+        }
+
+        // 속도 행 — sliderSeparator1 하단에서 26pt
         speedRow.snp.makeConstraints {
-            $0.top.equalTo(lengthRow.snp.bottom).offset(28)
+            $0.top.equalTo(sliderSeparator1.snp.bottom).offset(26)
             $0.leading.equalToSuperview().offset(20)
             $0.trailing.equalToSuperview().offset(-20)
         }
+
+        // 구분선2 — speedRow 슬라이더 하단에서 26pt
+        sliderSeparator2.snp.makeConstraints {
+            $0.top.equalTo(speedRow.slider.snp.bottom).offset(26)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(1)
+        }
+
+        // 난이도 행 — sliderSeparator2 하단에서 26pt
         difficultyRow.snp.makeConstraints {
-            $0.top.equalTo(speedRow.snp.bottom).offset(28)
+            $0.top.equalTo(sliderSeparator2.snp.bottom).offset(26)
             $0.leading.equalToSuperview().offset(20)
             $0.trailing.equalToSuperview().offset(-20)
             $0.bottom.equalToSuperview().offset(-32)
@@ -287,10 +321,33 @@ final class SpeakingSliderRowView: UIView {
         slider.minimumValue = 0
         slider.maximumValue = Float(stepCount - 1)
         slider.tintColor = orange
-        slider.thumbTintColor = orange
         // 트랙 색상
         slider.minimumTrackTintColor = orange
         slider.maximumTrackTintColor = UIColor.white.withAlphaComponent(0.2)
+        // 커스텀 썸 — 28×28 원형, 오렌지 fill, 2.1px #FFFFFF80 border
+        let thumbImage = makeSliderThumb(size: 28, fillColor: orange)
+        slider.setThumbImage(thumbImage, for: .normal)
+        slider.setThumbImage(thumbImage, for: .highlighted)
+    }
+
+    // MARK: - Helpers
+
+    /// width/height이 `size`pt인 원형 슬라이더 썸 이미지 생성
+    private func makeSliderThumb(size: CGFloat, fillColor: UIColor) -> UIImage {
+        let dimension = CGSize(width: size, height: size)
+        let renderer = UIGraphicsImageRenderer(size: dimension)
+        return renderer.image { ctx in
+            let rect = CGRect(origin: .zero, size: dimension)
+            // 오렌지 fill
+            fillColor.setFill()
+            ctx.cgContext.fillEllipse(in: rect)
+            // 2.1px #FFFFFF80 border
+            let borderWidth: CGFloat = 2.1
+            UIColor.white.withAlphaComponent(0.502).setStroke()
+            ctx.cgContext.setLineWidth(borderWidth)
+            let inset = borderWidth / 2
+            ctx.cgContext.strokeEllipse(in: rect.insetBy(dx: inset, dy: inset))
+        }
     }
 
     private func setupLayout(hasIcon: Bool) {

@@ -158,6 +158,11 @@ final class SidebarViewModel {
         speedValue      = speed
         difficultyValue = difficulty
     }
+
+    /// AI 도슨트 변경 시 사이드바 아이콘/이름 즉시 업데이트
+    func updateAIDocent(personal: String) {
+        aiDocent = personal
+    }
 }
 
 struct SidebarStat {

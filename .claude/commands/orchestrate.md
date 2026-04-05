@@ -30,6 +30,18 @@
 
 ---
 
+## PHASE 0: 초기화 (자동 / 항상 실행)
+
+**Step 0** 이전 세션 워크플로우 문서 정리
+- 프로젝트 루트의 `AI_PLAN.md`, `AI_CONTEXT.md`, `AI_CHECKLIST_WORK.md`,
+  `AI_QUALITY_REPORT.md`, `AI_TEST_REPORT.md`, `AI_REPORT.md` 가 존재하면 삭제
+- 이유: 이전 작업 문서가 남아있으면 hook이 오판하고 on_stop.sh가 잘못된 상태를 표시함
+- Bash 툴로 실행: `rm -f AI_PLAN.md AI_CONTEXT.md AI_CHECKLIST_WORK.md AI_QUALITY_REPORT.md AI_TEST_REPORT.md AI_REPORT.md`
+
+*→ 정리 완료 즉시 PHASE 1으로 진행*
+
+---
+
 ## PHASE 1: 계획 (자동)
 
 **Step 1** `workflow.plan` → `AI_PLAN.md` 생성

@@ -14,8 +14,8 @@ final class AIDocentSettingsViewController: UIViewController {
     private let viewModel: AIDocentSettingsViewModel
     private var cancellables = Set<AnyCancellable>()
 
-    /// 저장 완료 시 (lengthDisplayName, speedDisplayName, difficultyDisplayName) 전달
-    var onSave: ((String, String, String) -> Void)?
+    /// 저장 완료 시 (personal, lengthDisplayName, speedDisplayName, difficultyDisplayName) 전달
+    var onSave: ((String, String, String, String) -> Void)?
 
     // MARK: - Init
     init(viewModel: AIDocentSettingsViewModel) {
@@ -85,6 +85,16 @@ final class AIDocentSettingsViewController: UIViewController {
             }
             .store(in: &cancellables)
 
+        // AI 변경 시 프로필 이미지(썸네일) 업데이트
+        viewModel.$selectedPersonal
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] personal in
+                AIDocentSettingsViewModel.thumbnail(for: personal) { [weak self] image in
+                    self?.contentView.aiProfileImageView.image = image
+                }
+            }
+            .store(in: &cancellables)
+
         // 현재값 레이블 (오렌지)
         viewModel.$lengthDisplayName
             .receive(on: DispatchQueue.main)
@@ -111,7 +121,7 @@ final class AIDocentSettingsViewController: UIViewController {
     @objc private func didTapAICell() {
         let selectionVC = AIDocentSelectionViewController(currentPersonal: viewModel.selectedPersonal)
         selectionVC.onSave = { [weak self] personal in self?.viewModel.selectAI(personal: personal) }
-        presentBottomSheet(selectionVC, height: .medium())
+        presentBottomSheet(selectionVC)
     }
 
     @objc private func didTapReset() {
@@ -121,7 +131,7 @@ final class AIDocentSettingsViewController: UIViewController {
     @objc private func didTapSave() {
         // TODO: PUT API 연동 — selectedLengthApiValue / selectedSpeedApiValue / selectedDifficultyApiValue 전송
         print("💾 저장: 길이=\(viewModel.selectedLengthApiValue), 속도=\(viewModel.selectedSpeedApiValue), 난이도=\(viewModel.selectedDifficultyApiValue)")
-        onSave?(viewModel.lengthDisplayName, viewModel.speedDisplayName, viewModel.difficultyDisplayName)
+        onSave?(viewModel.selectedPersonal, viewModel.lengthDisplayName, viewModel.speedDisplayName, viewModel.difficultyDisplayName)
         ToastManager.shared.showSuccess("설정이 저장되었습니다")
         navigationController?.popViewController(animated: true)
     }
@@ -146,11 +156,21 @@ final class AIDocentSettingsViewController: UIViewController {
 
     // MARK: - Helpers
 
-    private func presentBottomSheet(_ vc: UIViewController, height: UISheetPresentationController.Detent) {
+    /// AI 도슨트 선택 모달 — 좌우 full-width, 세로 화면의 75%
+    private func presentBottomSheet(_ vc: UIViewController) {
+        vc.modalPresentationStyle = .pageSheet
         if let sheet = vc.sheetPresentationController {
-            sheet.detents = [height]
-            sheet.prefersGrabberVisible = true
+            if #available(iOS 16.0, *) {
+                let customDetent = UISheetPresentationController.Detent.custom { context in
+                    context.maximumDetentValue * 0.75
+                }
+                sheet.detents = [customDetent]
+            } else {
+                sheet.detents = [.large()]
+            }
+            sheet.prefersGrabberVisible = false
             sheet.prefersScrollingExpandsWhenScrolledToEdge = false
+            sheet.preferredCornerRadius = 20
         }
         present(vc, animated: true)
     }

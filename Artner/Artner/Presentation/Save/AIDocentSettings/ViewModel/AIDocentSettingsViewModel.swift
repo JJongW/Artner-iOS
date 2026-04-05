@@ -4,8 +4,10 @@
 //
 //  AI 도슨트 설정 화면의 상태와 로직을 담당
 
-import Foundation
+import AVFoundation
 import Combine
+import Foundation
+import UIKit
 
 final class AIDocentSettingsViewModel {
 
@@ -158,5 +160,37 @@ final class AIDocentSettingsViewModel {
 
     static func index(of apiValue: String, in options: [SpeakingOption]) -> Float {
         return Float(options.firstIndex(where: { $0.apiValue == apiValue }) ?? (options.count / 2))
+    }
+
+    /// personal 값에 해당하는 MP4 파일명과 확장자 반환
+    static func videoResource(for personal: String) -> (name: String, ext: String) {
+        switch personal {
+        case "anna":  return ("kind_mv",  "MP4")
+        case "adam":  return ("funny_mv", "MP4")
+        case "jia":   return ("cute_mv",  "mp4")
+        default:      return ("kind_mv",  "MP4")
+        }
+    }
+
+    /// personal 값에 해당하는 MP4 첫 프레임 썸네일 이미지 반환 (백그라운드 호출 권장)
+    static func thumbnail(for personal: String, completion: @escaping (UIImage?) -> Void) {
+        let resource = videoResource(for: personal)
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let url = Bundle.main.url(forResource: resource.name, withExtension: resource.ext) else {
+                DispatchQueue.main.async { completion(nil) }
+                return
+            }
+            let asset = AVAsset(url: url)
+            let generator = AVAssetImageGenerator(asset: asset)
+            generator.appliesPreferredTrackTransform = true
+            generator.maximumSize = CGSize(width: 72, height: 72)
+            let time = CMTimeMake(value: 0, timescale: 1)
+            if let cgImage = try? generator.copyCGImage(at: time, actualTime: nil) {
+                let image = UIImage(cgImage: cgImage)
+                DispatchQueue.main.async { completion(image) }
+            } else {
+                DispatchQueue.main.async { completion(nil) }
+            }
+        }
     }
 }

@@ -1,8 +1,9 @@
 #!/bin/bash
-# PostToolUse[Write] 훅 — 워크플로우 문서 생성 시 진행 상황 알림
-# 이 출력은 Claude에게 피드백으로 전달되어 다음 단계로 자동 진행을 유도한다
+# PostToolUse[Write|Edit] 훅 — 워크플로우 문서 생성/수정 시 다음 단계 피드백
+# stdout이 Claude에게 피드백으로 전달되어 다음 단계로 자동 진행을 유도한다
 
-PROJECT="/Users/sinjong-won/ted.urssu/Artner-iOS"
+# 실행 위치 기반으로 프로젝트 경로를 동적으로 결정 (하드코딩 방지)
+PROJECT="$(cd "$(dirname "$0")/../.." && pwd)"
 NOW=$(date +%s)
 
 check_recent() {
@@ -11,7 +12,7 @@ check_recent() {
   if [ -f "$FILE" ]; then
     MTIME=$(stat -f "%m" "$FILE" 2>/dev/null || echo 0)
     AGE=$((NOW - MTIME))
-    if [ "$AGE" -lt 8 ]; then
+    if [ "$AGE" -lt 10 ]; then
       echo "$MSG"
       return 0
     fi

@@ -21,7 +21,21 @@
 		C3E07E5D2DA1140300BB0D0A /* Exceptions for "Artner" folder in "Artner" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Cooldinator/CLAUDE.md,
+				Data/CLAUDE.md,
+				Data/Network/CLAUDE.md,
+				Domain/CLAUDE.md,
 				Info.plist,
+				Presentation/Camera/CLAUDE.md,
+				Presentation/Common/CLAUDE.md,
+				Presentation/Entry/CLAUDE.md,
+				Presentation/Home/CLAUDE.md,
+				Presentation/Launch/CLAUDE.md,
+				Presentation/Like/CLAUDE.md,
+				Presentation/Player/CLAUDE.md,
+				Presentation/Record/CLAUDE.md,
+				Presentation/Save/CLAUDE.md,
+				Presentation/Underline/CLAUDE.md,
 			);
 			target = C3E07E4A2DA1140200BB0D0A /* Artner */;
 		};

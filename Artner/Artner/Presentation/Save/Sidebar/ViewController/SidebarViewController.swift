@@ -297,6 +297,20 @@ final class SidebarViewController: UIViewController {
             }
             .store(in: &cancellables)
         
+        // AI 도슨트 변경 시 프로필 썸네일 업데이트
+        viewModel.$aiDocent
+            .filter { !$0.isEmpty }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] personal in
+                // AI 이름 텍스트 업데이트
+                self?.sidebarView.aiNameLabel.text = AIDocentSettingsViewModel.displayName(for: personal)
+                // 썸네일 이미지 비동기 로드
+                AIDocentSettingsViewModel.thumbnail(for: personal) { [weak self] image in
+                    self?.sidebarView.aiProfileImageView.image = image
+                }
+            }
+            .store(in: &cancellables)
+
         // 로딩 상태 바인딩
         bindLoadingStates()
     }

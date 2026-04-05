@@ -20,6 +20,15 @@
             "command": "bash /Users/sjw/ted.urssu/Artner-iOS/.claude/hooks/post_write.sh"
           }
         ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/sjw/ted.urssu/Artner-iOS/.claude/hooks/post_write.sh"
+          }
+        ]
       }
     ],
     "Stop": [

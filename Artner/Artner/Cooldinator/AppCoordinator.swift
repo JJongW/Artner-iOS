@@ -321,10 +321,13 @@ final class AppCoordinator:
             currentDifficulty: currentSidebarViewModel?.aiDocentSettings?.difficulty ?? "beginner"
         )
         let settingsVC = AIDocentSettingsViewController(viewModel: vm)
-        settingsVC.onSave = { [weak self] length, speed, difficulty in
+        settingsVC.onSave = { [weak self] personal, length, speed, difficulty in
+            // 사이드바 말하기 설정값 갱신
             self?.currentSidebarViewModel?.updateSpeakingDisplayValues(
                 length: length, speed: speed, difficulty: difficulty
             )
+            // 사이드바 AI 아이콘/이름 갱신
+            self?.currentSidebarViewModel?.updateAIDocent(personal: personal)
         }
 
         sideMenu?.dismissMenu(completion: { [weak self] in
